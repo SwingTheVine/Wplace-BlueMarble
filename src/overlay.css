@@ -8,7 +8,7 @@
   padding: 10px;
   border-radius: 8px;
   z-index: 9000;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease, transform 0s;
   max-width: 300px;
   width: auto;
   /* Performance optimizations for smooth dragging */
