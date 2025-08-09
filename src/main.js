@@ -277,6 +277,7 @@ function buildOverlayMain() {
             const enableButton = document.querySelector('#bm-button-enable');
             const disableButton = document.querySelector('#bm-button-disable');
             const coordInputs = document.querySelectorAll('#bm-contain-coords input');
+            const urlButtons = document.querySelectorAll('#bm-contain-buttons-url');
             
             // Pre-restore original dimensions when switching to maximized state
             // This ensures smooth transition and prevents layout issues
@@ -341,6 +342,10 @@ function buildOverlayMain() {
               coordInputs.forEach(input => {
                 input.style.display = 'none';
               });
+
+              urlButtons.forEach(button => {
+                button.style.display = 'none';
+              })
               
               // Apply fixed dimensions for consistent minimized appearance
               // These dimensions were chosen to accommodate the icon while remaining compact
@@ -407,6 +412,10 @@ function buildOverlayMain() {
               coordInputs.forEach(input => {
                 input.style.display = '';
               });
+
+              urlButtons.forEach(button => {
+                button.style.display = '';
+              })
               
               // Reset icon positioning to default (remove minimized state offset)
               img.style.marginLeft = '';
@@ -484,6 +493,45 @@ function buildOverlayMain() {
         .addInput({'type': 'number', 'id': 'bm-input-py', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
       .buildElement()
       .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
+      .addDiv({'id': 'bm-contain-buttons-url'})
+          .addButton({'id':'bm-button-from-url','textContent':'Load from URL'}, (instance, button) => {
+              const urlEntries = new URLSearchParams(window.location.search.substring(1));
+              const urlParams = Object.fromEntries(urlEntries.entries());
+              const jsonURL = urlParams['bluemarble']
+              if (!jsonURL) {
+                  button.disabled = true;
+              }
+              button.onclick = () => {
+                GM_xmlhttpRequest({
+                    url: jsonURL,
+                    method: 'GET',
+                    onload: (response) => {
+                        if (response.status !== 200) return;
+                        let json;
+                        try {
+                            json = JSON.parse(response.responseText);
+                        } catch (e) {
+                            console.error(`failed to parse json from ${jsonURL.href}`)
+                            return;
+                        }
+                        let templates = json['templates']
+                        for (let template of templates) {
+                            GM_xmlhttpRequest( {
+                                url: template['source'],
+                                method: 'GET',
+                                responseType: 'blob',
+                                onload: (response) => {
+                                    if (response.status === 200){
+                                        templateManager.createTemplate(response.response, template.name ?? 'template', template.coords).catch(console.error)
+                                    }
+                                }
+                            })
+                        }
+                    }
+                })
+              }
+          }).buildElement()
+      .buildElement()
       .addDiv({'id': 'bm-contain-buttons-template'})
         .addButton({'id': 'bm-button-enable', 'textContent': 'Enable'}, (instance, button) => {
           button.onclick = () => {
