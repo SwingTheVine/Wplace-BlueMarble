@@ -128,18 +128,23 @@ export default class Template {
         for (let y = 0; y < canvasHeight; y++) {
           for (let x = 0; x < canvasWidth; x++) {
             // For every pixel...
-
-            // ... Make it transparent unless it is the "center"
-            if (x % shreadSize !== 1 || y % shreadSize !== 1) {
-              const pixelIndex = (y * canvasWidth + x) * 4; // Find the pixel index in an array where every 4 indexes are 1 pixel
+            const pixelIndex = (y * canvasWidth + x) * 4; // Find the pixel index in an array where every 4 indexes are 1 pixel
+            // If the pixel is the color #deface, draw a translucent gray checkerboard pattern
+            if (
+              imageData.data[pixelIndex] === 222 &&
+              imageData.data[pixelIndex + 1] === 250 &&
+              imageData.data[pixelIndex + 2] === 206
+            ) {
+              if ((x + y) % 2 === 0) { // Formula for checkerboard pattern
+                imageData.data[pixelIndex] = 0;
+                imageData.data[pixelIndex + 1] = 0;
+                imageData.data[pixelIndex + 2] = 0;
+                imageData.data[pixelIndex + 3] = 32; // Translucent black
+              } else { // Transparent negative space
+                imageData.data[pixelIndex + 3] = 0;
+              }
+            } else if (x % shreadSize !== 1 || y % shreadSize !== 1) { // Otherwise only draw the middle pixel
               imageData.data[pixelIndex + 3] = 0; // Make the pixel transparent on the alpha channel
-
-              // if (!!imageData.data[pixelIndex + 3]) {
-              //   imageData.data[pixelIndex + 3] = 50; // Alpha
-              //   imageData.data[pixelIndex] = 30; // Red
-              //   imageData.data[pixelIndex + 1] = 30; // Green
-              //   imageData.data[pixelIndex + 2] = 30; // Blue
-              // }
             }
           }
         }
