@@ -9,6 +9,7 @@
   "devDependencies": {
     "esbuild": "^0.25.0",
     "jsdoc": "^4.0.4",
-    "terser": "^5.43.1"
+    "terser": "^5.43.1",
+    "@types/tampermonkey": "^5.0.4"
   }
 }

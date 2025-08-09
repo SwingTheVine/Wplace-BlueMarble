@@ -201,7 +201,8 @@ div:has(> #bm-button-teleport) {
 }
 
 /* The template file upload button */
-div:has(> #bm-input-file-template) > button {
+div:has(> #bm-input-file-template) > button,
+#bm-button-from-url{
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
@@ -249,6 +250,7 @@ input[type="file"][id*="template"] {
 #bm-contain-automation,
 #bm-contain-coords,
 #bm-contain-buttons-template,
+#bm-contain-buttons-url,
 div:has(> #bm-input-file-template),
 #bm-output-status {
   margin-top: 0.5em;
