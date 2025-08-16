@@ -7,6 +7,7 @@ import Observers from './observers.js';
 import ApiManager from './apiManager.js';
 import TemplateManager from './templateManager.js';
 import { consoleLog, consoleWarn } from './utils.js';
+import * as icons from "./icons.js";
 
 const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
@@ -162,15 +163,26 @@ const cssOverlay = GM_getResourceText("CSS-BM-File");
 GM_addStyle(cssOverlay);
 
 // Imports the Roboto Mono font family
-var stylesheetLink = document.createElement('link');
-stylesheetLink.href = 'https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap';
-stylesheetLink.rel = 'preload';
-stylesheetLink.as = 'style';
-stylesheetLink.onload = function () {
+let robotoStylesheetLink    = document.createElement('link');
+robotoStylesheetLink.href   = 'https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap';
+robotoStylesheetLink.rel    = 'preload';
+robotoStylesheetLink.as     = 'style';
+robotoStylesheetLink.onload = function () {
   this.onload = null;
   this.rel = 'stylesheet';
 };
-document.head?.appendChild(stylesheetLink);
+document.head?.appendChild(robotoStylesheetLink);
+
+// Imports the Outfit font family
+let outfitStylesheetLink    = document.createElement('link');
+robotoStylesheetLink.href   = 'https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap';
+outfitStylesheetLink.rel    = 'preload';
+outfitStylesheetLink.as     = 'style';
+outfitStylesheetLink.onload = function () {
+    this.onload = null;
+    this.rel    = 'stylesheet';
+}
+document.head?.appendChild(outfitStylesheetLink);
 
 // CONSTRUCTORS
 const observers = new Observers(); // Constructs a new Observers object
@@ -236,234 +248,272 @@ function observeBlack() {
 
 /** Deploys the overlay to the page with minimize/maximize functionality.
  * Creates a responsive overlay UI that can toggle between full-featured and minimized states.
- * 
+ *
  * Parent/child relationships in the DOM structure below are indicated by indentation.
  * @since 0.58.3
  */
 function buildOverlayMain() {
   let isMinimized = false; // Overlay state tracker (false = maximized, true = minimized)
-  
+
   overlayMain.addDiv({'id': 'bm-overlay', 'style': 'top: 10px; right: 75px;'})
     .addDiv({'id': 'bm-contain-header'})
       .addDiv({'id': 'bm-bar-drag'}).buildElement()
-      .addImg({'alt': 'Blue Marble Icon - Click to minimize/maximize', 'src': 'https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png', 'style': 'cursor: pointer;'}, 
-        (instance, img) => {
-          /** Click event handler for overlay minimize/maximize functionality.
-           * 
-           * Toggles between two distinct UI states:
-           * 1. MINIMIZED STATE (60×76px):
-           *    - Shows only the Blue Marble icon and drag bar
-           *    - Hides all input fields, buttons, and status information
-           *    - Applies fixed dimensions for consistent appearance
-           *    - Repositions icon with 3px right offset for visual centering
-           * 
-           * 2. MAXIMIZED STATE (responsive):
-           *    - Restores full functionality with all UI elements
-           *    - Removes fixed dimensions to allow responsive behavior
-           *    - Resets icon positioning to default alignment
-           *    - Shows success message when returning to maximized state
-           * 
-           * @param {Event} event - The click event object (implicit)
-           */
-          img.addEventListener('click', () => {
-            isMinimized = !isMinimized; // Toggle the current state
+      .addDiv({'id': 'bm-title-container'})
+        .addImg({'alt': 'Blue Marble Icon - Click to minimize/maximize', 'src': 'https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png', 'style': 'cursor: pointer;'},
+          (instance, img) => {
+            /** Click event handler for overlay minimize/maximize functionality.
+             *
+             * Toggles between two distinct UI states:
+             * 1. MINIMIZED STATE (60×76px):
+             *    - Shows only the Blue Marble icon and drag bar
+             *    - Hides all input fields, buttons, and status information
+             *    - Applies fixed dimensions for consistent appearance
+             *    - Repositions icon with 3px right offset for visual centering
+             *
+             * 2. MAXIMIZED STATE (responsive):
+             *    - Restores full functionality with all UI elements
+             *    - Removes fixed dimensions to allow responsive behavior
+             *    - Resets icon positioning to default alignment
+             *    - Shows success message when returning to maximized state
+             *
+             * @param {Event} event - The click event object (implicit)
+             */
+            img.addEventListener('click', () => {
+              isMinimized = !isMinimized; // Toggle the current state
 
-            const overlay = document.querySelector('#bm-overlay');
-            const header = document.querySelector('#bm-contain-header');
-            const dragBar = document.querySelector('#bm-bar-drag');
-            const coordsContainer = document.querySelector('#bm-contain-coords');
-            const coordsButton = document.querySelector('#bm-button-coords');
-            const createButton = document.querySelector('#bm-button-create');
-            const enableButton = document.querySelector('#bm-button-enable');
-            const disableButton = document.querySelector('#bm-button-disable');
-            const coordInputs = document.querySelectorAll('#bm-contain-coords input');
-            
-            // Pre-restore original dimensions when switching to maximized state
-            // This ensures smooth transition and prevents layout issues
-            if (!isMinimized) {
-              overlay.style.width = "auto";
-              overlay.style.maxWidth = "300px";
-              overlay.style.minWidth = "200px";
-              overlay.style.padding = "10px";
-            }
-            
-            // Define elements that should be hidden/shown during state transitions
-            // Each element is documented with its purpose for maintainability
-            const elementsToToggle = [
-              '#bm-overlay h1',                    // Main title "Blue Marble"
-              '#bm-contain-userinfo',              // User information section (username, droplets, level)
-              '#bm-overlay hr',                    // Visual separator lines
-              '#bm-contain-automation > *:not(#bm-contain-coords)', // Automation section excluding coordinates
-              '#bm-input-file-template',           // Template file upload interface
-              '#bm-contain-buttons-action',        // Action buttons container
-              `#${instance.outputStatusId}`        // Status log textarea for user feedback
-            ];
-            
-            // Apply visibility changes to all toggleable elements
-            elementsToToggle.forEach(selector => {
-              const elements = document.querySelectorAll(selector);
-              elements.forEach(element => {
-                element.style.display = isMinimized ? 'none' : '';
+              const overlay = document.querySelector('#bm-overlay');
+              const header = document.querySelector('#bm-contain-header');
+              const dragBar = document.querySelector('#bm-bar-drag');
+              const coordsContainer = document.querySelector('#bm-contain-coords');
+              const coordsButton = document.querySelector('#bm-button-coords');
+              const createButton = document.querySelector('#bm-button-create');
+              const enableButton = document.querySelector('#bm-button-enable');
+              const disableButton = document.querySelector('#bm-button-disable');
+              const coordInputs = document.querySelectorAll('#bm-contain-coords input');
+              const templateButtonsContainer = document.querySelector('#bm-contain-buttons-template');
+
+              // Pre-restore original dimensions when switching to maximized state
+              // This ensures smooth transition and prevents layout issues
+              if (!isMinimized) {
+                overlay.style.width = "auto";
+                overlay.style.maxWidth = "300px";
+                overlay.style.minWidth = "200px";
+                overlay.style.padding = "10px";
+              }
+
+              // Define elements that should be hidden/shown during state transitions
+              // Each element is documented with its purpose for maintainability
+              const elementsToToggle = [
+                '#bm-overlay h1',                    // Main title "Blue Marble"
+                '#bm-contain-userinfo',              // User information section (username, droplets, level)
+                '#bm-overlay #bm-separator',         // Visual separator lines
+                '#bm-contain-automation > *:not(#bm-contain-coords)', // Automation section excluding coordinates
+                '#bm-input-file-template',           // Template file upload interface
+                '#bm-contain-buttons-action',        // Action buttons container
+                `#${instance.outputStatusId}`        // Status log textarea for user feedback
+              ];
+
+              // Apply visibility changes to all toggleable elements
+              elementsToToggle.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                  element.style.display = isMinimized ? 'none' : '';
+                });
               });
+              // Handle coordinate container and button visibility based on state
+              if (isMinimized) {
+                // ==================== MINIMIZED STATE CONFIGURATION ====================
+                // In minimized state, we hide ALL interactive elements except the icon and drag bar
+                // This creates a clean, unobtrusive interface that maintains only essential functionality
+
+                // Hide coordinate input container completely
+                if (coordsContainer) {
+                  coordsContainer.style.display = 'none';
+                }
+
+                // Hide template buttons container
+                if (templateButtonsContainer) {
+                  templateButtonsContainer.style.display = 'none';
+                }
+
+                // Hide coordinate button (pin icon)
+                if (coordsButton) {
+                  coordsButton.style.display = 'none';
+                }
+
+                // Hide create template button
+                if (createButton) {
+                  createButton.style.display = 'none';
+                }
+
+                // Hide enable templates button
+                if (enableButton) {
+                  enableButton.style.display = 'none';
+                }
+
+                // Hide disable templates button
+                if (disableButton) {
+                  disableButton.style.display = 'none';
+                }
+
+                // Hide all coordinate input fields individually (failsafe)
+                coordInputs.forEach(input => {
+                  input.style.display = 'none';
+                });
+
+                // Apply fixed dimensions for consistent minimized appearance
+                // These dimensions were chosen to accommodate the icon while remaining compact
+                overlay.style.width = '60px';    // Fixed width for consistency
+                overlay.style.height = '76px';   // Fixed height (60px + 16px for better proportions)
+                overlay.style.maxWidth = '60px';  // Prevent expansion
+                overlay.style.minWidth = '60px';  // Prevent shrinking
+                overlay.style.padding = '8px';    // Comfortable padding around icon
+
+                // Apply icon positioning for better visual centering in minimized state
+                // The 3px offset compensates for visual weight distribution
+                img.style.marginLeft = '3px';
+
+                // Configure header layout for minimized state
+                header.style.textAlign = 'center';
+                header.style.margin = '0';
+                header.style.marginBottom = '0';
+
+                // Ensure drag bar remains visible and properly spaced
+                if (dragBar) {
+                  dragBar.style.display = '';
+                  dragBar.style.marginBottom = '0.25em';
+                }
+              } else {
+                // ==================== MAXIMIZED STATE RESTORATION ====================
+                // In maximized state, we restore all elements to their default functionality
+                // This involves clearing all style overrides applied during minimization
+
+                // Restore coordinate container to default state
+                if (coordsContainer) {
+                  coordsContainer.style.display = '';           // Show container
+                  coordsContainer.style.flexDirection = '';     // Reset flex layout
+                  coordsContainer.style.justifyContent = '';    // Reset alignment
+                  coordsContainer.style.alignItems = '';        // Reset alignment
+                  coordsContainer.style.gap = '';               // Reset spacing
+                  coordsContainer.style.textAlign = '';         // Reset text alignment
+                  coordsContainer.style.margin = '';            // Reset margins
+                }
+
+                // Restore template buttons container
+                if (templateButtonsContainer) {
+                  templateButtonsContainer.style.display = '';
+                }
+
+                // Restore coordinate button visibility
+                if (coordsButton) {
+                  coordsButton.style.display = '';
+                }
+
+                // Restore create button visibility and reset positioning
+                if (createButton) {
+                  createButton.style.display = '';
+                  createButton.style.marginTop = '';
+                }
+
+                // Restore enable button visibility and reset positioning
+                if (enableButton) {
+                  enableButton.style.display = '';
+                  enableButton.style.marginTop = '';
+                }
+
+                // Restore disable button visibility and reset positioning
+                if (disableButton) {
+                  disableButton.style.display = '';
+                  disableButton.style.marginTop = '';
+                }
+
+                // Restore all coordinate input fields
+                coordInputs.forEach(input => {
+                  input.style.display = '';
+                });
+
+                // Reset icon positioning to default (remove minimized state offset)
+                img.style.marginLeft = '';
+
+                // Restore overlay to responsive dimensions
+                overlay.style.padding = '10px';
+
+                // Reset header styling to defaults
+                header.style.textAlign = '';
+                header.style.margin = '';
+                header.style.marginBottom = '';
+
+                // Reset drag bar spacing
+                if (dragBar) {
+                  dragBar.style.marginBottom = '0.5em';
+                }
+
+                // Remove all fixed dimensions to allow responsive behavior
+                // This ensures the overlay can adapt to content changes
+                overlay.style.width = '';
+                overlay.style.height = '';
+              }
+
+              // ==================== ACCESSIBILITY AND USER FEEDBACK ====================
+              // Update accessibility information for screen readers and tooltips
+
+              // Update alt text to reflect current state for screen readers and tooltips
+              img.alt = isMinimized ?
+                'Blue Marble Icon - Minimized (Click to maximize)' :
+                'Blue Marble Icon - Maximized (Click to minimize)';
+
+              // No status message needed - state change is visually obvious to users
             });
-            // Handle coordinate container and button visibility based on state
-            if (isMinimized) {
-              // ==================== MINIMIZED STATE CONFIGURATION ====================
-              // In minimized state, we hide ALL interactive elements except the icon and drag bar
-              // This creates a clean, unobtrusive interface that maintains only essential functionality
-              
-              // Hide coordinate input container completely
-              if (coordsContainer) {
-                coordsContainer.style.display = 'none';
-              }
-              
-              // Hide coordinate button (pin icon)
-              if (coordsButton) {
-                coordsButton.style.display = 'none';
-              }
-              
-              // Hide create template button
-              if (createButton) {
-                createButton.style.display = 'none';
-              }
-
-              // Hide enable templates button
-              if (enableButton) {
-                enableButton.style.display = 'none';
-              }
-
-              // Hide disable templates button
-              if (disableButton) {
-                disableButton.style.display = 'none';
-              }
-              
-              // Hide all coordinate input fields individually (failsafe)
-              coordInputs.forEach(input => {
-                input.style.display = 'none';
-              });
-              
-              // Apply fixed dimensions for consistent minimized appearance
-              // These dimensions were chosen to accommodate the icon while remaining compact
-              overlay.style.width = '60px';    // Fixed width for consistency
-              overlay.style.height = '76px';   // Fixed height (60px + 16px for better proportions)
-              overlay.style.maxWidth = '60px';  // Prevent expansion
-              overlay.style.minWidth = '60px';  // Prevent shrinking
-              overlay.style.padding = '8px';    // Comfortable padding around icon
-              
-              // Apply icon positioning for better visual centering in minimized state
-              // The 3px offset compensates for visual weight distribution
-              img.style.marginLeft = '3px';
-              
-              // Configure header layout for minimized state
-              header.style.textAlign = 'center';
-              header.style.margin = '0';
-              header.style.marginBottom = '0';
-              
-              // Ensure drag bar remains visible and properly spaced
-              if (dragBar) {
-                dragBar.style.display = '';
-                dragBar.style.marginBottom = '0.25em';
-              }
-            } else {
-              // ==================== MAXIMIZED STATE RESTORATION ====================
-              // In maximized state, we restore all elements to their default functionality
-              // This involves clearing all style overrides applied during minimization
-              
-              // Restore coordinate container to default state
-              if (coordsContainer) {
-                coordsContainer.style.display = '';           // Show container
-                coordsContainer.style.flexDirection = '';     // Reset flex layout
-                coordsContainer.style.justifyContent = '';    // Reset alignment
-                coordsContainer.style.alignItems = '';        // Reset alignment
-                coordsContainer.style.gap = '';               // Reset spacing
-                coordsContainer.style.textAlign = '';         // Reset text alignment
-                coordsContainer.style.margin = '';            // Reset margins
-              }
-              
-              // Restore coordinate button visibility
-              if (coordsButton) {
-                coordsButton.style.display = '';
-              }
-              
-              // Restore create button visibility and reset positioning
-              if (createButton) {
-                createButton.style.display = '';
-                createButton.style.marginTop = '';
-              }
-
-              // Restore enable button visibility and reset positioning
-              if (enableButton) {
-                enableButton.style.display = '';
-                enableButton.style.marginTop = '';
-              }
-
-              // Restore disable button visibility and reset positioning
-              if (disableButton) {
-                disableButton.style.display = '';
-                disableButton.style.marginTop = '';
-              }
-              
-              // Restore all coordinate input fields
-              coordInputs.forEach(input => {
-                input.style.display = '';
-              });
-              
-              // Reset icon positioning to default (remove minimized state offset)
-              img.style.marginLeft = '';
-              
-              // Restore overlay to responsive dimensions
-              overlay.style.padding = '10px';
-              
-              // Reset header styling to defaults
-              header.style.textAlign = '';
-              header.style.margin = '';
-              header.style.marginBottom = '';
-              
-              // Reset drag bar spacing
-              if (dragBar) {
-                dragBar.style.marginBottom = '0.5em';
-              }
-              
-              // Remove all fixed dimensions to allow responsive behavior
-              // This ensures the overlay can adapt to content changes
-              overlay.style.width = '';
-              overlay.style.height = '';
-            }
-            
-            // ==================== ACCESSIBILITY AND USER FEEDBACK ====================
-            // Update accessibility information for screen readers and tooltips
-            
-            // Update alt text to reflect current state for screen readers and tooltips
-            img.alt = isMinimized ? 
-              'Blue Marble Icon - Minimized (Click to maximize)' : 
-              'Blue Marble Icon - Maximized (Click to minimize)';
-            
-            // No status message needed - state change is visually obvious to users
-          });
-        }
-      ).buildElement()
-      .addHeader(1, {'textContent': name}).buildElement()
+          }
+        ).buildElement()
+        .addHeader(1, {'textContent': name}).buildElement()
+      .buildElement()
     .buildElement()
 
-    .addHr().buildElement()
+    .addDiv({ id: 'bm-separator' })
+      .addHr().buildElement()
+      .addDiv({ id: 'bm-separator-text'})
+        .addDiv({ innerHTML: icons.informationIcon }).buildElement()
+        .addP({ textContent: 'Information' }).buildElement()
+        .buildElement()
+      .addHr().buildElement()
+    .buildElement()
 
     .addDiv({'id': 'bm-contain-userinfo'})
-      .addP({'id': 'bm-user-name', 'textContent': 'Username:'}).buildElement()
-      .addP({'id': 'bm-user-droplets', 'textContent': 'Droplets:'}).buildElement()
-      .addP({'id': 'bm-user-nextlevel', 'textContent': 'Next level in...'}).buildElement()
+      .addDiv({'id': 'bm-user-name'})
+        .addDiv({'id': 'bm-user-icon', innerHTML: icons.userIcon}).buildElement()
+        .addP({'id': 'bm-user-name-content', innerHTML: '<b>Username:</b> loading...'}).buildElement()
+      .buildElement()
+      .addDiv({'id': 'bm-user-droplets'})
+        .addDiv({'id': 'bm-user-droplets-icon', innerHTML: icons.dropletIcon}).buildElement()
+        .addP({'id': 'bm-user-droplets-content', innerHTML: '<b>Droplets:</b> loading...'}).buildElement()
+      .buildElement()
+      .addDiv({'id': 'bm-user-nextlevel'})
+        .addDiv({'id': 'bm-user-nextlevel-icon', innerHTML: icons.nextLevelIcon}).buildElement()
+        .addP({'id': 'bm-user-nextlevel-content', 'textContent': 'Next level in...'}).buildElement()
+      .buildElement()
     .buildElement()
 
-    .addHr().buildElement()
+    .addDiv({ id: 'bm-separator' })
+      .addHr().buildElement()
+      .addDiv({ id: 'bm-separator-text'})
+        .addDiv({ innerHTML: icons.templateIcon }).buildElement()
+        .addP({ textContent: 'Template' }).buildElement()
+        .buildElement()
+      .addHr().buildElement()
+    .buildElement()
 
-    .addDiv({'id': 'bm-contain-automation'})
-      // .addCheckbox({'id': 'bm-input-stealth', 'textContent': 'Stealth', 'checked': true}).buildElement()
-      // .addButtonHelp({'title': 'Waits for the website to make requests, instead of sending requests.'}).buildElement()
-      // .addBr().buildElement()
-      // .addCheckbox({'id': 'bm-input-possessed', 'textContent': 'Possessed', 'checked': true}).buildElement()
-      // .addButtonHelp({'title': 'Controls the website as if it were possessed.'}).buildElement()
-      // .addBr().buildElement()
-      .addDiv({'id': 'bm-contain-coords'})
-        .addButton({'id': 'bm-button-coords', 'className': 'bm-help', 'style': 'margin-top: 0;', 'innerHTML': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>'},
+    // .addCheckbox({'id': 'bm-input-stealth', 'textContent': 'Stealth', 'checked': true}).buildElement()
+    // .addButtonHelp({'title': 'Waits for the website to make requests, instead of sending requests.'}).buildElement()
+    // .addBr().buildElement()
+    // .addCheckbox({'id': 'bm-input-possessed', 'textContent': 'Possessed', 'checked': true}).buildElement()
+    // .addButtonHelp({'title': 'Controls the website as if it were possessed.'}).buildElement()
+    // .addBr().buildElement()
+    .addDiv({'id': 'bm-contain-coords'})
+      .addDiv({ id: 'bm-coords-title' })
+        .addDiv({ innerHTML: icons.pinIcon }).buildElement()
+        .addP({ innerHTML: 'Coordinates:' }).buildElement()
+        .addButton({'id': 'bm-button-coords', 'innerHTML': icons.pointerIcon + 'Detect', title: 'Set the location to the pixel you\'ve selected'},
           (instance, button) => {
             button.onclick = () => {
               const coords = instance.apiManager?.coordsTilePixel; // Retrieves the coords from the API manager
@@ -478,67 +528,71 @@ function buildOverlayMain() {
             }
           }
         ).buildElement()
+      .buildElement()
+      .addDiv({ id: 'bm-contain-inputs'})
+        .addP({ textContent: 'Tile: '}).buildElement()
         .addInput({'type': 'number', 'id': 'bm-input-tx', 'placeholder': 'Tl X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
         .addInput({'type': 'number', 'id': 'bm-input-ty', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
+        .addP({ textContent: 'Pixel: '}).buildElement()
         .addInput({'type': 'number', 'id': 'bm-input-px', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
         .addInput({'type': 'number', 'id': 'bm-input-py', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
       .buildElement()
-      .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
-      .addDiv({'id': 'bm-contain-buttons-template'})
-        .addButton({'id': 'bm-button-enable', 'textContent': 'Enable'}, (instance, button) => {
-          button.onclick = () => {
-            instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
-            instance.handleDisplayStatus(`Enabled templates!`);
-          }
-        }).buildElement()
-        .addButton({'id': 'bm-button-create', 'textContent': 'Create'}, (instance, button) => {
-          button.onclick = () => {
-            const input = document.querySelector('#bm-input-file-template');
+    .buildElement()
+    .addDiv({'id': 'bm-contain-buttons-template'})
+      .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'})
+      .addButton({'id': 'bm-button-create', innerHTML: icons.createIcon + 'Create'}, (instance, button) => {
+        button.onclick = () => {
+          const input = document.querySelector('#bm-input-file-template');
 
-            const coordTlX = document.querySelector('#bm-input-tx');
-            if (!coordTlX.checkValidity()) {coordTlX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-            const coordTlY = document.querySelector('#bm-input-ty');
-            if (!coordTlY.checkValidity()) {coordTlY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-            const coordPxX = document.querySelector('#bm-input-px');
-            if (!coordPxX.checkValidity()) {coordPxX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-            const coordPxY = document.querySelector('#bm-input-py');
-            if (!coordPxY.checkValidity()) {coordPxY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+          const coordTlX = document.querySelector('#bm-input-tx');
+          if (!coordTlX.checkValidity()) {coordTlX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+          const coordTlY = document.querySelector('#bm-input-ty');
+          if (!coordTlY.checkValidity()) {coordTlY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+          const coordPxX = document.querySelector('#bm-input-px');
+          if (!coordPxX.checkValidity()) {coordPxX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+          const coordPxY = document.querySelector('#bm-input-py');
+          if (!coordPxY.checkValidity()) {coordPxY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
 
-            // Kills itself if there is no file
-            if (!input?.files[0]) {instance.handleDisplayError(`No file selected!`); return;}
+          // Kills itself if there is no file
+          if (!input?.files[0]) {instance.handleDisplayError(`No file selected!`); return;}
 
-            templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ''), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
+          templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ''), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
 
-            // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
-            // apiManager.templateCoordsTilePixel = apiManager.coordsTilePixel; // Update template coords
-            // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
-            // templateManager.setTemplateImage(input.files[0]);
+          // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
+          // apiManager.templateCoordsTilePixel = apiManager.coordsTilePixel; // Update template coords
+          // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
+          // templateManager.setTemplateImage(input.files[0]);
 
-            instance.handleDisplayStatus(`Drew to canvas!`);
-          }
-        }).buildElement()
-        .addButton({'id': 'bm-button-disable', 'textContent': 'Disable'}, (instance, button) => {
-          button.onclick = () => {
-            instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
-            instance.handleDisplayStatus(`Disabled templates!`);
-          }
+          instance.handleDisplayStatus(`Drew to canvas!`);
+        }
+      }).buildElement()
+      .addButton({'id': 'bm-button-enable', innerHTML: icons.enableIcon + 'Enable'}, (instance, button) => {
+        button.onclick = () => {
+          instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
+          instance.handleDisplayStatus(`Enabled templates!`);
+        }
+      }).buildElement()
+      .addButton({'id': 'bm-button-disable', innerHTML: icons.disableIcon + 'Disable'}, (instance, button) => {
+        button.onclick = () => {
+          instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
+          instance.handleDisplayStatus(`Disabled templates!`);
+        }
+      }).buildElement()
+    .buildElement()
+    .addTextarea({'id': overlayMain.outputStatusId, 'placeholder': `Status: Sleeping...\nVersion: ${version}`, 'readOnly': true}).buildElement()
+    .addDiv({'id': 'bm-contain-buttons-action'})
+      .addDiv()
+        // .addButton({'id': 'bm-button-teleport', 'className': 'bm-help', 'textContent': '✈'}).buildElement()
+        // .addButton({'id': 'bm-button-favorite', 'className': 'bm-help', 'innerHTML': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><polygon points="10,2 12,7.5 18,7.5 13.5,11.5 15.5,18 10,14 4.5,18 6.5,11.5 2,7.5 8,7.5" fill="white"></polygon></svg>'}).buildElement()
+        // .addButton({'id': 'bm-button-templates', 'className': 'bm-help', 'innerHTML': '🖌'}).buildElement()
+        .addButton({'id': 'bm-button-convert', 'className': 'bm-help', 'innerHTML': '🎨', 'title': 'Template Color Converter'},
+          (instance, button) => {
+          button.addEventListener('click', () => {
+            window.open('https://pepoafonso.github.io/color_converter_wplace/', '_blank', 'noopener noreferrer');
+          });
         }).buildElement()
       .buildElement()
-      .addTextarea({'id': overlayMain.outputStatusId, 'placeholder': `Status: Sleeping...\nVersion: ${version}`, 'readOnly': true}).buildElement()
-      .addDiv({'id': 'bm-contain-buttons-action'})
-        .addDiv()
-          // .addButton({'id': 'bm-button-teleport', 'className': 'bm-help', 'textContent': '✈'}).buildElement()
-          // .addButton({'id': 'bm-button-favorite', 'className': 'bm-help', 'innerHTML': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><polygon points="10,2 12,7.5 18,7.5 13.5,11.5 15.5,18 10,14 4.5,18 6.5,11.5 2,7.5 8,7.5" fill="white"></polygon></svg>'}).buildElement()
-          // .addButton({'id': 'bm-button-templates', 'className': 'bm-help', 'innerHTML': '🖌'}).buildElement()
-          .addButton({'id': 'bm-button-convert', 'className': 'bm-help', 'innerHTML': '🎨', 'title': 'Template Color Converter'}, 
-            (instance, button) => {
-            button.addEventListener('click', () => {
-              window.open('https://pepoafonso.github.io/color_converter_wplace/', '_blank', 'noopener noreferrer');
-            });
-          }).buildElement()
-        .buildElement()
-        .addSmall({'textContent': 'Made by SwingTheVine', 'style': 'margin-top: auto;'}).buildElement()
-      .buildElement()
+      .addSmall({'textContent': 'Made by SwingTheVine', 'style': 'margin-top: auto;'}).buildElement()
     .buildElement()
   .buildOverlay(document.body);
 }
@@ -558,7 +612,7 @@ function buildOverlayTabTemplate() {
                 isMinimized = true;
               }
 
-              
+
             }
           }
         ).buildElement()

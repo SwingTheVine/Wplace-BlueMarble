@@ -1,3 +1,5 @@
+import * as icons from "./icons.js";
+
 /** The overlay builder for the Blue Marble script.
  * @description This class handles the overlay UI for the Blue Marble script.
  * @class Overlay
@@ -464,7 +466,10 @@ export default class Overlay {
     const container = this.#createElement('div'); // Container for file input
     const input = this.#createElement('input', properties, additionalProperties); // Creates the file input
     this.buildElement(); // Signifies that we are done adding children to the file input
-    const button = this.#createElement('button', {'textContent': text});
+    const button = this.#createElement('button');
+    this.addDiv({ innerHTML: icons.uploadIcon }).buildElement(); // Adds an upload icon to the button
+    const buttonContent = this.#createElement('span', {'textContent': text}); // Creates the button content with the text
+    this.buildElement(); // Signifies that we are done adding children to the button content
     this.buildElement(); // Signifies that we are done adding children to the button
     this.buildElement(); // Signifies that we are done adding children to the container
 
@@ -480,9 +485,9 @@ export default class Overlay {
     input.addEventListener('change', () => {
       button.style.maxWidth = `${button.offsetWidth}px`;
       if (input.files.length > 0) {
-        button.textContent = input.files[0].name;
+        buttonContent.textContent = input.files[0].name;
       } else {
-        button.textContent = text;
+        buttonContent.textContent = text;
       }
     });
 

@@ -10,7 +10,7 @@
   z-index: 9000;
   transition: all 0.3s ease, transform 0s;
   max-width: 300px;
-  width: auto;
+  width: fit-content;
   /* Performance optimizations for smooth dragging */
   will-change: transform;
   backface-visibility: hidden;
@@ -21,8 +21,8 @@
 
 /* Smooth transitions for minimize/maximize functionality */
 #bm-contain-userinfo,
-#bm-overlay hr,
-#bm-contain-automation, 
+#bm-overlay #bm-separator,
+#bm-contain-automation,
 #bm-contain-buttons-action {
   transition: opacity 0.2s ease, height 0.2s ease;
 }
@@ -30,19 +30,24 @@
 /* The entire overlay BUT it is cascading */
 div#bm-overlay {
   /* Font stack is as follows:
-   * Highest Priority (Roboto Mono)
+   * Highest Priority (Outfit, Roboto Mono)
    * Windows fallback (Courier New)
    * macOS fallback (Monaco)
    * Linux fallback (DejaVu Sans Mono)
    * Any possible monospace font (monospace)
    * Last resort (Arial) */
-  font-family: 'Roboto Mono', 'Courier New', 'Monaco', 'DejaVu Sans Mono', monospace, 'Arial';
+  font-family: 'Outfit', 'Roboto Mono', 'Courier New', 'Monaco', 'DejaVu Sans Mono', monospace, 'Arial';
   letter-spacing: 0.05em;
+
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+
+  padding: .5rem;
 }
 
 /* The drag bar */
 #bm-bar-drag {
-  margin-bottom: 0.5em;
   /* For background circles, width & height should be odd, cx & cy should be half of width & height, and r should be less than or equal to cx & cy */
   background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="5" height="5"><circle cx="3" cy="3" r="1.5" fill="CornflowerBlue" /></svg>') repeat;
   cursor: grab;
@@ -53,6 +58,54 @@ div#bm-overlay {
 /* When the overlay is being dragged */
 #bm-bar-drag.dragging {
   cursor: grabbing;
+}
+
+/* The icon and title */
+#bm-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+
+#bm-title-container h1 {
+  font-weight: 900;
+  font-size: 1.5rem;
+}
+
+/* The Blue Marble image */
+#bm-overlay img {
+  height: 2rem;
+  transition: opacity 0.2s ease;
+}
+
+/* Separators */
+#bm-separator {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: .5rem;
+
+  user-select: none;
+}
+
+#bm-separator #bm-separator-text {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+/* Information section */
+#bm-contain-userinfo {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+}
+
+#bm-contain-userinfo > div {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 /* Disable interactions during drag for better performance */
@@ -67,11 +120,6 @@ div#bm-overlay {
 /* Keep drag bar interactive when dragging */
 #bm-bar-drag.dragging {
   pointer-events: auto;
-}
-
-/* The container for the overlay header */
-#bm-contain-header {
-  margin-bottom: 0.5em;
 }
 
 /* When minimized, adjust header container */
@@ -89,34 +137,16 @@ div#bm-overlay {
   min-width: 200px;
 }
 
-/* The Blue Marble image */
-#bm-overlay img {
-  display: inline-block;
-  height: 2.5em;
-  margin-right: 1ch;
-  vertical-align: middle;
-  transition: opacity 0.2s ease;
-}
-
 /* When overlay is minimized, adjust image styling */
 #bm-contain-header[style*="text-align: center"] img {
   margin-right: 0;
   margin-left: 0;
   display: block;
-  margin: 0 auto;
 }
 
 /* Ensure drag bar remains functional when minimized */
 #bm-bar-drag {
   transition: margin-bottom 0.2s ease;
-}
-
-/* The Blue Marble header */
-#bm-overlay h1 {
-  display: inline-block;
-  font-size: x-large;
-  font-weight: bold;
-  vertical-align: middle;
 }
 
 /* Checkboxes in the automation container */
@@ -141,18 +171,6 @@ div#bm-overlay {
   padding: 0 !important; /* Overrides the padding in "#bm-overlay button" */
 }
 
-/* Pin button */
-#bm-button-coords {
-  vertical-align: middle;
-}
-
-/* Pin button image*/
-#bm-button-coords svg {
-  width: 50%;
-  margin: 0 auto;
-  fill: #111;
-}
-
 /* Container for action buttons, that is inside the action button container */
 div:has(> #bm-button-teleport) {
   display: flex;
@@ -164,22 +182,46 @@ div:has(> #bm-button-teleport) {
 #bm-button-favorite svg,
 #bm-button-template svg {
   height: 1em;
-  margin: 0 auto;
-  margin-top: 2px;
+  margin: 2px auto 0;
   text-align: center;
   line-height: 1em;
   vertical-align: bottom;
 }
 
+/* Coordinates container */
+#bm-contain-coords {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+#bm-coords-title {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .5rem;
+}
+
+#bm-contain-coords #bm-contain-inputs {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  align-items: center;
+  gap: .25rem;
+}
+
+#bm-contain-coords #bm-contain-inputs p {
+  text-align: end;
+}
+
 /* Tile (x, y) & Pixel (x, y) input fields */
-#bm-contain-coords input[type="number"] {
-  appearance: auto;
-  -moz-appearance: textfield;
-  width: 5.5ch;
-  margin-left: 1ch;
+#bm-contain-coords #bm-contain-inputs input {
+  width: 100%;
+  height: 2rem;
+
   background-color: rgba(0, 0, 0, 0.2);
-  padding: 0 0.5ch;
+  padding: 0 0.5rem;
   font-size: small;
+  border-radius: .25rem;
 }
 
 /* Removes scroll bar on tile & pixel input fields */
@@ -191,18 +233,21 @@ div:has(> #bm-button-teleport) {
 
 /* Automation button container */
 #bm-contain-buttons-template {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   justify-content: center;
   align-items: center;
-  gap: 1ch;
+  gap: .25rem;
 }
 
 /* The template file upload button */
+div:has(> #bm-input-file-template) {
+  grid-column: span 3;
+}
+
 div:has(> #bm-input-file-template) > button {
   width: 100%;
+  height: fit-content;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -244,35 +289,59 @@ input[type="file"][id*="template"] {
   color: lightgray;
 }
 
-/* The elements that need spacing from each-other */
-#bm-contain-userinfo,
-#bm-contain-automation,
-#bm-contain-coords,
-#bm-contain-buttons-template,
-div:has(> #bm-input-file-template),
-#bm-output-status {
-  margin-top: 0.5em;
-}
-
 /* All overlay buttons */
 #bm-overlay button {
-  background-color: #144eb9;
-  border-radius: 1em;
-  padding: 0 0.75ch;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: .25rem;
+
+  padding: .125rem .5rem;
+
+  background-color: #2190ED;
+  border-radius: .25rem;
+
+  transition: background-color 0.25s;
 }
 
 /* All overlay buttons when hovered/focused */
 #bm-overlay button:hover, #bm-overlay button:focus-visible {
-  background-color: #1061e5;
+  background-color: #3b9def;
 }
 
 /* All overlay buttons when pressed (plus disabled color) */
 #bm-overlay button:active,
 #bm-overlay button:disabled {
-  background-color: #2e97ff;
+  background-color: #4FA7F1;
 }
 
 /* All overlay buttons when disabled */
 #bm-overlay button:disabled {
   text-decoration: line-through;
+}
+
+/* Enable button */
+#bm-overlay button#bm-button-enable {
+  background-color: #21c060;
+}
+#bm-overlay button#bm-button-enable:hover {
+  background-color: #1daa55;
+}
+#bm-overlay button#bm-button-enable:active,
+#bm-overlay button#bm-button-enable:focus-visible {
+  background-color: #19944a;
+}
+
+/* Disable button */
+#bm-overlay button#bm-button-disable {
+  background-color: #d63838;
+}
+
+#bm-overlay button#bm-button-disable:hover {
+  background-color: #cb2a2a;
+}
+
+#bm-overlay button#bm-button-disable:active,
+#bm-overlay button#bm-button-disable:focus-visible {
+  background-color: #b62525;
 }
