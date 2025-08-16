@@ -12,6 +12,14 @@ const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
 const consoleStyle = 'color: cornflowerblue;'; // The styling for the console logs
 
+// Check for duplicate instances using global variable
+if (unsafeWindow.BlueMarbleInstance) {
+  alert("Blue Marble is already running!\n\nPlease disable or remove duplicate userscripts to avoid conflicts.\n\nOnly one instance should be active at a time.");
+  throw new Error('Duplicate Blue Marble instance detected - stopping execution');
+}
+
+unsafeWindow.BlueMarbleInstance = true; // Mark instance as running immediately
+
 /** Injects code into the client
  * This code will execute outside of TamperMonkey's sandbox
  * @param {*} callback - The code to execute
