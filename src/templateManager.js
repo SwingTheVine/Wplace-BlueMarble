@@ -62,6 +62,10 @@ export default class TemplateManager {
     this.templatesJSON = null; // All templates currently loaded (JSON)
     this.templatesShouldBeDrawn = true; // Should ALL templates be drawn to the canvas?
     this.tileProgress = new Map(); // Tracks per-tile progress stats {painted, required, wrong}
+
+    this.ownedColors = new Map() // Stores the colors owned by the user as 'r,g,b' -> boolean
+    // fyi i hate this and would rather the entire codebase use color ids instead of rgb strings,
+    // but i cant be bothered to refactor the entire codebase right now
   }
 
   /** Retrieves the pixel art canvas.

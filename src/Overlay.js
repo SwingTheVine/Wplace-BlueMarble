@@ -490,6 +490,22 @@ export default class Overlay {
     return this;
   }
 
+  addSelect(additionalProperties = {}, callback = () => {}) {
+    const properties = {}; // Shared <select> DOM properties
+
+    const select = this.#createElement('select', properties, additionalProperties); // Creates the <select> element
+    callback(this, select); // Runs any script passed in through the callback
+    return this;
+  }
+
+  addOption(additionalProperties = {}, callback = () => {}) {
+    const properties = {}; // Shared <option> DOM properties
+
+    const option = this.#createElement('option', properties, additionalProperties); // Creates the <option> element
+    callback(this, option); // Runs any script passed in through the callback
+    return this;
+  }
+
   /** Adds a `textarea` to the overlay.
    * This `textarea` element will have properties shared between all `textarea` elements in the overlay.
    * You can override the shared properties by using a callback.

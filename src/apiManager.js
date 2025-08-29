@@ -5,12 +5,12 @@
  */
 
 import TemplateManager from "./templateManager.js";
-import { consoleError, escapeHTML, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
+import { consoleError, escapeHTML, numberToEncoded, serverTPtoDisplayTP, colorpalette } from "./utils.js";
 
 export default class ApiManager {
 
   /** Constructor for ApiManager class
-   * @param {TemplateManager} templateManager 
+   * @param {TemplateManager} templateManager
    * @since 0.11.34
    */
   constructor(templateManager) {
@@ -72,7 +72,21 @@ export default class ApiManager {
             ));
           }
           this.templateManager.userID = dataJSON['id'];
-          
+
+          // Set the user's owned colors
+          // extraColorsBitmap is a 32-bit integer where the nth bit represents whether
+          // the user owns the color with id n+32 (paid colors start at 32)
+          for (let i = 0; i < 32; i++) {
+            const rgb = colorpalette[i + 32]?.rgb;
+            const key = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+            if (dataJSON['extraColorsBitmap'] & (1 << i)) {
+              this.templateManager.ownedColors.set(key, true);
+            } else {
+              this.templateManager.ownedColors.set(key, false);
+            }
+          }
+          console.log('Owned colors:', this.templateManager.ownedColors);
+
           overlay.updateInnerHTML('bm-user-name', `Username: <b>${escapeHTML(dataJSON['name'])}</b>`); // Updates the text content of the username field
           overlay.updateInnerHTML('bm-user-droplets', `Droplets: <b>${new Intl.NumberFormat().format(dataJSON['droplets'])}</b>`); // Updates the text content of the droplets field
           overlay.updateInnerHTML('bm-user-nextlevel', `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? '' : 's'}`); // Updates the text content of the next level field
