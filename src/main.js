@@ -574,23 +574,29 @@ function buildOverlayMain() {
             button.onclick = () => {
               const t = templateManager.templatesArray[0];
               if (!t?.colorPalette) { return; }
-              const isHighlighting = GM_getValue('bmHighlightSelectedColor', false)
+              const isHighlighting = GM_getValue('bmHighlightSelectedColor', false);
               const new_isHighlighting = !isHighlighting;
+              button.classList.remove(new_isHighlighting ? 'off' : 'on');
+              button.classList.add(new_isHighlighting ? 'on' : 'off');
               GM.setValue('bmHighlightSelectedColor', new_isHighlighting);
               const message = 'Highlight Selected: ' + (new_isHighlighting ? 'ON' : 'OFF');
               instance.handleDisplayStatus(message);
             };
+            button.classList.add('toggleable');
           }).buildElement()
-          .addButton({'id': 'bm-button-highlight-wrong-color', 'textContent': 'Highlight Selected'}, (instance, button) => {
+          .addButton({'id': 'bm-button-highlight-wrong-color', 'textContent': 'Highlight Wrong'}, (instance, button) => {
             button.onclick = () => {
               const t = templateManager.templatesArray[0];
               if (!t?.colorPalette) { return; }
-              const isHighlighting = GM_getValue('bmHighlightWrongColor', false)
+              const isHighlighting = GM_getValue('bmHighlightWrongColor', false);
               const new_isHighlighting = !isHighlighting;
+              button.classList.remove(new_isHighlighting ? "off" : "on");
+              button.classList.add(new_isHighlighting ? "on" : "off");
               GM.setValue('bmHighlightWrongColor', new_isHighlighting);
               const message = 'Highlight Wrong: ' + (new_isHighlighting ? 'ON' : 'OFF');
               instance.handleDisplayStatus(message);
             };
+            button.classList.add('toggleable');
           }).buildElement()
         .buildElement()
         .addDiv({'id': 'bm-colorfilter-list'}).buildElement()
