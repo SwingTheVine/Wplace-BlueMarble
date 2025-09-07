@@ -570,6 +570,28 @@ function buildOverlayMain() {
               instance.handleDisplayStatus('Disabled all colors');
             };
           }).buildElement()
+          .addButton({'id': 'bm-button-highlight-selected-color', 'textContent': 'Highlight Selected'}, (instance, button) => {
+            button.onclick = () => {
+              const t = templateManager.templatesArray[0];
+              if (!t?.colorPalette) { return; }
+              const isHighlighting = GM_getValue('bmHighlightSelectedColor', false)
+              const new_isHighlighting = !isHighlighting;
+              GM.setValue('bmHighlightSelectedColor', new_isHighlighting);
+              const message = 'Highlight Selected: ' + (new_isHighlighting ? 'ON' : 'OFF');
+              instance.handleDisplayStatus(message);
+            };
+          }).buildElement()
+          .addButton({'id': 'bm-button-highlight-wrong-color', 'textContent': 'Highlight Selected'}, (instance, button) => {
+            button.onclick = () => {
+              const t = templateManager.templatesArray[0];
+              if (!t?.colorPalette) { return; }
+              const isHighlighting = GM_getValue('bmHighlightWrongColor', false)
+              const new_isHighlighting = !isHighlighting;
+              GM.setValue('bmHighlightWrongColor', new_isHighlighting);
+              const message = 'Highlight Wrong: ' + (new_isHighlighting ? 'ON' : 'OFF');
+              instance.handleDisplayStatus(message);
+            };
+          }).buildElement()
         .buildElement()
         .addDiv({'id': 'bm-colorfilter-list'}).buildElement()
       .buildElement()
@@ -629,7 +651,7 @@ function buildOverlayMain() {
           .addButton({'id': 'bm-button-website', 'className': 'bm-help', 'innerHTML': '🌐', 'title': 'Official Blue Marble Website'}, 
             (instance, button) => {
             button.addEventListener('click', () => {
-              window.open('https://bluemarble.lol/', '_blank', 'noopener noreferrer');
+              window.open('https://bluemarble.camilledaguin.fr/', '_blank', 'noopener noreferrer');
             });
           }).buildElement()
         .buildElement()
