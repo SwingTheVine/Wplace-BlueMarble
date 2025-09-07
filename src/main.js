@@ -550,7 +550,7 @@ function buildOverlayMain() {
         }).buildElement()
       .buildElement()
       // Color filter UI
-      .addDiv({'id': 'bm-contain-colorfilter', 'style': 'max-height: 140px; overflow: auto; border: 1px solid rgba(255,255,255,0.1); padding: 4px; border-radius: 4px; display: none;'})
+      .addDiv({'id': 'bm-contain-colorfilter', 'style': 'max-height: 140px; overflow: auto; border: 1px solid rgba(255,255,255,0.1); padding: 4px; border-radius: 4px; margin-bottom: 6px; display: none;'})
         .addDiv({'style': 'display: flex; gap: 6px; margin-bottom: 6px;'})
           .addButton({'id': 'bm-button-colors-enable-all', 'textContent': 'Enable All'}, (instance, button) => {
             button.onclick = () => {
@@ -570,36 +570,42 @@ function buildOverlayMain() {
               instance.handleDisplayStatus('Disabled all colors');
             };
           }).buildElement()
-          .addButton({'id': 'bm-button-highlight-selected-color', 'textContent': 'Highlight Selected'}, (instance, button) => {
-            button.onclick = () => {
-              const t = templateManager.templatesArray[0];
-              if (!t?.colorPalette) { return; }
-              const isHighlighting = GM_getValue('bmHighlightSelectedColor', false);
-              const new_isHighlighting = !isHighlighting;
-              button.classList.remove(new_isHighlighting ? 'off' : 'on');
-              button.classList.add(new_isHighlighting ? 'on' : 'off');
-              GM.setValue('bmHighlightSelectedColor', new_isHighlighting);
-              const message = 'Highlight Selected: ' + (new_isHighlighting ? 'ON' : 'OFF');
-              instance.handleDisplayStatus(message);
-            };
-            button.classList.add('toggleable');
-          }).buildElement()
-          .addButton({'id': 'bm-button-highlight-wrong-color', 'textContent': 'Highlight Wrong'}, (instance, button) => {
-            button.onclick = () => {
-              const t = templateManager.templatesArray[0];
-              if (!t?.colorPalette) { return; }
-              const isHighlighting = GM_getValue('bmHighlightWrongColor', false);
-              const new_isHighlighting = !isHighlighting;
-              button.classList.remove(new_isHighlighting ? "off" : "on");
-              button.classList.add(new_isHighlighting ? "on" : "off");
-              GM.setValue('bmHighlightWrongColor', new_isHighlighting);
-              const message = 'Highlight Wrong: ' + (new_isHighlighting ? 'ON' : 'OFF');
-              instance.handleDisplayStatus(message);
-            };
-            button.classList.add('toggleable');
-          }).buildElement()
         .buildElement()
         .addDiv({'id': 'bm-colorfilter-list'}).buildElement()
+      .buildElement()
+      .addDiv({'style': 'display: flex; gap: 6px; margin-bottom: 6px;'})
+        .addButton({'id': 'bm-button-highlight-selected-color', 'textContent': 'Highlight Selected'}, (instance, button) => {
+          button.onclick = () => {
+            const t = templateManager.templatesArray[0];
+            if (!t?.colorPalette) { return; }
+            const isHighlighting = GM_getValue('bmHighlightSelectedColor', false);
+            const new_isHighlighting = !isHighlighting;
+            button.classList.remove(new_isHighlighting ? 'off' : 'on');
+            button.classList.add(new_isHighlighting ? 'on' : 'off');
+            GM.setValue('bmHighlightSelectedColor', new_isHighlighting);
+            const message = 'Highlight Selected: ' + (new_isHighlighting ? 'ON' : 'OFF');
+            instance.handleDisplayStatus(message);
+          };
+          button.classList.add('toggleable');
+          const isHighlighting = GM_getValue('bmHighlightSelectedColor', false);
+          button.classList.add(isHighlighting ? 'on' : 'off');
+        }).buildElement()
+        .addButton({'id': 'bm-button-highlight-wrong-color', 'textContent': 'Highlight Wrong'}, (instance, button) => {
+          button.onclick = () => {
+            const t = templateManager.templatesArray[0];
+            if (!t?.colorPalette) { return; }
+            const isHighlighting = GM_getValue('bmHighlightWrongColor', false);
+            const new_isHighlighting = !isHighlighting;
+            button.classList.remove(new_isHighlighting ? "off" : "on");
+            button.classList.add(new_isHighlighting ? "on" : "off");
+            GM.setValue('bmHighlightWrongColor', new_isHighlighting);
+            const message = 'Highlight Wrong: ' + (new_isHighlighting ? 'ON' : 'OFF');
+            instance.handleDisplayStatus(message);
+          };
+          button.classList.add('toggleable');
+          const isHighlighting = GM_getValue('bmHighlightWrongColor', false);
+          button.classList.add(isHighlighting ? 'on' : 'off');
+        }).buildElement()
       .buildElement()
       .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
       .addDiv({'id': 'bm-contain-buttons-template'})
