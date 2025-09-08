@@ -216,3 +216,38 @@ export const colorpalette = [
   { "id": 63, "premium": true,  "name": "Light Stone",   "rgb": [205, 197, 158] }
 ];
 // All entries include fixed id (index-based) and premium flag by design.
+
+/** Converts an HSV (Hue, Saturation, Value) color to RGB.
+ * The hue is an angle on the color wheel from 0 to 360 degrees.
+ * Saturation and Value are expressed as decimals from 0.0 to 1.0.
+ * @param {number} h - Hue (0–360)
+ * @param {number} s - Saturation (0.0–1.0)
+ * @param {number} v - Value/Brightness (0.0–1.0)
+ * @returns {number[]} The RGB color as an array [r, g, b] with each value in the range 0–255
+ * @since 0.80.0
+ * @example
+ * console.log(hsvToRgb(0, 1, 1));   // [255, 0, 0] (Red)
+ * console.log(hsvToRgb(120, 1, 1)); // [0, 255, 0] (Green)
+ * console.log(hsvToRgb(240, 1, 1)); // [0, 0, 255] (Blue)
+ * console.log(hsvToRgb(60, 1, 1));  // [255, 255, 0] (Yellow)
+ */
+export function hsvToRgb(h, s, v) {
+  const c = v * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = v - c;
+
+  let r = 0, g = 0, b = 0;
+
+  if (0 <= h && h < 60) [r, g, b] = [c, x, 0];
+  else if (60 <= h && h < 120) [r, g, b] = [x, c, 0];
+  else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
+  else if (180 <= h && h < 240) [r, g, b] = [0, x, c];
+  else if (240 <= h && h < 300) [r, g, b] = [x, 0, c];
+  else if (300 <= h && h < 360) [r, g, b] = [c, 0, x];
+
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return [r, g, b];
+}

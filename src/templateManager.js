@@ -1,5 +1,5 @@
 import Template from "./Template";
-import { base64ToUint8, numberToEncoded } from "./utils";
+import { base64ToUint8, numberToEncoded, hsvToRgb } from "./utils";
 
 /** Manages the template system.
  * This class handles all external requests for template modification, creation, and analysis.
@@ -287,7 +287,12 @@ export default class TemplateManager {
     const canvas = new OffscreenCanvas(drawSize, drawSize);
     const context = canvas.getContext('2d');
 
-    context.imageSmoothingEnabled = false; // Nearest neighbor
+    const highlightCanvas = new OffscreenCanvas(drawSize, drawSize);
+    const highlightContext = highlightCanvas.getContext('2d');
+
+    // Nearest neighbor
+    context.imageSmoothingEnabled = false;
+    highlightContext.imageSmoothingEnabled = false;
 
     // Tells the canvas to ignore anything outside of this area
     context.beginPath();
@@ -297,6 +302,18 @@ export default class TemplateManager {
     context.clearRect(0, 0, drawSize, drawSize); // Draws transparent background
     context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
 
+    highlightContext.beginPath();
+    highlightContext.rect(0, 0, drawSize, drawSize);
+    highlightContext.clip();
+
+    highlightContext.clearRect(0, 0, drawSize, drawSize); // Draws transparent background
+    // highlightContext.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
+
+    // highlightContext.fillStyle = 'rgba(128, 128, 128, 1)';
+    // highlightContext.beginPath();
+    // highlightContext.rect(0, 0, drawSize, drawSize);
+    // highlightContext.fill();
+
     // Grab a snapshot of the tile pixels BEFORE we draw any template overlays
     let tilePixels = null;
     try {
@@ -304,6 +321,16 @@ export default class TemplateManager {
     } catch (_) {
       // If reading fails for any reason, we will skip stats
     }
+
+    let highlightTileImg = null;
+    try {
+      highlightTileImg = highlightContext.getImageData(0, 0, drawSize, drawSize);
+    } catch (_) {
+      // If reading fails for any reason, we will skip highlighting
+    }
+
+    const highlightWrongColor = !!GM_getValue('bmHighlightWrongColor');
+    console.log("Highlight Wrong Color " + (highlightWrongColor ? "ON" : "OFF"));
 
     // For each template in this tile, draw them.
     for (const template of templatesToDraw) {
@@ -314,7 +341,6 @@ export default class TemplateManager {
       // honoring color enable/disable from the active template's palette
       if (tilePixels) {
         try {
-          
           const tempWidth = template.bitmap.width;
           const tempHeight = template.bitmap.height;
           const tempCanvas = new OffscreenCanvas(tempWidth, tempHeight);
@@ -324,10 +350,10 @@ export default class TemplateManager {
           tempContext.drawImage(template.bitmap, 0, 0);
           const tImg = tempContext.getImageData(0, 0, tempWidth, tempHeight);
           const tData = tImg.data; // Tile Data, Template Data, or Temp Data????
-
+          
           const offsetX = Number(template.pixelCoords[0]) * this.drawMult;
           const offsetY = Number(template.pixelCoords[1]) * this.drawMult;
-
+    
           // Loops over all pixels in the template
           // Assigns each pixel a color (if center pixel)
           for (let y = 0; y < tempHeight; y++) {
@@ -365,10 +391,10 @@ export default class TemplateManager {
                   const key = activeTemplate.allowedColorsSet.has(`${pr},${pg},${pb}`) ? `${pr},${pg},${pb}` : 'other';
 
                   const isSiteColor = activeTemplate?.allowedColorsSet ? activeTemplate.allowedColorsSet.has(key) : false;
-                  
+
                   // IF the alpha of the center pixel that is placed on the canvas is greater than or equal to 64, AND the pixel is a Wplace palette color, then it is incorrect.
                   if (pa >= 64 && isSiteColor) {
-                    wrongCount++;
+                    // wrongCount++;
                   }
                 } catch (ignored) {}
 
@@ -405,6 +431,26 @@ export default class TemplateManager {
               } else if (realPixelRed === templatePixelCenterRed && realPixelCenterGreen === templatePixelCenterGreen && realPixelCenterBlue === templatePixelCenterBlue) {
                 paintedCount++; // ...the pixel is painted correctly
               } else {
+                // If highlight wrong color is on, highlight the pixel with a rainbow
+                if (highlightWrongColor) {
+                  let helperFunction = (img, x, y, r, g, b, a) => {
+                    const pixelIndex = (y * drawSize + x) * 4;
+                    img.data[pixelIndex] = r;
+                    img.data[pixelIndex + 1] = g;
+                    img.data[pixelIndex + 2] = b;
+                    img.data[pixelIndex + 3] = a;
+                  };
+                  
+                  // Sets the surrounding pixels to a rainbow color
+                  helperFunction(highlightTileImg, x - 1, y - 1, ...hsvToRgb(90 + 45, 1, 1), 255);
+                  helperFunction(highlightTileImg, x, y - 1, ...hsvToRgb(90, 1, 1), 255);
+                  helperFunction(highlightTileImg, x + 1, y - 1, ...hsvToRgb(45, 1, 1), 255);
+                  helperFunction(highlightTileImg, x - 1, y, ...hsvToRgb(180, 1, 1), 255);
+                  helperFunction(highlightTileImg, x + 1, y, ...hsvToRgb(0, 1, 1), 255);
+                  helperFunction(highlightTileImg, x - 1, y + 1, ...hsvToRgb(180 + 45, 1, 1), 255);
+                  helperFunction(highlightTileImg, x, y + 1, ...hsvToRgb(180 + 90, 1, 1), 255);
+                  helperFunction(highlightTileImg, x + 1, y + 1, ...hsvToRgb(180 + 90 + 45, 1, 1), 255);
+                }
                 wrongCount++; // ...the pixel is NOT painted correctly
               }
             }
@@ -412,6 +458,11 @@ export default class TemplateManager {
         } catch (exception) {
           console.warn('Failed to compute per-tile painted/wrong stats:', exception);
         }
+      }
+
+      // Put back new highlight pixel data before drawing
+      if (highlightTileImg) {
+        highlightContext.putImageData(highlightTileImg, 0, 0);
       }
 
       // Draw the template overlay for visual guidance, honoring color filter
@@ -424,6 +475,7 @@ export default class TemplateManager {
         // If none of the template colors are disabled, then draw the image normally
         if (!hasDisabled) {
           context.drawImage(template.bitmap, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
+          context.drawImage(highlightCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
         } else {
           // ELSE we need to apply the color filter
 
