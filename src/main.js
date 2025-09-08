@@ -590,11 +590,10 @@ function buildOverlayMain() {
             const t = templateManager.templatesArray[0];
             if (!t?.colorPalette) { return; }
             const isHighlighting = GM_getValue('bmHighlightSelectedColor', false);
-            const new_isHighlighting = !isHighlighting;
-            button.classList.remove(new_isHighlighting ? 'off' : 'on');
-            button.classList.add(new_isHighlighting ? 'on' : 'off');
-            GM.setValue('bmHighlightSelectedColor', new_isHighlighting);
-            const message = 'Highlight Selected: ' + (new_isHighlighting ? 'ON' : 'OFF');
+            button.classList.remove(isHighlighting ? "on" : "off");
+            button.classList.add(isHighlighting ? "off" : "on");
+            GM.setValue('bmHighlightSelectedColor', !isHighlighting);
+            const message = 'Highlight Selected: ' + (isHighlighting ? 'OFF' : 'ON');
             instance.handleDisplayStatus(message);
           };
           button.classList.add('toggleable');
@@ -606,11 +605,10 @@ function buildOverlayMain() {
             const t = templateManager.templatesArray[0];
             if (!t?.colorPalette) { return; }
             const isHighlighting = GM_getValue('bmHighlightWrongColor', false);
-            const new_isHighlighting = !isHighlighting;
-            button.classList.remove(new_isHighlighting ? "off" : "on");
-            button.classList.add(new_isHighlighting ? "on" : "off");
-            GM.setValue('bmHighlightWrongColor', new_isHighlighting);
-            const message = 'Highlight Wrong: ' + (new_isHighlighting ? 'ON' : 'OFF');
+            button.classList.remove(isHighlighting ? "on" : "off");
+            button.classList.add(isHighlighting ? "off" : "on");
+            GM.setValue('bmHighlightWrongColor', !isHighlighting);
+            const message = 'Highlight Wrong: ' + (isHighlighting ? 'OFF' : 'ON');
             instance.handleDisplayStatus(message);
           };
           button.classList.add('toggleable');
