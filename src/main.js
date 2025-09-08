@@ -305,6 +305,7 @@ function buildOverlayMain() {
             const dragBar = document.querySelector('#bm-bar-drag');
             const coordsContainer = document.querySelector('#bm-contain-coords');
             const coordsButton = document.querySelector('#bm-button-coords');
+            const highlightersContainer = document.querySelector('#bm-contain-highlighters');
             const createButton = document.querySelector('#bm-button-create');
             const enableButton = document.querySelector('#bm-button-enable');
             const disableButton = document.querySelector('#bm-button-disable');
@@ -355,6 +356,11 @@ function buildOverlayMain() {
                 coordsButton.style.display = 'none';
               }
               
+              // Hide highlighter buttons
+              if (highlightersContainer) {
+                highlightersContainer.style.display = 'none';
+              }
+
               // Hide create template button
               if (createButton) {
                 createButton.style.display = 'none';
@@ -416,6 +422,11 @@ function buildOverlayMain() {
               // Restore coordinate button visibility
               if (coordsButton) {
                 coordsButton.style.display = '';
+              }
+
+              // Restores highlighter buttons visibility
+              if (highlightersContainer) {
+                highlightersContainer.style.display = 'flex';
               }
               
               // Restore create button visibility and reset positioning
@@ -573,7 +584,7 @@ function buildOverlayMain() {
         .buildElement()
         .addDiv({'id': 'bm-colorfilter-list'}).buildElement()
       .buildElement()
-      .addDiv({'style': 'display: flex; gap: 6px; margin-bottom: 6px;'})
+      .addDiv({'id': 'bm-contain-highlighters', 'style': 'display: flex; gap: 6px; margin-bottom: 6px;'})
         .addButton({'id': 'bm-button-highlight-selected-color', 'textContent': 'Highlight Selected'}, (instance, button) => {
           button.onclick = () => {
             const t = templateManager.templatesArray[0];
