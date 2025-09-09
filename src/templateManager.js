@@ -307,12 +307,6 @@ export default class TemplateManager {
     highlightContext.clip();
 
     highlightContext.clearRect(0, 0, drawSize, drawSize); // Draws transparent background
-    // highlightContext.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
-
-    // highlightContext.fillStyle = 'rgba(128, 128, 128, 1)';
-    // highlightContext.beginPath();
-    // highlightContext.rect(0, 0, drawSize, drawSize);
-    // highlightContext.fill();
 
     // Grab a snapshot of the tile pixels BEFORE we draw any template overlays
     let tilePixels = null;
@@ -330,7 +324,6 @@ export default class TemplateManager {
     }
 
     const highlightWrongColor = !!GM_getValue('bmHighlightWrongColor');
-    console.log("Highlight Wrong Color " + (highlightWrongColor ? "ON" : "OFF"));
 
     // For each template in this tile, draw them.
     for (const template of templatesToDraw) {
@@ -394,7 +387,7 @@ export default class TemplateManager {
 
                   // IF the alpha of the center pixel that is placed on the canvas is greater than or equal to 64, AND the pixel is a Wplace palette color, then it is incorrect.
                   if (pa >= 64 && isSiteColor) {
-                    // wrongCount++;
+                    wrongCount++;
                   }
                 } catch (ignored) {}
 
@@ -433,23 +426,29 @@ export default class TemplateManager {
               } else {
                 // If highlight wrong color is on, highlight the pixel with a rainbow
                 if (highlightWrongColor) {
-                  let helperFunction = (img, x, y, r, g, b, a) => {
+                  let setPixel = (x, y, r, g, b, a) => {
                     const pixelIndex = (y * drawSize + x) * 4;
-                    img.data[pixelIndex] = r;
-                    img.data[pixelIndex + 1] = g;
-                    img.data[pixelIndex + 2] = b;
-                    img.data[pixelIndex + 3] = a;
+                    highlightTileImg.data[pixelIndex] = r;
+                    highlightTileImg.data[pixelIndex + 1] = g;
+                    highlightTileImg.data[pixelIndex + 2] = b;
+                    highlightTileImg.data[pixelIndex + 3] = a;
                   };
                   
+                  // Make the color have a breathing effect
+                  const time = Date.now() / 1000;
+                  const range = (time % 10) / 10; // [0, 1] range
+                  const cycle = (Math.cos(range * 2 * Math.PI) + 1) / 2; // [0, 1] range
+                  const value = 0.7 + cycle * 0.3;
+
                   // Sets the surrounding pixels to a rainbow color
-                  helperFunction(highlightTileImg, x - 1, y - 1, ...hsvToRgb(90 + 45, 1, 1), 255);
-                  helperFunction(highlightTileImg, x, y - 1, ...hsvToRgb(90, 1, 1), 255);
-                  helperFunction(highlightTileImg, x + 1, y - 1, ...hsvToRgb(45, 1, 1), 255);
-                  helperFunction(highlightTileImg, x - 1, y, ...hsvToRgb(180, 1, 1), 255);
-                  helperFunction(highlightTileImg, x + 1, y, ...hsvToRgb(0, 1, 1), 255);
-                  helperFunction(highlightTileImg, x - 1, y + 1, ...hsvToRgb(180 + 45, 1, 1), 255);
-                  helperFunction(highlightTileImg, x, y + 1, ...hsvToRgb(180 + 90, 1, 1), 255);
-                  helperFunction(highlightTileImg, x + 1, y + 1, ...hsvToRgb(180 + 90 + 45, 1, 1), 255);
+                  setPixel(x + 1, y    , ...hsvToRgb(  0, 1, value), 255);
+                  setPixel(x + 1, y - 1, ...hsvToRgb( 45, 1, value), 255);
+                  setPixel(x    , y - 1, ...hsvToRgb( 90, 1, value), 255);
+                  setPixel(x - 1, y - 1, ...hsvToRgb(135, 1, value), 255);
+                  setPixel(x - 1, y    , ...hsvToRgb(180, 1, value), 255);
+                  setPixel(x - 1, y + 1, ...hsvToRgb(225, 1, value), 255);
+                  setPixel(x    , y + 1, ...hsvToRgb(270, 1, value), 255);
+                  setPixel(x + 1, y + 1, ...hsvToRgb(315, 1, value), 255);
                 }
                 wrongCount++; // ...the pixel is NOT painted correctly
               }
