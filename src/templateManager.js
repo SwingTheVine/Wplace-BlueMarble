@@ -330,14 +330,12 @@ export default class TemplateManager {
 
           // Loops over all pixels in the template
           // Assigns each pixel a color (if center pixel)
-          for (let y = 0; y < tempHeight; y++) {
-            for (let x = 0; x < tempWidth; x++) {
+          for (let y = 1; y < tempHeight; y += this.drawMult) {
+            for (let x = 1; x < tempWidth; x += this.drawMult) {
               // Purpose: Count which pixels are painted correctly???
 
               // Only evaluate the center pixel of each shread block
               // Skip if not the center pixel of the shread block
-              if ((x % this.drawMult) !== 1 || (y % this.drawMult) !== 1) { continue; }
-
               const gx = x + offsetX;
               const gy = y + offsetY;
 
@@ -442,11 +440,9 @@ export default class TemplateManager {
           const data = img.data;
 
           // For every pixel...
-          for (let y = 0; y < tempH; y++) {
-            for (let x = 0; x < tempW; x++) {
-
+          for (let y = 1; y < tempH; y += this.drawMult) {
+            for (let x = 1; x < tempW; x += this.drawMult) {
               // If this pixel is NOT the center pixel, then skip the pixel
-              if ((x % this.drawMult) !== 1 || (y % this.drawMult) !== 1) { continue; }
 
               const idx = (y * tempW + x) * 4;
               const r = data[idx];
@@ -593,10 +589,9 @@ export default class TemplateManager {
                 cx.clearRect(0, 0, w, h);
                 cx.drawImage(templateBitmap, 0, 0);
                 const data = cx.getImageData(0, 0, w, h).data;
-                for (let y = 0; y < h; y++) {
-                  for (let x = 0; x < w; x++) {
+                for (let y = 1; y < h; y += this.drawMult) {
+                  for (let x = 1; x < w; x += this.drawMult) {
                     // Only count center pixels of 3x blocks
-                    if ((x % this.drawMult) !== 1 || (y % this.drawMult) !== 1) { continue; }
                     const idx = (y * w + x) * 4;
                     const r = data[idx];
                     const g = data[idx + 1];
