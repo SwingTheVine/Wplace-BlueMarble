@@ -583,28 +583,28 @@ export default class TemplateManager {
     const highlightImg = highlightContext.getImageData(0, 0, drawSize, drawSize);
     const highlightData = highlightImg.data;
 
-    let setHighlightPixel = (x, y, r, g, b, a) => {
+    let setPixel = (data, x, y, r, g, b, a) => {
       const pixelIndex = (y * drawSize + x) * 4;
-      highlightData[pixelIndex] = r;
-      highlightData[pixelIndex + 1] = g;
-      highlightData[pixelIndex + 2] = b;
-      highlightData[pixelIndex + 3] = a;
+      data[pixelIndex] = r;
+      data[pixelIndex + 1] = g;
+      data[pixelIndex + 2] = b;
+      data[pixelIndex + 3] = a;
     };
 
     // For each template in this tile, draw their highlights.
     for (const template of templatesToDraw) {
+      const tempWidth = template.bitmap.width;
+      const tempHeight = template.bitmap.height;
+      const tempCanvas = new OffscreenCanvas(tempWidth, tempHeight);
+      const tempContext = tempCanvas.getContext('2d', { willReadFrequently: true });
+      tempContext.imageSmoothingEnabled = false;
+      tempContext.clearRect(0, 0, tempWidth, tempHeight);
+      tempContext.drawImage(template.bitmap, 0, 0);
+      const tempImg = tempContext.getImageData(0, 0, tempWidth, tempHeight);
+      const tempData = tempImg.data;
+
       if (tileData) {
         try {
-          const tempWidth = template.bitmap.width;
-          const tempHeight = template.bitmap.height;
-          const tempCanvas = new OffscreenCanvas(tempWidth, tempHeight);
-          const tempContext = tempCanvas.getContext('2d', { willReadFrequently: true });
-          tempContext.imageSmoothingEnabled = false;
-          tempContext.clearRect(0, 0, tempWidth, tempHeight);
-          tempContext.drawImage(template.bitmap, 0, 0);
-          const tempImg = tempContext.getImageData(0, 0, tempWidth, tempHeight);
-          const tempData = tempImg.data;
-
           const offsetX = Number(template.pixelCoords[0]) * this.drawMult;
           const offsetY = Number(template.pixelCoords[1]) * this.drawMult;
 
@@ -657,14 +657,14 @@ export default class TemplateManager {
                 const value = 0.7 + cycle * 0.3;
 
                 // Sets the surrounding pixels to a rainbow color
-                setHighlightPixel(x + 1, y    , ...hsvToRgb(  0, 1, value), 255);
-                setHighlightPixel(x + 1, y - 1, ...hsvToRgb( 45, 1, value), 255);
-                setHighlightPixel(x    , y - 1, ...hsvToRgb( 90, 1, value), 255);
-                setHighlightPixel(x - 1, y - 1, ...hsvToRgb(135, 1, value), 255);
-                setHighlightPixel(x - 1, y    , ...hsvToRgb(180, 1, value), 255);
-                setHighlightPixel(x - 1, y + 1, ...hsvToRgb(225, 1, value), 255);
-                setHighlightPixel(x    , y + 1, ...hsvToRgb(270, 1, value), 255);
-                setHighlightPixel(x + 1, y + 1, ...hsvToRgb(315, 1, value), 255);
+                setPixel(highlightData, x + 1, y    , ...hsvToRgb(  0, 1, value), 255);
+                setPixel(highlightData, x + 1, y - 1, ...hsvToRgb( 45, 1, value), 255);
+                setPixel(highlightData, x    , y - 1, ...hsvToRgb( 90, 1, value), 255);
+                setPixel(highlightData, x - 1, y - 1, ...hsvToRgb(135, 1, value), 255);
+                setPixel(highlightData, x - 1, y    , ...hsvToRgb(180, 1, value), 255);
+                setPixel(highlightData, x - 1, y + 1, ...hsvToRgb(225, 1, value), 255);
+                setPixel(highlightData, x    , y + 1, ...hsvToRgb(270, 1, value), 255);
+                setPixel(highlightData, x + 1, y + 1, ...hsvToRgb(315, 1, value), 255);
               }
             }
           }
@@ -673,7 +673,10 @@ export default class TemplateManager {
         }
       }
 
-      // Draw the template overlay for visual guidance, honoring color filter
+      // Put back pixel data before drawing
+      highlightContext.putImageData(highlightImg, 0, 0);
+
+      // Draw the highlightCanvas overlay for visual guidance, honoring color filter
       try {
 
         const activeTemplate = this.templatesArray?.[0]; // Get the first template
@@ -688,10 +691,10 @@ export default class TemplateManager {
 
           console.log('Applying highlight color filter...');
 
-          const tempW = template.bitmap.width;
-          const tempH = template.bitmap.height;
+          const tempWidth = template.bitmap.width;
+          const tempHeight = template.bitmap.height;
 
-          const filterCanvas = new OffscreenCanvas(tempW, tempH);
+          const filterCanvas = new OffscreenCanvas(tempWidth, tempHeight);
           const filterCtx = filterCanvas.getContext('2d', { willReadFrequently: true });
           filterCtx.imageSmoothingEnabled = false; // Nearest neighbor
           filterCtx.clearRect(0, 0, drawSize, drawSize);
@@ -708,10 +711,10 @@ export default class TemplateManager {
               if ((x % this.drawMult) !== 1 || (y % this.drawMult) !== 1) { continue; }
 
               const idx = (y * tempWidth + x) * 4;
-              const r = data[idx];
-              const g = data[idx + 1];
-              const b = data[idx + 2];
-              const a = data[idx + 3];
+              const r = tempData[idx];
+              const g = tempData[idx + 1];
+              const b = tempData[idx + 2];
+              const a = tempData[idx + 3];
 
               if (a < 1) { continue; }
 
@@ -723,29 +726,24 @@ export default class TemplateManager {
               const isPaletteColorEnabled = palette?.[key]?.enabled !== false;
               if (!inWplacePalette || !isPaletteColorEnabled) {
                 // hide disabled color highlight
-                setHighlightPixel(x + 1, y    , 255, 0, 0, 255);
-                setHighlightPixel(x + 1, y - 1, 255, 0, 0, 255);
-                setHighlightPixel(x    , y - 1, 255, 0, 0, 255);
-                setHighlightPixel(x - 1, y - 1, 255, 0, 0, 255);
-                setHighlightPixel(x - 1, y    , 255, 0, 0, 255);
-                setHighlightPixel(x - 1, y + 1, 255, 0, 0, 255);
-                setHighlightPixel(x    , y + 1, 255, 0, 0, 255);
-                setHighlightPixel(x + 1, y + 1, 255, 0, 0, 255);
+                for (let dy = -1; dy <= 1; dy++) {
+                  for (let dx = -1; dx <= 1; dx++) {
+                    setPixel(data, x + dx, y + dy, 0, 0, 0, 0);
+                  }
+                }
               }
             }
           }
+
+          // Draws the template with some highlights disabled
+          filterCtx.putImageData(img, 0, 0);
+          context.drawImage(filterCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
         }
       } catch (exception) {
 
         // If filtering fails, we can log the error or handle it accordingly
         console.warn('Failed to apply color filter for highlight:', exception);
       }
-
-      // Put back pixel data before drawing
-      highlightContext.putImageData(highlightImg, 0, 0);
-
-      // Draws highlight ontop of the other canvases
-      context.drawImage(highlightCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
     }
 
     return canvas.convertToBlob({ type: 'image/png' });
