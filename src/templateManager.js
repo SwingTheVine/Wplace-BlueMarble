@@ -209,31 +209,23 @@ export default class TemplateManager {
 
   }
 
-  /** Draws all templates on the specified tile.
-   * This method handles the rendering of template overlays on individual tiles.
-   * @param {File} tileBlob - The pixels that are placed on a tile
+  /**
+   * This method returns templates that exist, should be drawn and touch on individual tiles.
    * @param {Array<number>} tileCoords - The tile coordinates [x, y]
-   * @since 0.65.77
+   * @returns {Array<Template>} - Templates that exist, should be drawn and touch on the specified tile.
+   * @since 0.85.0
    */
-  async drawTemplateOnTile(tileBlob, tileCoords) {
-
+  async templatesToDrawOnTile(tileCoords) {
     // Returns early if no templates should be drawn
-    if (!this.templatesShouldBeDrawn) {return tileBlob;}
-
-    const drawSize = this.tileSize * this.drawMult; // Calculate draw multiplier for scaling
+    if (!this.templatesShouldBeDrawn) return [];
 
     // Format tile coordinates with proper padding for consistent lookup
     tileCoords = tileCoords[0].toString().padStart(4, '0') + ',' + tileCoords[1].toString().padStart(4, '0');
 
-    console.log(`Searching for templates in tile: "${tileCoords}"`);
-
-    const templateArray = this.templatesArray; // Stores a copy for sorting
-    console.log(templateArray);
+    const templateArray = this.templatesArray;  // Stores a copy for sorting
 
     // Sorts the array of Template class instances. 0 = first = lowest draw priority
     templateArray.sort((a, b) => {return a.sortID - b.sortID;});
-
-    console.log(templateArray);
 
     // Early exit if none of the active templates touch this tile
     const anyTouches = templateArray.some(t => {
@@ -245,7 +237,7 @@ export default class TemplateManager {
       // Fallback: scan chunked keys
       return Object.keys(t.chunked).some(k => k.startsWith(tileCoords));
     });
-    if (!anyTouches) { return tileBlob; }
+    if (!anyTouches) { return []; }
 
     // Retrieves the relavent template tile blobs
     const templatesToDraw = templateArray
@@ -260,7 +252,7 @@ export default class TemplateManager {
         const matchingTileBlobs = matchingTiles.map(tile => {
 
           const coords = tile.split(','); // [x, y, x, y] Tile/pixel coordinates
-          
+
           return {
             bitmap: template.chunked[tile],
             tileCoords: [coords[0], coords[1]],
@@ -272,27 +264,36 @@ export default class TemplateManager {
       })
     .filter(Boolean);
 
-    console.log(templatesToDraw);
+    return templatesToDraw;
+  }
+
+  /** Draws all templates on the specified tile.
+   * This method handles the rendering of template overlays on individual tiles.
+   * @param {File} tileBlob - The pixels that are placed on a tile
+   * @param {Array<number>} tileCoords - The tile coordinates [x, y]
+   * @since 0.65.77
+   */
+  async drawTemplateOnTile(tileBlob, tileCoords) {
+    const templatesToDraw = await this.templatesToDrawOnTile(tileCoords);
+    if (templatesToDraw.size == 0) { return tileBlob; }
 
     const templateCount = templatesToDraw?.length || 0; // Number of templates to draw on this tile
     console.log(`templateCount = ${templateCount}`);
+
+    const drawSize = this.tileSize * this.drawMult; // Calculate draw multiplier for scaling
 
     // We'll compute per-tile painted/wrong/required counts when templates exist for this tile
     let paintedCount = 0;
     let wrongCount = 0;
     let requiredCount = 0;
-    
+  
     const tileBitmap = await createImageBitmap(tileBlob);
 
     const canvas = new OffscreenCanvas(drawSize, drawSize);
     const context = canvas.getContext('2d');
 
-    const highlightCanvas = new OffscreenCanvas(drawSize, drawSize);
-    const highlightContext = highlightCanvas.getContext('2d');
-
     // Nearest neighbor
     context.imageSmoothingEnabled = false;
-    highlightContext.imageSmoothingEnabled = false;
 
     // Tells the canvas to ignore anything outside of this area
     context.beginPath();
@@ -302,12 +303,6 @@ export default class TemplateManager {
     context.clearRect(0, 0, drawSize, drawSize); // Draws transparent background
     context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
 
-    highlightContext.beginPath();
-    highlightContext.rect(0, 0, drawSize, drawSize);
-    highlightContext.clip();
-
-    highlightContext.clearRect(0, 0, drawSize, drawSize); // Draws transparent background
-
     // Grab a snapshot of the tile pixels BEFORE we draw any template overlays
     let tilePixels = null;
     try {
@@ -315,15 +310,6 @@ export default class TemplateManager {
     } catch (_) {
       // If reading fails for any reason, we will skip stats
     }
-
-    let highlightTileImg = null;
-    try {
-      highlightTileImg = highlightContext.getImageData(0, 0, drawSize, drawSize);
-    } catch (_) {
-      // If reading fails for any reason, we will skip highlighting
-    }
-
-    const highlightWrongColor = !!GM_getValue('bmHighlightWrongColor');
 
     // For each template in this tile, draw them.
     for (const template of templatesToDraw) {
@@ -424,32 +410,6 @@ export default class TemplateManager {
               } else if (realPixelRed === templatePixelCenterRed && realPixelCenterGreen === templatePixelCenterGreen && realPixelCenterBlue === templatePixelCenterBlue) {
                 paintedCount++; // ...the pixel is painted correctly
               } else {
-                // If highlight wrong color is on, highlight the pixel with a rainbow
-                if (highlightWrongColor) {
-                  let setPixel = (x, y, r, g, b, a) => {
-                    const pixelIndex = (y * drawSize + x) * 4;
-                    highlightTileImg.data[pixelIndex] = r;
-                    highlightTileImg.data[pixelIndex + 1] = g;
-                    highlightTileImg.data[pixelIndex + 2] = b;
-                    highlightTileImg.data[pixelIndex + 3] = a;
-                  };
-                  
-                  // Make the color have a breathing effect
-                  const time = Date.now() / 1000;
-                  const range = (time % 10) / 10; // [0, 1] range
-                  const cycle = (Math.cos(range * 2 * Math.PI) + 1) / 2; // [0, 1] range
-                  const value = 0.7 + cycle * 0.3;
-
-                  // Sets the surrounding pixels to a rainbow color
-                  setPixel(x + 1, y    , ...hsvToRgb(  0, 1, value), 255);
-                  setPixel(x + 1, y - 1, ...hsvToRgb( 45, 1, value), 255);
-                  setPixel(x    , y - 1, ...hsvToRgb( 90, 1, value), 255);
-                  setPixel(x - 1, y - 1, ...hsvToRgb(135, 1, value), 255);
-                  setPixel(x - 1, y    , ...hsvToRgb(180, 1, value), 255);
-                  setPixel(x - 1, y + 1, ...hsvToRgb(225, 1, value), 255);
-                  setPixel(x    , y + 1, ...hsvToRgb(270, 1, value), 255);
-                  setPixel(x + 1, y + 1, ...hsvToRgb(315, 1, value), 255);
-                }
                 wrongCount++; // ...the pixel is NOT painted correctly
               }
             }
@@ -457,11 +417,6 @@ export default class TemplateManager {
         } catch (exception) {
           console.warn('Failed to compute per-tile painted/wrong stats:', exception);
         }
-      }
-
-      // Put back new highlight pixel data before drawing
-      if (highlightTileImg) {
-        highlightContext.putImageData(highlightTileImg, 0, 0);
       }
 
       // Draw the template overlay for visual guidance, honoring color filter
@@ -474,7 +429,6 @@ export default class TemplateManager {
         // If none of the template colors are disabled, then draw the image normally
         if (!hasDisabled) {
           context.drawImage(template.bitmap, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
-          context.drawImage(highlightCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
         } else {
           // ELSE we need to apply the color filter
 
@@ -576,6 +530,225 @@ export default class TemplateManager {
     }
 
     return await canvas.convertToBlob({ type: 'image/png' });
+  }
+
+  /** Draws all enabled highlights on the specified tile.
+   * This method handles the rendering of highlight overlays on individual tiles, takes input from the output blob from DrawTemplateOnTile() to overlay a highlight
+   * @param {File} tileBlob - The pixels that are placed on a tile
+   * @param {File} baseBlob - The existing overlay that new pixels will be drawn on top of
+   * @param {Array<number>} tileCoords - The tile coordinates [x, y]
+   * @since 0.65.77
+   */
+  async drawHighlightOnTile(tileBlob, baseBlob, tileCoords) {
+    const templatesToDraw = await this.templatesToDrawOnTile(tileCoords);
+    if (templatesToDraw.size == 0) { return baseBlob; }
+
+    const drawSize = this.tileSize * this.drawMult; // Calculate draw multiplier for scaling
+
+    const tileBitmap = await createImageBitmap(tileBlob);
+    const baseBitmap = await createImageBitmap(baseBlob);
+
+    // Pixels that are drawn on the tile
+    const tileCanvas = new OffscreenCanvas(drawSize, drawSize);
+    const tileContext = tileCanvas.getContext('2d');
+
+    // Previous base overlay that new pixels will be drawn on top of
+    const canvas = new OffscreenCanvas(drawSize, drawSize);
+    const context = canvas.getContext('2d');
+
+    // Highlight overlay that will surround the base overlay's center pixels with a highlight
+    const highlightCanvas = new OffscreenCanvas(drawSize, drawSize);
+    const highlightContext = highlightCanvas.getContext('2d');
+
+    tileContext.imageSmoothingEnabled = false;
+    highlightContext.imageSmoothingEnabled = false;
+
+    // Tells the canvases to ignore anything outside of this area
+    tileContext.beginPath();
+    tileContext.rect(0, 0, drawSize, drawSize);
+    tileContext.clip();
+
+    context.beginPath();
+    context.rect(0, 0, drawSize, drawSize);
+    context.clip();
+
+    highlightContext.beginPath();
+    highlightContext.rect(0, 0, drawSize, drawSize);
+    highlightContext.clip();
+
+    tileContext.drawImage(tileBitmap, 0, 0, drawSize, drawSize); // Scales tile data to match drawMult; 1x1 pixel turns into drawMult x drawMult pixels
+    context.drawImage(baseBitmap, 0, 0, drawSize, drawSize); // Draws previous overlay
+
+    const tileData = tileContext.getImageData(0, 0, drawSize, drawSize).data;
+    const highlightImg = highlightContext.getImageData(0, 0, drawSize, drawSize);
+    const highlightData = highlightImg.data;
+
+    let setHighlightPixel = (x, y, r, g, b, a) => {
+      const pixelIndex = (y * drawSize + x) * 4;
+      highlightData[pixelIndex] = r;
+      highlightData[pixelIndex + 1] = g;
+      highlightData[pixelIndex + 2] = b;
+      highlightData[pixelIndex + 3] = a;
+    };
+
+    // For each template in this tile, draw their highlights.
+    for (const template of templatesToDraw) {
+      if (tileData) {
+        try {
+          const tempWidth = template.bitmap.width;
+          const tempHeight = template.bitmap.height;
+          const tempCanvas = new OffscreenCanvas(tempWidth, tempHeight);
+          const tempContext = tempCanvas.getContext('2d', { willReadFrequently: true });
+          tempContext.imageSmoothingEnabled = false;
+          tempContext.clearRect(0, 0, tempWidth, tempHeight);
+          tempContext.drawImage(template.bitmap, 0, 0);
+          const tempImg = tempContext.getImageData(0, 0, tempWidth, tempHeight);
+          const tempData = tempImg.data;
+
+          const offsetX = Number(template.pixelCoords[0]) * this.drawMult;
+          const offsetY = Number(template.pixelCoords[1]) * this.drawMult;
+
+          // Loops over all pixels in the template
+          // Assigns each pixel a color (if center pixel)
+          for (let y = 0; y < tempHeight; y++) {
+            for (let x = 0; x < tempWidth; x++) {
+              // Purpose: Count which pixels are painted correctly???
+
+              // Only evaluate the center pixel of each shread block
+              // Skip if not the center pixel of the shread block
+              if ((x % this.drawMult) !== 1 || (y % this.drawMult) !== 1) { continue; }
+
+              // Used to refer to wplace pixels from tileData
+              // Use x and y to refer to template pixels from tempData
+              const gx = x + offsetX;
+              const gy = y + offsetY;
+
+              // IF the pixel is out of bounds of the template, OR if the pixel is outside of the tile, then skip the pixel
+              if (gx < 0 || gy < 0 || gx >= drawSize || gy >= drawSize) { continue; }
+
+              const templatePixelCenter = (y * tempWidth + x) * 4; // Shread block center pixel
+              const templatePixelCenterRed = tempData[templatePixelCenter]; // Shread block's center pixel's RED value
+              const templatePixelCenterGreen = tempData[templatePixelCenter + 1]; // Shread block's center pixel's GREEN value
+              const templatePixelCenterBlue = tempData[templatePixelCenter + 2]; // Shread block's center pixel's BLUE value
+
+              // Strict center-pixel matching. Treat transparent tile pixels as unpainted (not wrong)
+              const realPixelCenter = (gy * drawSize + gx) * 4;
+              const realPixelRed = tileData[realPixelCenter];
+              const realPixelCenterGreen = tileData[realPixelCenter + 1];
+              const realPixelCenterBlue = tileData[realPixelCenter + 2];
+              const realPixelCenterAlpha = tileData[realPixelCenter + 3];
+
+              // If the pixel's alpha is equal to or higher than 64 and doesn't exactly match the template color, it's wrong
+              const painted = realPixelCenterAlpha >= 64;
+              const rightColor = (
+                realPixelRed === templatePixelCenterRed && 
+                realPixelCenterGreen === templatePixelCenterGreen &&
+                realPixelCenterBlue === templatePixelCenterBlue
+              );
+              const wrongPixel = painted && !rightColor;
+
+              // Highlight the center pixel with a rainbow surrounding it
+              if (wrongPixel) {
+
+                // Make the color have a breathing effect
+                const time = Date.now() / 1000;
+                const range = (time % 10) / 10; // [0, 1] range
+                const cycle = (Math.cos(range * 2 * Math.PI) + 1) / 2; // [0, 1] range
+                const value = 0.7 + cycle * 0.3;
+
+                // Sets the surrounding pixels to a rainbow color
+                setHighlightPixel(x + 1, y    , ...hsvToRgb(  0, 1, value), 255);
+                setHighlightPixel(x + 1, y - 1, ...hsvToRgb( 45, 1, value), 255);
+                setHighlightPixel(x    , y - 1, ...hsvToRgb( 90, 1, value), 255);
+                setHighlightPixel(x - 1, y - 1, ...hsvToRgb(135, 1, value), 255);
+                setHighlightPixel(x - 1, y    , ...hsvToRgb(180, 1, value), 255);
+                setHighlightPixel(x - 1, y + 1, ...hsvToRgb(225, 1, value), 255);
+                setHighlightPixel(x    , y + 1, ...hsvToRgb(270, 1, value), 255);
+                setHighlightPixel(x + 1, y + 1, ...hsvToRgb(315, 1, value), 255);
+              }
+            }
+          }
+        } catch (exception) {
+          console.warn('Failed to compute per-tile highlights:', exception);
+        }
+      }
+
+      // Draw the template overlay for visual guidance, honoring color filter
+      try {
+
+        const activeTemplate = this.templatesArray?.[0]; // Get the first template
+        const palette = activeTemplate?.colorPalette || {}; // Obtain the color palette of the template
+        const hasDisabled = Object.values(palette).some(v => v?.enabled === false); // Check if any color is disabled
+
+        // If none of the template colors are disabled, then draw the image normally
+        if (!hasDisabled) {
+          context.drawImage(highlightCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
+        } else {
+          // ELSE we need to apply the color filter
+
+          console.log('Applying highlight color filter...');
+
+          const tempW = template.bitmap.width;
+          const tempH = template.bitmap.height;
+
+          const filterCanvas = new OffscreenCanvas(tempW, tempH);
+          const filterCtx = filterCanvas.getContext('2d', { willReadFrequently: true });
+          filterCtx.imageSmoothingEnabled = false; // Nearest neighbor
+          filterCtx.clearRect(0, 0, drawSize, drawSize);
+          filterCtx.drawImage(highlightCanvas, 0, 0);
+
+          const img = filterCtx.getImageData(0, 0, drawSize, drawSize);
+          const data = img.data;
+
+          // For every pixel...
+          for (let y = 0; y < tempHeight; y++) {
+            for (let x = 0; x < tempWidth; x++) {
+
+              // If this pixel is NOT the center pixel, then skip the pixel
+              if ((x % this.drawMult) !== 1 || (y % this.drawMult) !== 1) { continue; }
+
+              const idx = (y * tempWidth + x) * 4;
+              const r = data[idx];
+              const g = data[idx + 1];
+              const b = data[idx + 2];
+              const a = data[idx + 3];
+
+              if (a < 1) { continue; }
+
+              let key = activeTemplate.allowedColorsSet.has(`${r},${g},${b}`) ? `${r},${g},${b}` : 'other';
+
+              // Hide if color is not in allowed palette or explicitly disabled
+              const inWplacePalette = activeTemplate?.allowedColorsSet ? activeTemplate.allowedColorsSet.has(key) : true;
+
+              const isPaletteColorEnabled = palette?.[key]?.enabled !== false;
+              if (!inWplacePalette || !isPaletteColorEnabled) {
+                // hide disabled color highlight
+                setHighlightPixel(x + 1, y    , 255, 0, 0, 255);
+                setHighlightPixel(x + 1, y - 1, 255, 0, 0, 255);
+                setHighlightPixel(x    , y - 1, 255, 0, 0, 255);
+                setHighlightPixel(x - 1, y - 1, 255, 0, 0, 255);
+                setHighlightPixel(x - 1, y    , 255, 0, 0, 255);
+                setHighlightPixel(x - 1, y + 1, 255, 0, 0, 255);
+                setHighlightPixel(x    , y + 1, 255, 0, 0, 255);
+                setHighlightPixel(x + 1, y + 1, 255, 0, 0, 255);
+              }
+            }
+          }
+        }
+      } catch (exception) {
+
+        // If filtering fails, we can log the error or handle it accordingly
+        console.warn('Failed to apply color filter for highlight:', exception);
+      }
+
+      // Put back pixel data before drawing
+      highlightContext.putImageData(highlightImg, 0, 0);
+
+      // Draws highlight ontop of the other canvases
+      context.drawImage(highlightCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
+    }
+
+    return canvas.convertToBlob({ type: 'image/png' });
   }
 
   /** Imports the JSON object, and appends it to any JSON object already loaded
