@@ -484,6 +484,7 @@ function buildOverlayMain() {
       .addP({'id': 'bm-user-name', 'textContent': 'Username:'}).buildElement()
       .addP({'id': 'bm-user-droplets', 'textContent': 'Droplets:'}).buildElement()
       .addP({'id': 'bm-user-nextlevel', 'textContent': 'Next level in...'}).buildElement()
+      .addP({'id': 'bm-user-maxpx', 'textContent': 'Full recharge in...'}).buildElement()
     .buildElement()
 
     .addHr().buildElement()

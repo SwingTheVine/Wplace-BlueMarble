@@ -5,7 +5,7 @@
  */
 
 import TemplateManager from "./templateManager.js";
-import { consoleError, escapeHTML, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
+import { consoleError, escapeHTML, formatTimeMs, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
 
 export default class ApiManager {
 
@@ -62,6 +62,10 @@ export default class ApiManager {
             return; // Kills itself before attempting to display null userdata
           }
 
+          let maxpxTimeMs =
+            dataJSON["charges"]["cooldownMs"] *
+            (dataJSON["charges"]["max"] - dataJSON["charges"]["count"]);
+
           const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON['level']) * Math.pow(30, 0.65), (1/0.65)) - dataJSON['pixelsPainted']); // Calculates pixels to the next level
 
           console.log(dataJSON['id']);
@@ -71,11 +75,28 @@ export default class ApiManager {
               '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~'
             ));
           }
-          this.templateManager.userID = dataJSON['id'];
           
           overlay.updateInnerHTML('bm-user-name', `Username: <b>${escapeHTML(dataJSON['name'])}</b>`); // Updates the text content of the username field
           overlay.updateInnerHTML('bm-user-droplets', `Droplets: <b>${new Intl.NumberFormat().format(dataJSON['droplets'])}</b>`); // Updates the text content of the droplets field
           overlay.updateInnerHTML('bm-user-nextlevel', `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? '' : 's'}`); // Updates the text content of the next level field
+          
+          if (this.maxpxTimerIntervalId !== null)
+            clearInterval(this.maxpxTimerIntervalId);
+
+          this.maxpxTimerIntervalId = setInterval(function () {
+            maxpxTimeMs -= 1000;
+            if (maxpxTimeMs < 0) {
+              clearInterval(maxpxTimerIntervalId);
+              maxpxTimerIntervalId = null;
+              return;
+            }
+            overlay.updateInnerHTML(
+              "bm-user-maxpx",
+              `Full recharge in <b>${formatTimeMs(maxpxTimeMs)}</b>`,
+            );
+          }, 1000);
+          
+          this.templateManager.userID = dataJSON['id'];
           break;
 
         case 'pixel': // Request to retrieve pixel data

@@ -45,6 +45,29 @@ export function negativeSafeModulo(a, b) {
   return (a % b + b) % b;
 }
 
+/** Function to format into a readable string a time passed in ms. Warning: Necessarily temporary as this should be replaced with i18n eventually.
+ * @param {number} ms
+ * @returns {string} formatted string
+ */
+export function formatTimeMs(ms) {
+  let s = ~~(ms / 1000);
+
+  const displayDays = s > 86400;
+  const displayHours = s > 3600;
+  const displayMinutes = s > 60;
+
+  const d = ~~(s / 86400); // Number of seconds in a day
+  s -= d * 86400;
+
+  const h = ~~(s / 3600);
+  s -= h * 3600;
+
+  const m = ~~(s / 60);
+  s -= m * 60;
+
+  return `${displayDays ? `${d}d ` : ""}${displayHours ? `${h}h ` : ""}${displayMinutes ? `${m}m ` : ""}${s}s`;
+}
+
 /** Bypasses terser's stripping of console function calls.
  * This is so the non-obfuscated code will contain debugging console calls, but the distributed version won't.
  * However, the distributed version needs to call the console somehow, so this wrapper function is how.
