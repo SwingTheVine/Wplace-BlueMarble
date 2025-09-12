@@ -5,7 +5,7 @@
  */
 
 import TemplateManager from "./templateManager.js";
-import { consoleError, escapeHTML, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
+import { consoleError, escapeHTML, numberToEncoded, serverTPtoDisplayTP, formatTimeMs } from "./utils.js";
 
 export default class ApiManager {
 
@@ -18,6 +18,7 @@ export default class ApiManager {
     this.disableAll = false; // Should the entire userscript be disabled?
     this.coordsTilePixel = []; // Contains the last detected tile/pixel coordinate pair requested
     this.templateCoordsTilePixel = []; // Contains the last "enabled" template coords
+    this.maxpxTimerIntervalId = null // ID of the Interval used for the timer on the overlay
   }
 
   /** Determines if the spontaneously received response is something we want.
@@ -64,6 +65,10 @@ export default class ApiManager {
 
           const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON['level']) * Math.pow(30, 0.65), (1/0.65)) - dataJSON['pixelsPainted']); // Calculates pixels to the next level
 
+          let maxpxTimeMs =
+            dataJSON["charges"]["cooldownMs"] *
+            (dataJSON["charges"]["max"] - dataJSON["charges"]["count"]);
+          
           console.log(dataJSON['id']);
           if (!!dataJSON['id'] || dataJSON['id'] === 0) {
             console.log(numberToEncoded(
@@ -76,6 +81,23 @@ export default class ApiManager {
           overlay.updateInnerHTML('bm-user-name', `Username: <b>${escapeHTML(dataJSON['name'])}</b>`); // Updates the text content of the username field
           overlay.updateInnerHTML('bm-user-droplets', `Droplets: <b>${new Intl.NumberFormat().format(dataJSON['droplets'])}</b>`); // Updates the text content of the droplets field
           overlay.updateInnerHTML('bm-user-nextlevel', `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? '' : 's'}`); // Updates the text content of the next level field
+
+          if (this.maxpxTimerIntervalId !== null)
+            clearInterval(this.maxpxTimerIntervalId);
+
+          this.maxpxTimerIntervalId = setInterval(function () {
+            maxpxTimeMs -= 1000;
+            if (maxpxTimeMs < 0) {
+              clearInterval(this.maxpxTimerIntervalId);
+              this.maxpxTimerIntervalId = null;
+              return;
+            }
+            overlay.updateInnerHTML(
+              "bm-user-maxpx",
+              `Max recharge in <b>${formatTimeMs(maxpxTimeMs)}</b>`,
+            );
+          }, 1000);
+          
           break;
 
         case 'pixel': // Request to retrieve pixel data
