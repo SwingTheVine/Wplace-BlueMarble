@@ -306,7 +306,7 @@
       <summary>
         <b>Some Post-Install issues and how to resolve them</b> <sup>(Click to expand)</sup>
       </summary>
-      <i>In all cases, Developer mode must be enabled in your browsers Extension/Browser settings to use Blue Marble/Tamper Monkey. You must also <b>always fully restart your browser after a userscript installation.</b> If these options do not work, reinstall Tamper Monkey and Blue Marble by copying and pasting the contents of <a href="https://github.com/SwingTheVine/Wplace-BlueMarble/blob/main/dist/BlueMarble.user.js" target="_blank" rel="noopener noreferrer">main/dist/BlueMarble.user.js</a>into a script window in Tamper Monkey.</i>
+      <i>In all cases, Developer mode must be enabled in your browsers Extension/Browser settings to use Blue Marble/Tamper Monkey. You must also <b>always fully restart your browser after a userscript installation.</b> If these options do not work, reinstall Tamper Monkey and Blue Marble by copying and pasting the contents of <a href="https://github.com/SwingTheVine/Wplace-BlueMarble/blob/main/dist/BlueMarble.user.js" target="_blank" rel="noopener noreferrer">main/dist/BlueMarble.user.js</a> into a script window in Tamper Monkey.</i>
       <br>
         <h3>Firefox</h3>
       <ol>
@@ -318,7 +318,7 @@
       <br>
         <h3>Chrome/Chrome Forks/Microsoft Edge</h3>
       <ol>
-        <li>Open your Extensions page, select TamperMonkey in this menu to see more settings for the Extension. (Not the TAMPERMONKEY menu, but the CHROME menu for TamperMonkey.) You can also right click Tamper Monkey and select "Manage Extension" From here; Toggle "Allow User Scripts" then disable and re-enable the extension to refresh it on the Wplace website.</li>
+        <li>Open your Extensions page, select TamperMonkey in this menu to see more settings for the Extension. (Not the TamperMonkey menu, but the <b>Chrome</b> menu for TamperMonkey.) You can also right click Tamper Monkey and select "Manage Extension" From here; Toggle "Allow User Scripts" then disable and re-enable the extension to refresh it on the Wplace website.</li>
         <li>If Developer Mode is on, use CTRL+F5 to refresh the page.</li>
         <li>Try fully shutting down the browser via task manager and reopen it.</li>
       </ol>
