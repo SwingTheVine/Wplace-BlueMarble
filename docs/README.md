@@ -125,6 +125,17 @@
     <li>Filtering overlay colors by toggling individual template colors or using global enable/disable buttons</li>
     <li>...and more!</li>
   </ul>
+<p>
+  Some tips and tricks for using Blue Marble:
+  <ul>
+    <li>Clicking the globe icon next to the "Blue Marble" label on the Script GUI will collapse the UI and allow it to be drug around the screen.</li>
+    <li>Under the Wplace Paint selector, there is a button near the top labeled "Move ↑" This will allow you to move the paint window to the top of the screen. Please note; it resets after the paint placement has been confirmed, but can be moved back up in the same way.</li>
+    <li>Disabling different colors using the Color Filter and having one selected at a time makes larger images easier to manage.</li>
+    <li>Using the color picker on the center of any template placeholder pixel will select the color in the template.</li>
+    <li>Clicking the art tray icon at the bottom will take you to a website for converting images to the wplace format. Please note this website is NOT affiliated with Blue Marble.</li>
+    <li>You can extend the Status window by selecting the little arrow above the "MADE BY SWINGTHEVINE" slug and dragging downward.</li>
+  </ul>
+</p>
   If you like this userscript, please ⭐ the repository! For more information and updates, visit the <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble website</a>. If you wish to contribute to Blue Marble, check out the <a href="https://github.com/SwingTheVine/Wplace-BlueMarble/blob/main/docs/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> file in <code>docs/</code>.
 
   <img alt="Showcase image of Blue Marble template" src="./assets/Showcase1.png">
@@ -159,6 +170,14 @@
         <li>Refresh the <a href="https://wplace.live/" target="_blank" rel="noopener noreferrer">wplace.live</a> webpage.</li>
         <li>Close the web browser fully and restart it.</li>
       </ol>
+      <b>Toggling on/off Hardware Acceleration</b>(Only if you are having performance issues)
+      <ol>
+        <li>Click the “⋯" Menu in Chrome or go to the url: chrome://settings</li>
+        <li>Select “System"</li>
+        <li>Under: “Use Hardware Acceleration when Available", toggle the setting OFF. Turn it back ON after.</li>
+        <li>If it is already off, turn it on.</li>
+        <li>Restart your web browser by fully closing and opening back up.</li>
+      </ol>
     </details>
     <details>
       <summary>
@@ -192,6 +211,15 @@
         <br>
         <li>Close the web browser fully and restart it.</li>
       </ol>
+      <b>Toggling on/off Hardware Acceleration</b>(Only if you are having performance issues)
+      <ol>
+        <li>Open the “Settings and more" menu by clicking the “⋯" in the top right corner. Alt + F will also open this.</li>
+        <li>If not using the shortcut, a menu will open. Select “Settings."</li>
+        <li>Select “System and Performance"</li>
+        <li>Under: “Use Hardware Acceleration when Available", toggle the setting OFF. Turn it back ON after.</li>
+        <li>If it is already off, turn it on.</li>
+        <li>Restart your web browser by fully closing and opening back up.</li>
+      </ol>
     </details>
     <details>
       <summary>
@@ -207,6 +235,16 @@
         <li>Refresh the <a href="https://wplace.live/" target="_blank" rel="noopener noreferrer">wplace.live</a> webpage.</li>
         <br>
         <li>Close the web browser fully and restart it.</li>
+      </ol>
+      <b>Toggling on/off Hardware Acceleration</b>(Only if you are having performance issues)
+      <ol>
+        <li>Click the "Hamburger Menu" or “☰" Menu in Firefox. This is usually in the top right.</li>
+        <li>Select "Settings."</li>
+        <li>Select the “General" tab on the Left Sidebar.</li>
+        <li>Scroll down to “Performance"</li>
+        <li>Under “Use recommended performance settings" turn the option OFF, then back ON.</li>
+        <li>If it is already off, turn it on.</li>
+        <li>Restart your web browser by fully closing and opening back up.</li>
       </ol>
     </details>
     <details>
@@ -232,7 +270,68 @@
         <img alt="Right click Tamper Monkey, select 'Page Access' and allow Tamper Monkey to 'Always Run on Wplace.Live'" src="https://github.com/Espressocodes/Wplace-BlueMarble/blob/main/docs/assets/ComputerOperaInstall3.png"></li>
         <li>Close the web browser fully and restart it.</li>
       </ol>
-  </p>
+      <b>Toggling on/off Hardware Acceleration</b>(Only if you are having performance issues)
+      <ol>
+        <li>Click the “Opera Logo" Menu in the top left, or go to the url: opera://settings</li>
+        <li>Select "Settings."</li>
+        <li>Scroll down to: “System."</li>
+        <li>Under: “Use Hardware Acceleration when Available" or “Use Graphics Acceleration when Available" toggle the setting OFF. Turn it back ON after.</li>
+        <li>If it is already off, turn it on.</li>
+        <li>Restart your web browser by fully closing and opening back up.</li>
+      </ol>
+      <b>Extended Options for Opera</b>(Only if you are having performance issues)
+      <ol>
+        <li>Turn Hardware Acceleration OFF</li>
+        <li>Visit opera://flags/#use-angle in the Address Bar, and set the flag to "opengl".</li>
+        <li>Re-Enable Hardware Acceleration.</li>
+        <li>Shut down your browser FULLY and open back up.</li>
+        <li>Visit opera://gpu which reports if hardware acceleration is active. If it is NOT, then return to opera://flags/#use-angle and remove the flag.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>
+        <b>Install on Mobile Browsers</b> <sup>(Click to expand)</sup>
+      </summary>
+      <i>Blue Marble does work on Mobile Platforms.. with some caveats. Not all browsers support extensions. Not all Mobile OS's support extension browsers. In the case of Android, Edge is known to have the capability, as is Firefox in some cases. In the case of IOS, there's multiple browser-extension compatible browsers, but I have only personally tested on Safari. Due to the nature of mobile operating systems it's a hit or a miss on if it's going to be stable, functional, or even if the script will be able to function. So I don't personally help with their function. There's too many variables. However, if you are able to get TamperMonkey or ViolentMonkey or any similar script extension to work with your mobile browser, chances are Blue Marble WILL Work. On Android I believe these are free. On IOS, Tamper is $3 on the app store. 
+      <br>In all cases, after install there are a myriad of additional steps to get these to work. While unable to test on android, I can test on IOS and in that case, after installation there's some.. annoyances. 
+      <ol>
+        <li>Install TamperMonkey from the Google Play or App Store. This should be like installing a normal application.</li>
+        <li>{IOS Instructions] Navigate to: Settings > Apps > TamperMonkey, Set your Document Storage. This will either be on a networked share folder if you want to transfer between PC and Mobile, or a folder on your device you will dedicate to TamperMonkey.</li>
+        <li>{IOS Instructions] Navigate to: Settings > Apps > Safari > Extensions > TamperMonkey - Allow extension in the browser profiles you use. Scroll down to Permissions and enable "This extension can read and alter webpages.."</li>
+        <li>{IOS Instructions] There will be a prompt to allow Tamper Monkey to access TamperMonkey.Net. Allow this.</li> 
+        <li>{IOS Instructions] From here, the install is generally the same for the script to any other device.</li> 
+      </ol>
+    </details>
+    <details>
+      <summary>
+        <b>Some Post-Install issues and how to resolve them</b> <sup>(Click to expand)</sup>
+      </summary>
+      <i>In all cases, Developer mode must be enabled in your browsers Extension/Browser settings to use Blue Marble/Tamper Monkey. You must also <b>always fully restart your browser after a userscript installation.</b> If these options do not work, reinstall Tamper Monkey and Blue Marble by copying and pasting the contents of <a href="https://github.com/SwingTheVine/Wplace-BlueMarble/blob/main/dist/BlueMarble.user.js" target="_blank" rel="noopener noreferrer">main/dist/BlueMarble.user.js</a>into a script window in Tamper Monkey.</i>
+      <br>
+        <h3>Firefox</h3>
+      <ol>
+        <li>There have been instances of Firefox not being able to load the Blue Marble overlay, or Displaying all Pixels in Black. Firefox only allows for a smaller size of image display. It's a browser limitation, not a Blue Marble limitation.</li>
+        <li>If Developer Mode is on, use CTRL+F5 to refresh the page.</li>
+        <li>Fully shut-down Firefox and open it back up. It's recommended task manager is used for this.</li>
+        <li>If you are still having problems, ensure there are no "Page Access" options unselected in the Extension menu for Tamper Monkey.</li>
+      </ol>
+      <br>
+        <h3>Chrome/Chrome Forks/Microsoft Edge</h3>
+      <ol>
+        <li>Open your Extensions page, select TamperMonkey in this menu to see more settings for the Extension. (Not the TAMPERMONKEY menu, but the CHROME menu for TamperMonkey.) You can also right click Tamper Monkey and select "Manage Extension" From here; Toggle "Allow User Scripts" then disable and re-enable the extension to refresh it on the Wplace website.</li>
+        <li>If Developer Mode is on, use CTRL+F5 to refresh the page.</li>
+        <li>Try fully shutting down the browser via task manager and reopen it.</li>
+      </ol>
+      <br>
+        <h3>Opera/Opera GX</h3>
+      <ol>
+        <li>ORight-click Tamper Monkey in your extensions bar. Under "Page Access" Select "Allow"</li>
+        <li>If Developer Mode is on, use CTRL+F5 to refresh the page.</li>
+        <li>Try fully shutting down the browser via task manager and reopen it.</li>
+      </ol>
+      <br><b>Note:</b> None of these options account for a bad template being loaded. It is suggested to try a different browser if you are having difficulty.
+    </details>
+   </p>
 
   <h3>Template Instructions</h3>
   <p>
@@ -324,4 +423,8 @@
 
   <h3>Why do game notifications appear on top of the overlay?</h3>
   <p><b>A:</b> Game notifications only appear when they need immediate attention. Therefore, they have priority over the overlay (which typically needs no attention).</p>
+
+  <h3>What does the "Wrong" counter mean? Why is it only showing incorrect information?</h3>
+  <p><b>A:</b> Sometimes the painted pixel count will read as all pixels being wrong. This is not going to hurt the program working, and can safely be ignored. This function is also not always fully functional. It may show incorrect data, and it’s been known to always show 1 pixel being wrong in some cases. </p>
+  <I>If you require the function, it will break every page refresh. Simply reset your template point and reload your template to fix the data.</I>
 </p>
