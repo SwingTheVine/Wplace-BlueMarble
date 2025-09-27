@@ -5,7 +5,7 @@
  */
 
 import TemplateManager from "./templateManager.js";
-import { consoleError, escapeHTML, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
+import { consoleError, escapeHTML, numberToEncoded, serverTPtoDisplayTP, colorpalette } from "./utils.js";
 
 export default class ApiManager {
 
@@ -18,6 +18,21 @@ export default class ApiManager {
     this.disableAll = false; // Should the entire userscript be disabled?
     this.coordsTilePixel = []; // Contains the last detected tile/pixel coordinate pair requested
     this.templateCoordsTilePixel = []; // Contains the last "enabled" template coords
+    this.colorMap = this.#buildColorMap(); // RGB to color name mapping
+  }
+  
+  #buildColorMap() {
+    const map = new Map();
+    colorpalette.forEach(color => {
+      if (color?.rgb && color?.name) {
+        map.set(`${color.rgb[0]},${color.rgb[1]},${color.rgb[2]}`, color.name);
+      }
+    });
+    return map;
+  }
+  
+  #getColorName(r, g, b) {
+    return this.colorMap.get(`${r},${g},${b}`) || `RGB(${r},${g},${b})`;
   }
 
   /** Determines if the spontaneously received response is something we want.
@@ -38,6 +53,8 @@ export default class ApiManager {
       // Kills itself if the message was not intended for Blue Marble
       if (!(data && data['source'] === 'blue-marble')) {return;}
 
+
+
       // Kills itself if the message has no endpoint (intended for Blue Marble, but not this function)
       if (!data['endpoint']) {return;}
 
@@ -50,6 +67,7 @@ export default class ApiManager {
 
       // Each case is something that Blue Marble can use from the fetch.
       // For instance, if the fetch was for "me", we can update the overlay stats
+      console.log(`endpointText: ${endpointText}`);
       switch (endpointText) {
 
         case 'me': // Request to retrieve user data
@@ -79,10 +97,20 @@ export default class ApiManager {
           break;
 
         case 'pixel': // Request to retrieve pixel data
+          // Reset color display immediately
+          const existingColorDisplay = document.querySelector('#bm-display-color');
+          if (existingColorDisplay) {
+            existingColorDisplay.innerHTML = 'Loading color...';
+          }
+          
           const coordsTile = data['endpoint'].split('?')[0].split('/').filter(s => s && !isNaN(Number(s))); // Retrieves the tile coords as [x, y]
           const payloadExtractor = new URLSearchParams(data['endpoint'].split('?')[1]); // Declares a new payload deconstructor and passes in the fetch request payload
           const coordsPixel = [payloadExtractor.get('x'), payloadExtractor.get('y')]; // Retrieves the deconstructed pixel coords from the payload
           
+          console.log(`Pixel clicked at tile (${coordsTile[0]}, ${coordsTile[1]}) pixel (${coordsPixel[0]}, ${coordsPixel[1]})`);
+          console.log('Pixel API response:', dataJSON);
+          console.log('Available response fields:', Object.keys(dataJSON || {}));
+
           // Don't save the coords if there are previous coords that could be used
           if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
             overlay.handleDisplayError(`Coordinates are malformed!\nDid you try clicking the canvas first?`);
@@ -92,6 +120,11 @@ export default class ApiManager {
           this.coordsTilePixel = [...coordsTile, ...coordsPixel]; // Combines the two arrays such that [x, y, x, y]
           const displayTP = serverTPtoDisplayTP(coordsTile, coordsPixel);
           
+
+          
+          // Calculate pixel color information
+          const pixelColor = await this.#calculatePixelColor(coordsTile, coordsPixel, dataJSON);
+          
           const spanElements = document.querySelectorAll('span'); // Retrieves all span elements
 
           // For every span element, find the one we want (pixel numbers when canvas clicked)
@@ -99,19 +132,29 @@ export default class ApiManager {
             if (element.textContent.trim().includes(`${displayTP[0]}, ${displayTP[1]}`)) {
 
               let displayCoords = document.querySelector('#bm-display-coords'); // Find the additional pixel coords span
+              let displayColor = document.querySelector('#bm-display-color'); // Find the color info span
 
-              const text = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
+              const coordsText = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
               
-              // If we could not find the addition coord span, we make it then update the textContent with the new coords
+              // Create or update coordinates display
               if (!displayCoords) {
                 displayCoords = document.createElement('span');
                 displayCoords.id = 'bm-display-coords';
-                displayCoords.textContent = text;
+                displayCoords.textContent = coordsText;
                 displayCoords.style = 'margin-left: calc(var(--spacing)*3); font-size: small;';
                 element.parentNode.parentNode.parentNode.insertAdjacentElement('afterend', displayCoords);
               } else {
-                displayCoords.textContent = text;
+                displayCoords.textContent = coordsText;
               }
+              
+              // Create or update color display
+              if (!displayColor) {
+                displayColor = document.createElement('div');
+                displayColor.id = 'bm-display-color';
+                displayColor.style = 'margin-left: calc(var(--spacing)*3); font-size: small; margin-top: 4px;';
+                element.parentNode.parentNode.parentNode.insertAdjacentElement('afterend', displayColor);
+              }
+              displayColor.innerHTML = pixelColor;
             }
           }
           break;
@@ -246,5 +289,74 @@ export default class ApiManager {
     if (/Linux/i.test(ua)) return "Linux";
 
     return "Unknown";
+  }
+
+  async #getCurrentPixelColor(coordsTile, coordsPixel) {
+    try {
+      // Use the same URL format as the main tile fetching system
+      const tileUrl = `https://backend.wplace.live/files/s0/tiles/${coordsTile[0]}/${coordsTile[1]}.png`;
+      const response = await fetch(tileUrl);
+      
+      if (!response.ok) {
+        console.warn(`Tile fetch failed: ${response.status} ${response.statusText}`);
+        return null;
+      }
+      
+      const blob = await response.blob();
+      const bitmap = await createImageBitmap(blob);
+      
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(bitmap, 0, 0);
+      
+      const imageData = ctx.getImageData(parseInt(coordsPixel[0]), parseInt(coordsPixel[1]), 1, 1);
+      const [r, g, b, a] = imageData.data;
+      
+      return a >= 64 ? { r, g, b } : null;
+    } catch (error) {
+      console.warn('Failed to get current pixel color:', error);
+      return null;
+    }
+  }
+
+  /** Calculates pixel color information and checks against template
+   * @param {Array} coordsTile - Tile coordinates [x, y]
+   * @param {Array} coordsPixel - Pixel coordinates [x, y] 
+   * @param {Object} responseData - API response data containing color info
+   * @returns {string} HTML string with color information
+   */
+  async #calculatePixelColor(coordsTile, coordsPixel, responseData) {
+    try {
+      // Get template color
+      const templateColor = this.templateManager.getTemplateColorAt(coordsTile, coordsPixel);
+      
+      if (!templateColor) {
+        return '<span style="color: #888;">No template at this position</span>';
+      }
+      
+      const { r: templateR, g: templateG, b: templateB } = templateColor;
+      
+      // Get current pixel color from tile
+      const currentColor = await this.#getCurrentPixelColor(coordsTile, coordsPixel);
+      
+      if (!currentColor) {
+        const templateColorName = this.#getColorName(templateR, templateG, templateB);
+        return `<span style="color: rgb(${templateR},${templateG},${templateB});">■</span> Template: ${templateColorName} <span style="color: #888;">• Current: Transparent</span>`;
+      }
+      
+      const { r: currentR, g: currentG, b: currentB } = currentColor;
+      const isCorrect = (currentR === templateR && currentG === templateG && currentB === templateB);
+      const status = isCorrect ? 
+        '<span style="color: #4CAF50;">✓ Correct</span>' : 
+        '<span style="color: #f44336;">✗ Wrong</span>';
+      
+      const currentColorName = this.#getColorName(currentR, currentG, currentB);
+      const templateColorName = this.#getColorName(templateR, templateG, templateB);
+      
+      return `<span style="color: rgb(${currentR},${currentG},${currentB});">■</span> Current: ${currentColorName} • <span style="color: rgb(${templateR},${templateG},${templateB});">■</span> Template: ${templateColorName} • ${status}`;
+    } catch (error) {
+      console.warn('Error calculating pixel color:', error);
+      return '<span style="color: #f44336;">Error calculating color</span>';
+    }
   }
 }

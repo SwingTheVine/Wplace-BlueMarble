@@ -72,12 +72,12 @@ inject(() => {
 
   // Overrides fetch
   window.fetch = async function(...args) {
+    
+    // Log outgoing request BEFORE sending
+    const endpointName = ((args[0] instanceof Request) ? args[0]?.url : args[0]) || 'ignore';
 
     const response = await originalFetch.apply(this, args); // Sends a fetch
     const cloned = response.clone(); // Makes a copy of the response
-
-    // Retrieves the endpoint name. Unknown endpoint = "ignore"
-    const endpointName = ((args[0] instanceof Request) ? args[0]?.url : args[0]) || 'ignore';
 
     // Check Content-Type to only process JSON
     const contentType = cloned.headers.get('content-type') || '';
@@ -93,6 +93,7 @@ inject(() => {
           window.postMessage({
             source: 'blue-marble',
             endpoint: endpointName,
+            method: (args[0] instanceof Request) ? args[0].method : (args[1]?.method || 'GET'),
             jsonData: jsonData
           }, '*');
         })
@@ -155,6 +156,50 @@ inject(() => {
 
     return response; // Returns the original response
   };
+
+  // Monitor canvas for mouse events and painting
+  const observeCanvasClicks = () => {
+    const canvas = document.querySelector('div#map canvas.maplibregl-canvas');
+    if (!canvas || canvas.bmObserved) return;
+    
+    canvas.bmObserved = true;
+    
+    // Capture canvas clicks
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const canvasX = Math.floor(e.clientX - rect.left);
+      const canvasY = Math.floor(e.clientY - rect.top);
+      
+      console.log(`Canvas viewport click at (${canvasX}, ${canvasY})`);
+      
+      window.postMessage({
+        source: 'blue-marble',
+        canvasPaint: {
+          x: canvasX,
+          y: canvasY,
+          timestamp: Date.now()
+        }
+      }, '*');
+    });
+    
+    // Monitor for local pixel painting (before server submission)
+    const observePainting = () => {
+      const colorPalette = document.querySelector('.color-palette, [class*="color"], [class*="palette"]');
+      if (colorPalette) {
+        const selectedColor = colorPalette.querySelector('.selected, .active, [class*="selected"], [class*="active"]');
+        if (selectedColor) {
+          const colorValue = selectedColor.style.backgroundColor || selectedColor.dataset.color || selectedColor.getAttribute('data-color');
+          console.log(`Selected color: ${colorValue}`);
+        }
+      }
+    };
+    
+    canvas.addEventListener('click', observePainting);
+  };
+  
+  observeCanvasClicks();
+  const domObserver = new MutationObserver(() => observeCanvasClicks());
+  domObserver.observe(document.body, { childList: true, subtree: true });
 });
 
 // Imports the CSS file from dist folder on github
@@ -611,6 +656,14 @@ function buildOverlayMain() {
           button.onclick = () => {
             instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
             instance.handleDisplayStatus(`Disabled templates!`);
+          }
+        }).buildElement()
+        .addButton({'id': 'bm-button-toggle-indicators', 'textContent': 'Toggle Error Markers', 'style': 'width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'}, (instance, button) => {
+          button.onclick = () => {
+            const currentState = instance.apiManager?.templateManager?.showWrongPixelIndicators;
+            const newState = !currentState;
+            instance.apiManager?.templateManager?.setShowWrongPixelIndicators(newState);
+            instance.handleDisplayStatus(`${newState ? 'Enabled' : 'Disabled'} error markers`);
           }
         }).buildElement()
       .buildElement()
