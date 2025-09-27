@@ -331,17 +331,17 @@ export default class ApiManager {
       const templateColor = this.templateManager.getTemplateColorAt(coordsTile, coordsPixel);
       
       if (!templateColor) {
-        return '<span style="color: #888;">No template at this position</span>';
+        return '<span style="color: #888;">Current: N/A • Template: N/A • No template at this position</span>';
       }
       
       const { r: templateR, g: templateG, b: templateB } = templateColor;
+      const templateColorName = this.#getColorName(templateR, templateG, templateB);
       
       // Get current pixel color from tile
       const currentColor = await this.#getCurrentPixelColor(coordsTile, coordsPixel);
       
       if (!currentColor) {
-        const templateColorName = this.#getColorName(templateR, templateG, templateB);
-        return `<span style="color: rgb(${templateR},${templateG},${templateB});">■</span> Template: ${templateColorName} <span style="color: #888;">• Current: Transparent</span>`;
+        return `<span style="color: #888;">Current: Transparent</span> • <span style="color: rgb(${templateR},${templateG},${templateB});">■</span> Template: ${templateColorName} • <span style="color: #f44336;">✗ Wrong</span>`;
       }
       
       const { r: currentR, g: currentG, b: currentB } = currentColor;
@@ -351,12 +351,11 @@ export default class ApiManager {
         '<span style="color: #f44336;">✗ Wrong</span>';
       
       const currentColorName = this.#getColorName(currentR, currentG, currentB);
-      const templateColorName = this.#getColorName(templateR, templateG, templateB);
       
       return `<span style="color: rgb(${currentR},${currentG},${currentB});">■</span> Current: ${currentColorName} • <span style="color: rgb(${templateR},${templateG},${templateB});">■</span> Template: ${templateColorName} • ${status}`;
     } catch (error) {
       console.warn('Error calculating pixel color:', error);
-      return '<span style="color: #f44336;">Error calculating color</span>';
+      return '<span style="color: #f44336;">Current: Error • Template: Error • Error calculating color</span>';
     }
   }
 }
