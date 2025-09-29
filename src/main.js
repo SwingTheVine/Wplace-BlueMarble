@@ -156,50 +156,6 @@ inject(() => {
 
     return response; // Returns the original response
   };
-
-  // Monitor canvas for mouse events and painting
-  const observeCanvasClicks = () => {
-    const canvas = document.querySelector('div#map canvas.maplibregl-canvas');
-    if (!canvas || canvas.bmObserved) return;
-    
-    canvas.bmObserved = true;
-    
-    // Capture canvas clicks
-    canvas.addEventListener('mousedown', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const canvasX = Math.floor(e.clientX - rect.left);
-      const canvasY = Math.floor(e.clientY - rect.top);
-      
-      console.log(`Canvas viewport click at (${canvasX}, ${canvasY})`);
-      
-      window.postMessage({
-        source: 'blue-marble',
-        canvasPaint: {
-          x: canvasX,
-          y: canvasY,
-          timestamp: Date.now()
-        }
-      }, '*');
-    });
-    
-    // Monitor for local pixel painting (before server submission)
-    const observePainting = () => {
-      const colorPalette = document.querySelector('.color-palette, [class*="color"], [class*="palette"]');
-      if (colorPalette) {
-        const selectedColor = colorPalette.querySelector('.selected, .active, [class*="selected"], [class*="active"]');
-        if (selectedColor) {
-          const colorValue = selectedColor.style.backgroundColor || selectedColor.dataset.color || selectedColor.getAttribute('data-color');
-          console.log(`Selected color: ${colorValue}`);
-        }
-      }
-    };
-    
-    canvas.addEventListener('click', observePainting);
-  };
-  
-  observeCanvasClicks();
-  const domObserver = new MutationObserver(() => observeCanvasClicks());
-  domObserver.observe(document.body, { childList: true, subtree: true });
 });
 
 // Imports the CSS file from dist folder on github
@@ -240,14 +196,14 @@ if (Object.keys(userSettings).length == 0) {
     'uuid': uuid
   }));
 }
-setInterval(() => apiManager.sendHeartbeat(version), 1000 * 60 * 30); // Sends a heartbeat every 30 minutes
+// setInterval(() => apiManager.sendHeartbeat(version), 1000 * 60 * 30); // Sends a heartbeat every 30 minutes
 
-console.log(`Telemetry is ${!(userSettings?.telemetry == undefined)}`);
-if ((userSettings?.telemetry == undefined) || (userSettings?.telemetry > 1)) { // Increment 1 to retrigger telemetry notice
-  const telemetryOverlay = new Overlay(name, version);
-  telemetryOverlay.setApiManager(apiManager); // Sets the API manager for the telemetry overlay
-  buildTelemetryOverlay(telemetryOverlay); // Notifies the user about telemetry
-}
+// console.log(`Telemetry is ${!(userSettings?.telemetry == undefined)}`);
+// if ((userSettings?.telemetry == undefined) || (userSettings?.telemetry > 1)) { // Increment 1 to retrigger telemetry notice
+//   const telemetryOverlay = new Overlay(name, version);
+//   telemetryOverlay.setApiManager(apiManager); // Sets the API manager for the telemetry overlay
+//   buildTelemetryOverlay(telemetryOverlay); // Notifies the user about telemetry
+// }
 
 buildOverlayMain(); // Builds the main overlay
 
