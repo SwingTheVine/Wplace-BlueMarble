@@ -581,7 +581,6 @@ export default class TemplateManager {
     highlightContext.beginPath();
     highlightContext.rect(0, 0, drawSize, drawSize);
     highlightContext.clip();
-    highlightContext.fillStyle = "rgb(255, 0, 255)"
 
     pixelHighlightContext.beginPath();
     pixelHighlightContext.rect(0, 0, this.drawMult, this.drawMult);
@@ -621,11 +620,11 @@ export default class TemplateManager {
       setPixel(pixelHighlightData, 1 + ( 0), 1 + (+1), hsvToRgb(270, 1, value));
       setPixel(pixelHighlightData, 1 + (+1), 1 + (+1), hsvToRgb(315, 1, value));
     }
-
     pixelHighlightContext.putImageData(pixelHighlightImg, 0, 0);
 
     const activeTemplate = this.templatesArray?.[0]; // Get the first template
     const palette = activeTemplate?.colorPalette || {}; // Obtain the color palette of the template
+    const hasDisabled = Object.values(palette).some(v => v?.enabled === false); // Check if any color is disabled
 
     // For each template in this tile, draw their highlights.
     for (const template of templatesToDraw) {
@@ -665,6 +664,11 @@ export default class TemplateManager {
               const templateRed = templateData[templateCenter]; // Shread block's center pixel's RED value
               const templateGreen = templateData[templateCenter + 1]; // Shread block's center pixel's GREEN value
               const templateBlue = templateData[templateCenter + 2]; // Shread block's center pixel's BLUE value
+              const templateAlpha = templateData[templateCenter + 3]; // Shread block's center pixel's ALPHA value
+
+              if (templateAlpha < 64) {
+                continue; // Continue to the next pixel
+              }
 
               // Strict center-pixel matching. Treat transparent tile pixels as unpainted (not wrong)
               const realCenter = (gy * drawSize + gx) * 4;
@@ -673,24 +677,30 @@ export default class TemplateManager {
               const realBlue = tileData[realCenter + 2];
               const realAlpha = tileData[realCenter + 3];
 
+              // Skip non-painted pixels
+              if (realAlpha < 64) {
+                continue; // Continue to the next pixel
+              }
+
               // If the pixel's alpha is equal to or higher than 64 and doesn't exactly match the template color, it's wrong
-              const painted = realAlpha >= 64;
               const rightColor = (
                 realRed === templateRed &&
                 realGreen === templateGreen &&
                 realBlue === templateBlue
               );
-              const wrongPixel = painted && !rightColor;
 
               // Highlight the center pixel with a rainbow surrounding it
-              if (wrongPixel) {
-                let key = activeTemplate.allowedColorsSet.has(`${templateRed},${templateGreen},${templateBlue}`) ? `${templateRed},${templateGreen},${templateBlue}` : 'other';
-                const isInWplacePalette = activeTemplate?.allowedColorsSet ? activeTemplate.allowedColorsSet.has(key) : true;
-                const isPaletteColorEnabled = palette?.[key]?.enabled !== false;
+              if (!rightColor) {
+                if (hasDisabled) {
+                  const key = activeTemplate.allowedColorsSet.has(`${templateRed},${templateGreen},${templateBlue}`) ? `${templateRed},${templateGreen},${templateBlue}` : 'other';
+                  const isInWplacePalette = activeTemplate?.allowedColorsSet ? activeTemplate.allowedColorsSet.has(key) : true;
+                  const isPaletteColorEnabled = palette?.[key]?.enabled !== false;
 
-                const toHighlight  = isInWplacePalette && isPaletteColorEnabled;
-
-                if (toHighlight) {
+                  let toHighlight = isInWplacePalette && isPaletteColorEnabled;
+                  if (toHighlight) {
+                    highlightContext.drawImage(pixelHighlightCanvas, x - 1, y - 1);
+                  }
+                } else {
                   highlightContext.drawImage(pixelHighlightCanvas, x - 1, y - 1);
                 }
               }
