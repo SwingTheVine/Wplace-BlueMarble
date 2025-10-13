@@ -238,6 +238,36 @@ input[type="file"][id*="template"] {
   justify-content: space-between;
 }
 
+/* Highlighters container */
+#bm-contain-highlighters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5em;
+}
+
+/* Custom tile borders container */
+#bm-contain-custom-tile-borders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5em;
+}
+
+/* Highlight custom tile borders button */
+#bm-button-highlight-custom-tile-borders {
+  grid-column: 1 / 3; /* Use up two columns */
+}
+
+/* Custom tile borders container */
+#bm-contain-custom-tile-borders input[type="number"] {
+  appearance: auto;
+  -moz-appearance: textfield;
+  width: 15ch;
+  margin-left: 1ch;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0 0.5ch;
+  font-size: small;
+}
+
 /* All small elements */
 #bm-overlay small {
   font-size: x-small;
@@ -248,6 +278,8 @@ input[type="file"][id*="template"] {
 #bm-contain-userinfo,
 #bm-contain-automation,
 #bm-contain-coords,
+#bm-contain-highlighters,
+#bm-contain-custom-tile-borders,
 #bm-contain-buttons-template,
 div:has(> #bm-input-file-template),
 #bm-output-status {
@@ -259,6 +291,28 @@ div:has(> #bm-input-file-template),
   background-color: #144eb9;
   border-radius: 1em;
   padding: 0 0.75ch;
+}
+
+/* OFF state (red) */
+#bm-overlay button.toggleable.off {
+  background-color: #b91414;
+}
+#bm-overlay button.toggleable.off:hover {
+  background-color: #e51010;
+}
+#bm-overlay button.toggleable.off:active {
+  background-color: #ff2e2e;
+}
+
+/* ON state (green) */
+#bm-overlay button.toggleable.on {
+  background-color: #14b914;
+}
+#bm-overlay button.toggleable.on:hover {
+  background-color: #10e510;
+}
+#bm-overlay button.toggleable.on:active {
+  background-color: #2eff2e;
 }
 
 /* All overlay buttons when hovered/focused */

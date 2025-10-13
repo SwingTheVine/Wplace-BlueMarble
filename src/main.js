@@ -274,6 +274,17 @@ function buildOverlayMain() {
       GM.setValue('bmCoords', JSON.stringify(data));
     } catch (_) {}
   };
+
+  let savedCustomTile = {};
+  try { savedCustomTile = JSON.parse(GM_getValue('bmCustomTile', '{}')) || {}; } catch (_) { savedCustomTile = {}; }
+  const persistCustomTile = () => {
+    try {
+      const tileWidth = Number(document.querySelector('#bm-input-tileWidth')?.value || '');
+      const tileHeight = Number(document.querySelector('#bm-input-tileHeight')?.value || '');
+      const data = {tileWidth, tileHeight};
+      GM.setValue('bmCustomTile', JSON.stringify(data));
+    } catch (_) {}
+  }
   
   overlayMain.addDiv({'id': 'bm-overlay', 'style': 'top: 10px; right: 75px;'})
     .addDiv({'id': 'bm-contain-header'})
@@ -305,6 +316,7 @@ function buildOverlayMain() {
             const dragBar = document.querySelector('#bm-bar-drag');
             const coordsContainer = document.querySelector('#bm-contain-coords');
             const coordsButton = document.querySelector('#bm-button-coords');
+            const highlightersContainer = document.querySelector('#bm-contain-highlighters');
             const createButton = document.querySelector('#bm-button-create');
             const enableButton = document.querySelector('#bm-button-enable');
             const disableButton = document.querySelector('#bm-button-disable');
@@ -329,7 +341,8 @@ function buildOverlayMain() {
               '#bm-input-file-template',           // Template file upload interface
               '#bm-contain-buttons-action',        // Action buttons container
               `#${instance.outputStatusId}`,       // Status log textarea for user feedback
-              '#bm-contain-colorfilter'            // Color filter UI
+              '#bm-contain-colorfilter',           // Color filter UI
+              '#bm-contain-custom-tile-borders'    // Custom Tile Borders UI
             ];
             
             // Apply visibility changes to all toggleable elements
@@ -355,6 +368,11 @@ function buildOverlayMain() {
                 coordsButton.style.display = 'none';
               }
               
+              // Hide highlighter buttons
+              if (highlightersContainer) {
+                highlightersContainer.style.display = 'none';
+              }
+
               // Hide create template button
               if (createButton) {
                 createButton.style.display = 'none';
@@ -417,7 +435,12 @@ function buildOverlayMain() {
               if (coordsButton) {
                 coordsButton.style.display = '';
               }
-              
+
+              // Restores highlighter buttons visibility
+              if (highlightersContainer) {
+                highlightersContainer.style.display = '';
+              }
+
               // Restore create button visibility and reset positioning
               if (createButton) {
                 createButton.style.display = '';
@@ -550,7 +573,7 @@ function buildOverlayMain() {
         }).buildElement()
       .buildElement()
       // Color filter UI
-      .addDiv({'id': 'bm-contain-colorfilter', 'style': 'max-height: 140px; overflow: auto; border: 1px solid rgba(255,255,255,0.1); padding: 4px; border-radius: 4px; display: none;'})
+      .addDiv({'id': 'bm-contain-colorfilter', 'style': 'max-height: 140px; overflow: auto; border: 1px solid rgba(255,255,255,0.1); padding: 4px; border-radius: 4px; margin-bottom: 6px; display: none;'})
         .addDiv({'style': 'display: flex; gap: 6px; margin-bottom: 6px;'})
           .addButton({'id': 'bm-button-colors-enable-all', 'textContent': 'Enable All'}, (instance, button) => {
             button.onclick = () => {
@@ -572,6 +595,63 @@ function buildOverlayMain() {
           }).buildElement()
         .buildElement()
         .addDiv({'id': 'bm-colorfilter-list'}).buildElement()
+      .buildElement()
+      .addDiv({'id': 'bm-contain-highlighters', 'style': 'border: 1px solid rgba(255,255,255,0.1); padding: 4px; border-radius: 4px; margin-bottom: 6px;'})
+        .addButton({'id': 'bm-button-highlight-selected-color', 'innerHTML': 'Highlight<br>Selected'}, (instance, button) => {
+          button.onclick = () => {
+            const t = templateManager.templatesArray[0];
+            if (!t?.colorPalette) { return; }
+            const isHighlighting = GM_getValue('bmHighlightSelectedColor', false);
+            button.classList.remove(isHighlighting ? "on" : "off");
+            button.classList.add(isHighlighting ? "off" : "on");
+            GM.setValue('bmHighlightSelectedColor', !isHighlighting);
+            const message = 'Highlight Selected: ' + (isHighlighting ? 'OFF' : 'ON');
+            instance.handleDisplayStatus(message);
+          };
+          button.classList.add('toggleable');
+          const isHighlighting = GM_getValue('bmHighlightSelectedColor', false);
+          button.classList.add(isHighlighting ? 'on' : 'off');
+        }).buildElement()
+        .addButton({'id': 'bm-button-highlight-wrong-color', 'innerHTML': 'Highlight<br>Wrong'}, (instance, button) => {
+          button.onclick = () => {
+            const t = templateManager.templatesArray[0];
+            if (!t?.colorPalette) { return; }
+            const isHighlighting = GM_getValue('bmHighlightWrongColor', false);
+            button.classList.remove(isHighlighting ? "on" : "off");
+            button.classList.add(isHighlighting ? "off" : "on");
+            GM.setValue('bmHighlightWrongColor', !isHighlighting);
+            const message = 'Highlight Wrong: ' + (isHighlighting ? 'OFF' : 'ON');
+            instance.handleDisplayStatus(message);
+          };
+          button.classList.add('toggleable');
+          const isHighlighting = GM_getValue('bmHighlightWrongColor', false);
+          button.classList.add(isHighlighting ? 'on' : 'off');
+        }).buildElement()
+      .buildElement()
+      .addDiv({'id': 'bm-contain-custom-tile-borders', 'style': 'border: 1px solid rgba(255,255,255,0.1); padding: 4px; border-radius: 4px; margin-bottom: 6px;'})
+        .addInput({'type': 'number', 'id': 'bm-input-tile-width', 'placeholder': 'Tile Width', 'min': 0, 'step': 1, 'required': false, 'value': (savedCustomTile.tileWidth ?? '')}, (instance, input) => {
+          const handler = () => persistCustomTile();
+          input.addEventListener('input', handler);
+          input.addEventListener('change', handler);
+        }).buildElement()
+        .addInput({'type': 'number', 'id': 'bm-input-tile-height', 'placeholder': 'Tile Height', 'min': 0, 'step': 1, 'required': false, 'value': (savedCustomTile.tileHeight ?? '')}, (instance, input) => {
+          const handler = () => persistCustomTile();
+          input.addEventListener('input', handler);
+          input.addEventListener('change', handler);
+        }).buildElement()
+        .addButton({'id': 'bm-button-highlight-custom-tile-borders', 'innerHTML': 'Highlight Custom<br>Tile Borders'}, (instance, button) => {
+            button.onclick = () => {
+              const isHighlighting = GM_getValue('bmCustomTileBorders', false);
+              button.classList.remove(isHighlighting ? "on" : "off");
+              button.classList.add(isHighlighting ? "off" : "on");
+              GM.setValue('bmCustomTileBorders', !isHighlighting);
+              const message = 'Custom Tile Borders: ' + (isHighlighting ? 'OFF' : 'ON');
+              instance.handleDisplayStatus(message);
+            };
+            button.classList.add('toggleable');
+            const isHighlighting = GM_getValue('bmCustomTileBorders', false);
+            button.classList.add(isHighlighting ? 'on' : 'off');
+          }).buildElement()
       .buildElement()
       .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
       .addDiv({'id': 'bm-contain-buttons-template'})
@@ -629,7 +709,7 @@ function buildOverlayMain() {
           .addButton({'id': 'bm-button-website', 'className': 'bm-help', 'innerHTML': '🌐', 'title': 'Official Blue Marble Website'}, 
             (instance, button) => {
             button.addEventListener('click', () => {
-              window.open('https://bluemarble.lol/', '_blank', 'noopener noreferrer');
+              window.open('https://bluemarble.camilledaguin.fr/', '_blank', 'noopener noreferrer');
             });
           }).buildElement()
         .buildElement()
