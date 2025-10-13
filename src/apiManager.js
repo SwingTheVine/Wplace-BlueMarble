@@ -124,16 +124,21 @@ export default class ApiManager {
           
           const blobUUID = data['blobID'];
           const blobData = data['blobData'];
-          
+
           const highlighting = (
             (!!GM_getValue('bmHighlightSelectedColor')) ||
             (!!GM_getValue('bmHighlightWrongColor'))
           );
 
+          const borderingTiles = !!GM_getValue('bmCustomTileBorders');
+
           let lastBlob = null;
           lastBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
           if (highlighting) {
             lastBlob = await this.templateManager.drawHighlightOnTile(blobData, lastBlob, tileCoordsTile);
+          }
+          if (borderingTiles) {
+            lastBlob = await this.templateManager.drawTileBordersOnTile(lastBlob, tileCoordsTile);
           }
 
           window.postMessage({

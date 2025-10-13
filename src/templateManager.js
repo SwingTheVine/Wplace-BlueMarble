@@ -302,6 +302,7 @@ export default class TemplateManager {
 
     context.clearRect(0, 0, drawSize, drawSize); // Draws transparent background
     context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
+    tileBitmap.close()
 
     // Grab a snapshot of the tile pixels BEFORE we draw any template overlays
     let tilePixels = null;
@@ -565,6 +566,7 @@ export default class TemplateManager {
     const pixelHighlightContext = pixelHighlightCanvas.getContext('2d');
 
     // Use nearest neighbor for scaling
+    context.imageSmoothingEnabled = false;
     tileContext.imageSmoothingEnabled = false;
     highlightContext.imageSmoothingEnabled = false;
     pixelHighlightContext.imageSmoothingEnabled = false;
@@ -587,7 +589,9 @@ export default class TemplateManager {
     pixelHighlightContext.clip();
 
     tileContext.drawImage(tileBitmap, 0, 0, drawSize, drawSize); // Scales tile data to match drawMult; 1x1 pixel turns into drawMult x drawMult pixels
+    tileBitmap.close();
     context.drawImage(baseBitmap, 0, 0, drawSize, drawSize); // Draws previous overlay
+    baseBitmap.close();
 
     const tileData = tileContext.getImageData(0, 0, drawSize, drawSize).data;
     const pixelHighlightImg = pixelHighlightContext.getImageData(0, 0, this.drawMult, this.drawMult);
@@ -677,30 +681,26 @@ export default class TemplateManager {
               const realBlue = tileData[realCenter + 2];
               const realAlpha = tileData[realCenter + 3];
 
-              // Skip non-painted pixels
-              if (realAlpha < 64) {
-                continue; // Continue to the next pixel
-              }
+              // // Skip non-painted pixels
+              // if (realAlpha < 64) {
+              //   continue; // Continue to the next pixel
+              // }
 
               // If the pixel's alpha is equal to or higher than 64 and doesn't exactly match the template color, it's wrong
               const rightColor = (
                 realRed === templateRed &&
                 realGreen === templateGreen &&
-                realBlue === templateBlue
+                realBlue === templateBlue &&
+                realAlpha === templateAlpha
               );
 
-              // Highlight the center pixel with a rainbow surrounding it
               if (!rightColor) {
+                let toHighlight = true;
                 if (hasDisabled) {
                   const key = activeTemplate.allowedColorsSet.has(`${templateRed},${templateGreen},${templateBlue}`) ? `${templateRed},${templateGreen},${templateBlue}` : 'other';
-                  const isInWplacePalette = activeTemplate?.allowedColorsSet ? activeTemplate.allowedColorsSet.has(key) : true;
-                  const isPaletteColorEnabled = palette?.[key]?.enabled !== false;
-
-                  let toHighlight = isInWplacePalette && isPaletteColorEnabled;
-                  if (toHighlight) {
-                    highlightContext.drawImage(pixelHighlightCanvas, x - 1, y - 1);
-                  }
-                } else {
+                  toHighlight &&= palette?.[key]?.enabled !== false;
+                }
+                if (toHighlight) {
                   highlightContext.drawImage(pixelHighlightCanvas, x - 1, y - 1);
                 }
               }
@@ -713,8 +713,118 @@ export default class TemplateManager {
 
       // Draw the highlightCanvas overlay for visual guidance, honoring color filter
       context.drawImage(highlightCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
+      highlightContext.clearRect(0, 0, drawSize, drawSize);
     }
 
+    return canvas.convertToBlob({ type: 'image/png' });
+  }
+
+  /** Draws tile border lines on the specified tile.
+   * This method handles the rendering of highlight overlays on individual tiles, takes input from the output blob from DrawTemplateOnTile() to overlay a highlight
+   * @param {File} tileBlob - The pixels that are placed on a tile from wplace
+   * @param {File} baseBlob - The existing overlay that new pixels will be drawn on top of
+   * @param {Array<number>} tileCoords - The tile coordinates [x, y]
+   * @since 0.65.77
+   */
+  async drawTileBordersOnTile(baseBlob, tileCoords) {
+    console.log(tileCoords);
+    if (!((tileCoords[0] === 1624 && tileCoords[1] === 1059) ||
+           tileCoords[0] === 1625 && tileCoords[1] === 1059)) return baseBlob;
+    const templatesToDraw = await this.templatesToDrawOnTile(tileCoords);
+    if (templatesToDraw.size == 0) { return baseBlob; }
+
+    const drawSize = this.tileSize * this.drawMult; // Calculate draw multiplier for scaling
+    const borderColors = [[135, 206, 235], [69, 179, 224]];
+    const tileBorderWidth = 20;
+    const tileBorderHeight = 10;
+
+    const baseBitmap = await createImageBitmap(baseBlob);
+
+    // Previous base overlay that new pixels will be drawn on top of
+    const canvas = new OffscreenCanvas(drawSize, drawSize);
+    const context = canvas.getContext('2d');
+
+    // Tile border overlay that will outline the custom tiles 
+    const borderCanvas = new OffscreenCanvas(drawSize, drawSize);
+    const borderContext = borderCanvas.getContext('2d');
+
+    // Use nearest neighbor for scaling
+    context.imageSmoothingEnabled = false;
+    borderContext.imageSmoothingEnabled = false;
+
+    // Tells the canvases to ignore anything outside of their area
+    context.beginPath();
+    context.rect(0, 0, drawSize, drawSize);
+    context.clip();
+
+    borderContext.beginPath();
+    borderContext.rect(0, 0, drawSize, drawSize);
+    borderContext.clip();
+
+    context.drawImage(baseBitmap, 0, 0, drawSize, drawSize); // Draws previous overlay
+    baseBitmap.close();
+
+    // For each template in this tile, draw a tiling of tile borders starting from the top left of said template
+    for (const template of templatesToDraw) {
+      const templateWidth = template.bitmap.width / this.drawMult;
+      const templateHeight = template.bitmap.height / this.drawMult;
+      const templateStartX = Number(template.tileCoords[0]) * this.tileSize + Number(template.pixelCoords[0]);
+      const templateStartY = Number(template.tileCoords[1]) * this.tileSize + Number(template.pixelCoords[1]);
+
+      try {
+        const tileOffsetX = Number(template.pixelCoords[0]) * this.drawMult;
+        const tileOffsetY = Number(template.pixelCoords[1]) * this.drawMult;
+
+        // Find width and height of tiling where lines outlining the tiling would still be inside the tile, but doesn't draw unecessary lines completely outside it
+        // Tiling size based on the template size
+        const templateTilingWidth = templateWidth / tileBorderWidth;
+        const templateTilingHeight = templateHeight / tileBorderHeight;
+        // Tiling size based on the tile size
+        const tileTilingWidth = (drawSize - tileOffsetX) / tileBorderWidth;
+        const tileTilingHeight = (drawSize - tileOffsetY) / tileBorderHeight;
+        // Smallest size is chosen
+        const tilingWidth = Math.ceil(templateTilingWidth < tileTilingWidth ? templateTilingWidth : tileTilingWidth);
+        const tilingHeight = Math.ceil(templateTilingHeight < tileTilingHeight ? templateTilingHeight : tileTilingHeight);
+        console.log([templateTilingWidth, templateTilingHeight], [tileTilingWidth, tileTilingHeight], [tilingWidth, tilingHeight]);
+
+        // Offset starting from the global top left of the template
+        const tilingXOffset = (tileCoords[0] * this.tileSize - templateStartX) % tilingWidth;
+        const tilingYOffset = (tileCoords[1] * this.tileSize - templateStartY) % tilingHeight;
+        for (let tilingJ = 0; tilingJ < tilingHeight; tilingJ++) {
+          const startTilingY = tilingJ * tileBorderHeight;
+          const endTilingY = tilingJ * tileBorderHeight + (tileBorderHeight - 1);
+          const startY = (startTilingY - tilingYOffset) * this.drawMult;
+          const endY = (endTilingY - tilingYOffset) * this.drawMult + (this.drawMult - 1);
+
+          for (let tilingI = 0; tilingI < tilingWidth; tilingI++) {
+            const startTilingX = tilingI * tileBorderWidth;
+            const endTilingX = tilingI * tileBorderWidth + (tileBorderWidth - 1);
+            const startX = (startTilingX - tilingXOffset) * this.drawMult;
+            const endX = (endTilingX - tilingXOffset) * this.drawMult + (this.drawMult - 1);
+
+            const colorIndex = (tilingI + tilingJ) % 2;
+            const borderColor = borderColors[colorIndex];
+            borderContext.strokeStyle = `rgb(${borderColor[0]}, ${borderColor[1]}, ${borderColor[2]})`
+            borderContext.lineWidth = 1;
+
+            // Top, Right, Bottom, Left
+            borderContext.beginPath();
+            borderContext.moveTo(startX + 0.5, startY + 0.5);
+            borderContext.lineTo(  endX + 0.5, startY + 0.5);
+            borderContext.lineTo(  endX + 0.5,   endY + 0.5);
+            borderContext.lineTo(startX + 0.5,   endY + 0.5);
+            borderContext.lineTo(startX + 0.5, startY + 0.5);
+            borderContext.stroke();
+          }
+        }
+      } catch (exception) {
+        console.warn('Failed to create tile borders per tile:', exception);
+      }
+
+      // Draw the borderCanvas overlay for visual guidance, honoring color filter
+      context.drawImage(borderCanvas, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
+      borderContext.clearRect(0, 0, drawSize, drawSize);
+    }
     return canvas.convertToBlob({ type: 'image/png' });
   }
 
