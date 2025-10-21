@@ -5,6 +5,9 @@ This repository is a fork of [https://github.com/SwingTheVine/Wplace-BlueMarble]
 The install script for this fork is located at:
 https://raw.githubusercontent.com/bakablah/Wplace-BlueMarble/main/dist/BlueMarble.user.js
 
+<a href="https://raw.githubusercontent.com/bakablah/Wplace-BlueMarble/main/dist/BlueMarble.user.js" target="_blank" rel="noopener noreferrer"><strong>Install Forked Blue Marble</strong></a>
+
+
 <table>
   <tr>
     <td><a href="#blue-marble">Blue Marble</a></td>
@@ -304,3 +307,4 @@ https://raw.githubusercontent.com/bakablah/Wplace-BlueMarble/main/dist/BlueMarbl
   <h3>Why do game notifications appear on top of the overlay?</h3>
   <p><b>A:</b> Game notifications only appear when they need immediate attention. Therefore, they have priority over the overlay (which typically needs no attention).</p>
 </p>
+
