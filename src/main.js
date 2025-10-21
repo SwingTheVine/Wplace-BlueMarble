@@ -309,6 +309,7 @@ function buildOverlayMain() {
             const createButton = document.querySelector('#bm-button-create');
             const enableButton = document.querySelector('#bm-button-enable');
             const disableButton = document.querySelector('#bm-button-disable');
+            const toggleIndicatorsButton = document.querySelector('#bm-button-toggle-indicators');
             const coordInputs = document.querySelectorAll('#bm-contain-coords input');
             
             // Pre-restore original dimensions when switching to maximized state
@@ -369,6 +370,11 @@ function buildOverlayMain() {
               // Hide disable templates button
               if (disableButton) {
                 disableButton.style.display = 'none';
+              }
+
+              // Hide toggle error markers button
+              if (toggleIndicatorsButton) {
+                toggleIndicatorsButton.style.display = 'none';
               }
               
               // Hide all coordinate input fields individually (failsafe)
@@ -435,6 +441,11 @@ function buildOverlayMain() {
               if (disableButton) {
                 disableButton.style.display = '';
                 disableButton.style.marginTop = '';
+              }
+
+              // Restore toggle error markers button visibility
+              if (toggleIndicatorsButton) {
+                toggleIndicatorsButton.style.display = '';
               }
               
               // Restore all coordinate input fields
