@@ -50,7 +50,7 @@ export default class TemplateManager {
     this.encodingBase = '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~'; // Characters to use for encoding/decoding
     this.tileSize = 1000; // The number of pixels in a tile. Assumes the tile is square
     this.drawMult = 3; // The enlarged size for each pixel. E.g. when "3", a 1x1 pixel becomes a 1x1 pixel inside a 3x3 area. MUST BE ODD
-    
+
     // Template
     this.canvasTemplate = null; // Our canvas
     this.canvasTemplateZoomed = null; // The template when zoomed out
@@ -78,7 +78,7 @@ export default class TemplateManager {
     // Else, the stored canvas is "stale", get the canvas again
 
     // Attempt to find and destroy the "stale" canvas
-    document.getElementById(this.canvasTemplateID)?.remove(); 
+    document.getElementById(this.canvasTemplateID)?.remove();
 
     const canvasMain = document.querySelector(this.canvasMainID);
 
@@ -247,6 +247,7 @@ export default class TemplateManager {
     });
     if (!anyTouches) { return tileBlob; }
 
+    let firstWrongPixel = null; // Track first wrong pixel globally
     // Retrieves the relavent template tile blobs
     const templatesToDraw = templateArray
       .map(template => {
@@ -260,7 +261,7 @@ export default class TemplateManager {
         const matchingTileBlobs = matchingTiles.map(tile => {
 
           const coords = tile.split(','); // [x, y, x, y] Tile/pixel coordinates
-          
+
           return {
             bitmap: template.chunked[tile],
             tileCoords: [coords[0], coords[1]],
@@ -270,7 +271,7 @@ export default class TemplateManager {
 
         return matchingTileBlobs?.[0];
       })
-    .filter(Boolean);
+      .filter(Boolean);
 
     console.log(templatesToDraw);
 
@@ -281,7 +282,7 @@ export default class TemplateManager {
     let paintedCount = 0;
     let wrongCount = 0;
     let requiredCount = 0;
-    
+
     const tileBitmap = await createImageBitmap(tileBlob);
 
     const canvas = new OffscreenCanvas(drawSize, drawSize);
@@ -314,7 +315,7 @@ export default class TemplateManager {
       // honoring color enable/disable from the active template's palette
       if (tilePixels) {
         try {
-          
+
           const tempWidth = template.bitmap.width;
           const tempHeight = template.bitmap.height;
           const tempCanvas = new OffscreenCanvas(tempWidth, tempHeight);
@@ -365,7 +366,7 @@ export default class TemplateManager {
                   const key = activeTemplate.allowedColorsSet.has(`${pr},${pg},${pb}`) ? `${pr},${pg},${pb}` : 'other';
 
                   const isSiteColor = activeTemplate?.allowedColorsSet ? activeTemplate.allowedColorsSet.has(key) : false;
-                  
+
                   // IF the alpha of the center pixel that is placed on the canvas is greater than or equal to 64, AND the pixel is a Wplace palette color, then it is incorrect.
                   if (pa >= 64 && isSiteColor) {
                     wrongCount++;
@@ -392,7 +393,7 @@ export default class TemplateManager {
 
               // Strict center-pixel matching. Treat transparent tile pixels as unpainted (not wrong)
               const realPixelCenter = (gy * drawSize + gx) * 4;
-              const realPixelRed = tilePixels[realPixelCenter];
+              const realPixelCenterRed = tilePixels[realPixelCenter];
               const realPixelCenterGreen = tilePixels[realPixelCenter + 1];
               const realPixelCenterBlue = tilePixels[realPixelCenter + 2];
               const realPixelCenterAlpha = tilePixels[realPixelCenter + 3];
@@ -402,10 +403,20 @@ export default class TemplateManager {
                 // Unpainted -> neither painted nor wrong
 
                 // ELSE IF the pixel matches the template center pixel color
-              } else if (realPixelRed === templatePixelCenterRed && realPixelCenterGreen === templatePixelCenterGreen && realPixelCenterBlue === templatePixelCenterBlue) {
+              } else if (realPixelCenterRed === templatePixelCenterRed && realPixelCenterGreen === templatePixelCenterGreen && realPixelCenterBlue === templatePixelCenterBlue) {
                 paintedCount++; // ...the pixel is painted correctly
               } else {
                 wrongCount++; // ...the pixel is NOT painted correctly
+                if (!firstWrongPixel) {
+                  const localX = Number(template.pixelCoords?.[0] || 0) + Math.floor(x / this.drawMult);
+                  const localY = Number(template.pixelCoords?.[1] || 0) + Math.floor(y / this.drawMult);
+                  firstWrongPixel = {
+                    x: localX,
+                    y: localY,
+                    actualColor: [realPixelCenterRed, realPixelCenterGreen, realPixelCenterBlue],
+                    expectedColor: [templatePixelCenterRed, templatePixelCenterGreen, templatePixelCenterBlue]
+                  };
+                }
               }
             }
           }
@@ -517,8 +528,15 @@ export default class TemplateManager {
       const requiredStr = new Intl.NumberFormat().format(totalRequired);
       const wrongStr = new Intl.NumberFormat().format(totalRequired - aggPainted); // Used to be aggWrong, but that is bugged
 
+      let wrongPixelInfo = "";
+      if (aggWrong > 0 && firstWrongPixel) {
+        wrongPixelInfo = `First wrong at (${firstWrongPixel.x}, ${firstWrongPixel.y}): ` +
+          `Actual ${getColorName(firstWrongPixel.actualColor)}, ` +
+          `Expected ${getColorName(firstWrongPixel.expectedColor)}`;
+      }
+
       this.overlay.handleDisplayStatus(
-        `Displaying ${templateCount} template${templateCount == 1 ? '' : 's'}.\nPainted ${paintedStr} / ${requiredStr} • Wrong ${wrongStr}`
+        `Displaying ${templateCount} template${templateCount == 1 ? '' : 's'}.\nPainted ${paintedStr} / ${requiredStr} • Wrong ${wrongStr}\n${wrongPixelInfo}`
       );
     } else {
       this.overlay.handleDisplayStatus(`Displaying ${templateCount} templates.`);
