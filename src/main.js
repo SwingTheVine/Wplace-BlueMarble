@@ -573,7 +573,18 @@ function buildOverlayMain() {
         .buildElement()
         .addDiv({'id': 'bm-colorfilter-list'}).buildElement()
       .buildElement()
-      .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
+      .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}, (_,__,input,___) => {
+          input.addEventListener('change', (e) => {
+              const file = e.target.files[0];
+              const coordsMatch = file.name.match(/(?:.*\D)?(\d{1,4})\D+(\d{1,4})\D+(\d{1,3})\D+(\d{1,3}).*/);
+              if (coordsMatch && coordsMatch[0] === file.name) {
+                  document.querySelector('#bm-input-tx').value = coordsMatch[1];
+                  document.querySelector('#bm-input-ty').value = coordsMatch[2];
+                  document.querySelector('#bm-input-px').value = coordsMatch[3];
+                  document.querySelector('#bm-input-py').value = coordsMatch[4];
+              }
+          })
+      }).buildElement()
       .addDiv({'id': 'bm-contain-buttons-template'})
         .addButton({'id': 'bm-button-enable', 'textContent': 'Enable'}, (instance, button) => {
           button.onclick = () => {
