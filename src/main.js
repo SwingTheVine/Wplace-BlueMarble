@@ -99,7 +99,8 @@ inject(() => {
         .catch(err => {
           console.error(`%c${name}%c: Failed to parse JSON: `, consoleStyle, '', err);
         });
-    } else if (contentType.includes('image/') && (!endpointName.includes('openfreemap') && !endpointName.includes('maps'))) {
+        // Only intercept 'image/png' to not break potential 'image/jpeg' tiles introduced by other userscripts
+    } else if (contentType.includes('image/png') && (!endpointName.includes('openfreemap') && !endpointName.includes('maps'))) {
       // Fetch custom for all images but opensourcemap
 
       const blink = Date.now(); // Current time
