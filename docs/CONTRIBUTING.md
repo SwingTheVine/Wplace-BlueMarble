@@ -54,7 +54,7 @@
   <br>
   <b>Note</b>: If you are using AI, and you want to tell the AI how the codebase files are related to each-other, go to the <code>Class diagram of relationships for Blue Marble</code> diagram in the chart section of this file. Copy the chart, and give it to the AI.
   <br>
-  <b>Note</b>: If you are contributing to the documentation of this project, make your fork from the <code>documentation</code> branch. If you are contributing to the code/programming of this project, make your fork from the <code>code</code> branch. If you fork main, and make a PR from <code>main</code> -> <code>main</code> your PR might be rejected. This is because <code>main</code> is not up-to-date, and your changes might conflict with up-to-date changes.
+  <b>Note</b>: If you are contributing to this project, make your fork from the latest release branch. The latest release branch number should be one MINOR version higher than the current. E.g. if the latest release is 1.2.3, you should fork <code>release/v1.3.0</code>. If you fork main, and make a PR from <code>main</code> -> <code>main</code> your PR might be rejected. This is because <code>main</code> is not up-to-date, and your changes might conflict with the bleeding-edge.
 </p>
 
 <h2>Summary</h2>
@@ -62,10 +62,10 @@
   <ul>
     <li>I don't want to waste your time, so double check with me before starting a big change like adding a new feature. For example, imagine you spend 50 hours making a bot that automatically places pixels, then your pull request was rejected because a bot that automatically places pixles does not align with the "Mission" of Blue Marble. That would be sad :(</li>
     <li>Follow the style of the project. E.g., if all overlays are made by calling <code>Overlay()</code>, and you want to make a new overlay, you should probably call <code>Overlay()</code> as well.</li>
-    <li>Low quality code will be rejected.</li>
+    <li>Low quality code will be rejected. If I can't maintain the code, it will be rejected.</li>
+    <li>Low quality Pull Requests will be rejected. Communicate with the reviewers, make changes to your Pull Request when asked, and take responsibility for the code until the PR is merged. If you make a PR and abandon the PR, it will be rejected.
     <li>You can find documentation for Blue Marble <a href="https://swingthevine.github.io/Wplace-BlueMarble/index.html" target="_blank" rel="noopener noreferrer">here</a>.</li>
-    <li>Don't fork the <code>main</code> branch! Fork either <code>code</code> or <code>documentation</code>.</li>
-    <li>If you are adding a new feature, and it is feasable to stick your feature inside a function, then use a function. This will make your code conflict less with other people's code. Make your code <a href="https://en.wikipedia.org/wiki/Modular_programming" target="_blank" rel="noopener noreferrer">modular</a>.</li>
+    <li>Make your code <a href="https://en.wikipedia.org/wiki/Modular_programming" target="_blank" rel="noopener noreferrer">modular</a>. If you are adding a new feature, and it is feasable to stick your feature inside a new function, then use a new function. This will make your code conflict less with other people's code. Ideally, most features should be their own function.</li>
   </ul>
 </p>
 
@@ -83,14 +83,15 @@
 <h2>What Can I Contribute?</h2>
 <h3>Programming</h3>
   <p>
-    Most of the work to be done in this userscript is related to programming. It is helpful to have a background in programming, but not required. If you are looking to learn JavaScript and its syntax, check out this <a href="https://roadmap.sh/javascript" target="_blank" rel="noopener noreferrer">roadmap for learning JavaScript</a>. We strongly recommend that you understand functions, methods, classes, and Object-Oriented-Programming if you plan to implement a brand new feature. More technical knowledge like method chaining and lambda expressions are useful but not required. You can find the documentation for Blue Marble <a href="https://swingthevine.github.io/Wplace-BlueMarble/index.html" target="_blank" rel="noopener noreferrer">here</a>. Make your code modular when possible. In other words, you should "blackbox" your code by putting it in a function when possible. For example, if you are adding a color filter to remove colors from being displayed on the template, the function should pass in the template information and tile information, and output the filtered template/tile information. This way, other people's code can't interfere with the color filter. For example:
+    Most of the work to be done in this userscript is related to programming. It is helpful to have a background in programming, but not required. If you are looking to learn JavaScript and its syntax, check out this <a href="https://roadmap.sh/javascript" target="_blank" rel="noopener noreferrer">roadmap for learning JavaScript</a>. We strongly recommend that you understand functions, methods, classes, and Object-Oriented-Programming if you plan to implement a brand new feature. More technical knowledge like method chaining and lambda expressions are useful but not required. You can find the documentation for Blue Marble <a href="https://swingthevine.github.io/Wplace-BlueMarble/index.html" target="_blank" rel="noopener noreferrer">here</a>. Make your code modular whenever possible. In other words, you should "blackbox" your code by putting it in a function when possible. For example, if you are adding a color filter to remove colors from being displayed on the template, the function should pass in the template information and tile information, and output the filtered template/tile information. This way, other people's code can't interfere with the color filter. For example:
     <br>
     <ol>
       <li>The template image is generated and the tile information is retrieved.</li>
-      <li>The color filter function is passed in the template image and the tile information. The color filter overrides the template image with the filtered colors, and outputs that as the template image.</li>
-      <li>The pixel counter function is passed in the modified template image and the tile information, and outputs the pixel count.</li>
+      <li>The template image and the tile information is passed into the color filter function. The color filter overrides the template image with the filtered colors, and outputs that as the template image.</li>
+      <li>The modified template image and the tile information is passed into the pixel counter function, and it outputs the pixel count.</li>
       <li>The modified template image and the tile information is used to render the template.</li>
     </ol>
+    In the example above, modifying the pixel count code will not modify the color filter. If a PR is made for the pixel count code, and another PR is made for the color filter, both PR's can be merged without conflicts.
   </p>
 <h3>Translation</h3>
 <p>
@@ -332,17 +333,17 @@ classDiagram
 
   <h3>IDE</h3>
   Visual Studio Code<br>
-  <code>Version: 1.102.3</code><br>
+  <code>Version: 1.109.0</code><br>
 
   <h3>Browser</h3>
   Google Chrome<br>
-  Version: <code>138.0.7204.184 (Official Build) (64-bit)</code><br>
-  TamperMonkey Version: <code>5.3.3</code>
+  Version: <code>144.0.7559.133 (Official Build) (64-bit)</code><br>
+  TamperMonkey Version: <code>5.4.1</code>
 
   <h3>Operating System</h3>
-  Windows 10 Home<br>
-  Version: <code>22H2</code><br>
-  OS Build:	<code>19045.6093</code><br>
+  Windows 11 Home<br>
+  Version: <code>25H2</code><br>
+  OS Build:	<code>26200.7705</code><br>
   Processor: <code>Intel Core i7-9750H CPU @ 2.60GHz</code><br>
   RAM: <code>16.0 GB</code><br>
   Storage: <code>932 GB SSD Samsung SSD 970 EVO Plus 1TB, 238 GB SSD HFM256GDJTNG-8310A</code><br>
