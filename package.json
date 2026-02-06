@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
-    "jsdoc": "^4.0.4",
+    "jsdoc": "^4.0.5",
     "minami": "^1.2.3",
     "terser": "^5.43.1"
   }
