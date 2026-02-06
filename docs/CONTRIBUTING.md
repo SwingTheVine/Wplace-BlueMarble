@@ -112,6 +112,7 @@
 
 <h2>Guidelines</h2>
 <ul>
+  <li>The project owner has the final say over all decisions. The current project owner is: <code>SwingTheVine</code>.</li>
   <li>Always submit a <a href="https://github.com/SwingTheVine/Wplace-BlueMarble/issues/new/choose" target="_blank" rel="noopener noreferrer">feature request</a> and receive authorization to work on your contribution <i>before</i> you start working on your contribution. This will save you time if we end up rejecting the contribution. Small contributions (like fixing spelling errors) don't need a feature request.</li>
   <li>Follow the <a href="https://github.com/SwingTheVine/.github/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer">Code of Conduct</a>. This includes both your contributions and the way you interact with this community.</li>
   <li>Always write a clear message that explains the changes. "Added some things" does <i>not</i> explain what was changed.</li>
@@ -119,6 +120,7 @@
   <li>The file structure must be maintained (unless you were authorized to change it). For example, all code should go in `src/` and all code affecting the overlay should go in the Overlay class file.</li>
   <li>The naming structure must be maintained (unless you were authorized to change it). For example, the template image variable could be called "templateDataImage." Most things are named to be grouped based on what they share in common first. In the previous example, the variable is first related to a "template," then "data" which is an "image." This is because the variable stores an image that comes from the data of a template. The main reason for naming things this way is to aid you when you try to find the name of something. "I need the image of a template, so the variable probably starts with 'template'".</li>
   <li>Your code must be commented, explaining what everything does. We may reject the pull request if we can't understand what the code does.</li>
+  <li>Your code <i>should</i> follow SwingTheVine's <a href="https://github.com/SwingTheVine#code-style" target="_blank" rel="noopener noreferrer">code style</a>. It is not required, but it helps things progress faster.</li>
 </ul>
 
 <h2>Our Mission</h2>
