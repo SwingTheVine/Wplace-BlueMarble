@@ -55,6 +55,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install tokei
+        run: |
+          curl -L https://github.com/XAMPPRocky/tokei/releases/latest/download/tokei-x86_64-unknown-linux-gnu.tar.gz \
+          | tar xz
+          sudo mv tokei /usr/local/bin/
+
       - name: Update userscript version
         run: |
           npm version minor --no-git-tag-version
@@ -100,6 +106,19 @@ jobs:
           echo "Compression: $percentage"
           badge_url="https://img.shields.io/badge/Compression-${percentage}%25-blue"
           sed -i -E 's#https://img.shields.io/badge/Compression-[^"]*#'"$badge_url"'#' docs/README.md
+      
+      - name: Update tokei Shields
+        run: |
+          # Run tokei
+          tokei src docs build --output json > tokei.json
+          code_total=$(jq '[.[] | .code] | add' tokei.json)
+          comm_total=$(jq '[.[] | .comments] | add' tokei.json)
+          badge_code="https://img.shields.io/badge/Lines_Of_Code-${code_total}-blue?style=flat"
+          badge_comm="https://img.shields.io/badge/Lines_Of_Comments-${comm_total}-blue?style=flat"
+          echo "Code Badge: $badge_code"
+          echo "Comm Badge: $badge_comm"
+          sed -i -E 's#https://img.shields.io/badge/Lines_Of_Code-[^"]*#'"$badge_code"'#' docs/README.md
+          sed -i -E 's#https://img.shields.io/badge/Lines_Of_Comments-[^"]*#'"$badge_comm"'#' docs/README.md
 
       - name: Get the previous commit message
         id: get-commit-message
