@@ -56,7 +56,7 @@
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Total Comments" src="https://img.shields.io/badge/Lines_Of_Comments-498-blue?style=flat"></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Compression" src="https://img.shields.io/badge/Compression-70.19%25-blue"></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Repo Size" src="https://img.shields.io/github/repo-size/SwingTheVine/Wplace-BlueMarble"></a>
-<a href="https://hits.sh/github.com/SwingTheVine/Wplace-BlueMarble/"><img alt="Views" src="https://hits.sh/github.com/SwingTheVine/Wplace-BlueMarble.svg?label=Views&extraCount=664359&color=ffffff"/></a>
+<a href="https://hits.sh/github.com/SwingTheVine/Wplace-BlueMarble/" target="_blank" rel="noopener"><img alt="Views" src="https://hits.sh/github.com/SwingTheVine/Wplace-BlueMarble.svg?label=Views&extraCount=664359&color=ffffff"/></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Downloads" src="https://img.shields.io/github/downloads/SwingTheVine/Wplace-BlueMarble/total.svg"></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Build" src="https://github.com/SwingTheVine/Wplace-BlueMarble/actions/workflows/build.yml/badge.svg"></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Pages" src="https://github.com/SwingTheVine/Wplace-BlueMarble/actions/workflows/pages/pages-build-deployment/badge.svg?branch=wiki"></a>
