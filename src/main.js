@@ -498,7 +498,7 @@ function buildOverlayMain() {
             }
           }
         ).buildElement()
-        .addInput({'type': 'number', 'id': 'bm-input-tx', 'placeholder': 'Tl X', 'min': 0, 'max': 2047, 'step': 1, 'required': true, 'value': (savedCoords.tx ?? '')}, (instance, input) => {
+        .addInput({'type': 'number', 'id': 'bm-input-tx', 'placeholder': 'Tl X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
           //if a paste happens on tx, split and format it into other coordinates if possible
           input.addEventListener("paste", (event) => {
             let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter(n => n).map(Number).filter(n => !isNaN(n)); //split and filter all Non Numbers
@@ -519,17 +519,17 @@ function buildOverlayMain() {
           input.addEventListener('input', handler);
           input.addEventListener('change', handler);
         }).buildElement()
-        .addInput({'type': 'number', 'id': 'bm-input-ty', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true, 'value': (savedCoords.ty ?? '')}, (instance, input) => {
+        .addInput({'type': 'number', 'id': 'bm-input-ty', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
           const handler = () => persistCoords();
           input.addEventListener('input', handler);
           input.addEventListener('change', handler);
         }).buildElement()
-        .addInput({'type': 'number', 'id': 'bm-input-px', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true, 'value': (savedCoords.px ?? '')}, (instance, input) => {
+        .addInput({'type': 'number', 'id': 'bm-input-px', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
           const handler = () => persistCoords();
           input.addEventListener('input', handler);
           input.addEventListener('change', handler);
         }).buildElement()
-        .addInput({'type': 'number', 'id': 'bm-input-py', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true, 'value': (savedCoords.py ?? '')}, (instance, input) => {
+        .addInput({'type': 'number', 'id': 'bm-input-py', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
           const handler = () => persistCoords();
           input.addEventListener('input', handler);
           input.addEventListener('change', handler);
