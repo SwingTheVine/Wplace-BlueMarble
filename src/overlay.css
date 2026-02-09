@@ -238,6 +238,11 @@ input[type="file"][id*="template"] {
   justify-content: space-between;
 }
 
+/* All action buttons inside the action button container */
+div#bm-contain-buttons-action button#bm-help {
+  margin-right: 2px;
+}
+
 /* All small elements */
 #bm-overlay small {
   font-size: x-small;

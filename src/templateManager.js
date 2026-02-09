@@ -273,6 +273,7 @@ export default class TemplateManager {
       );
     } else {
       this.overlay.handleDisplayStatus(`Displaying ${templateCount} templates.`);
+      return tileBlob; // No templates are on this tile. Return the original tile early
     }
     
     const tileBitmap = await createImageBitmap(tileBlob);
@@ -297,9 +298,9 @@ export default class TemplateManager {
 
       // Draws the each template on the tile based on it's relative position
       context.drawImage(template.bitmap, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
-
-      return await canvas.convertToBlob({ type: 'image/png' });
     }
+
+    return await canvas.convertToBlob({ type: 'image/png' });
   }
 
   /** Imports the JSON object, and appends it to any JSON object already loaded
