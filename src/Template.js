@@ -44,11 +44,10 @@ export default class Template {
   /** Creates chunks of the template for each tile.
    * @param {Number} tileSize - Size of the tile as determined by templateManager
    * @param {Object} paletteBM - An collection of Uint32Arrays containing the palette BM uses
-   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
    * @returns {Object} Collection of template bitmaps & buffers organized by tile coordinates
    * @since 0.65.4
    */
-  async createTemplateTiles(tileSize, paletteBM, paletteTolerance) {
+  async createTemplateTiles(tileSize, paletteBM) {
     console.log('Template coordinates:', this.coords);
 
     const shreadSize = 3; // Scale image factor for pixel art enhancement (must be odd)
@@ -57,14 +56,6 @@ export default class Template {
     const imageHeight = bitmap.height;
 
     this.tileSize = tileSize; // Tile size predetermined by the templateManager
-    
-    // Calculate total pixel count using standard width × height formula
-    // TODO: Use non-transparent pixels instead of basic width times height
-    const totalPixels = imageWidth * imageHeight;
-    console.log(`Template pixel analysis - Dimensions: ${imageWidth}×${imageHeight} = ${totalPixels.toLocaleString()} pixels`);
-    
-    // Store pixel count in instance property for access by template manager and UI components
-    this.pixelCount = totalPixels;
 
     const templateTiles = {}; // Holds the template tiles
     const templateTilesBuffers = {}; // Holds the buffers of the template tiles
@@ -80,8 +71,23 @@ export default class Template {
     context.drawImage(bitmap, 0, 0); // Draws the template to the canvas
 
     let timer = Date.now();
-    this.#calculateTotalPixelsFromTemplateData(context.getImageData(0, 0, imageWidth, imageHeight), paletteBM, paletteTolerance); // Calculates total pixels from the template buffer retrieved from the canvas context image data
+    const totalPixelMap = this.#calculateTotalPixelsFromTemplateData(context.getImageData(0, 0, imageWidth, imageHeight), paletteBM); // Calculates total pixels from the template buffer retrieved from the canvas context image data
     console.log(`Calculating total pixels took ${(Date.now() - timer) / 1000.0} seconds`);
+
+    let totalPixels = 0; // Will store the total amount of non-Transparent color pixels
+    const transparentColorID = 0; // Color ID for the Transparent color
+
+    console.log(totalPixelMap);
+
+    // For each color in the total pixel Map...
+    for (const [color, total] of totalPixelMap) {
+
+      if (color == transparentColorID) {continue;} // Skip Transparent color
+
+      totalPixels += total; // Adds the total amount for the pixel color to the total amount for all colors
+    }
+
+    this.pixelCount = totalPixels; // Stores the total pixel count in the Template instance
 
     timer = Date.now();
 
@@ -159,33 +165,6 @@ export default class Template {
         context.restore(); // Restores the context of the canvas to the previous save
 
         const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight); // Data of the image on the canvas
-        
-        // TODO: Make Erased pixels calculated when showing the template, not generating it for the first time.
-        // For every pixel...
-        // for (let y = 0; y < canvasHeight; y++) {
-        //   for (let x = 0; x < canvasWidth; x++) {
-
-        //     const pixelIndex = (y * canvasWidth + x) * 4; // Find the pixel index in an array where every 4 indexes are 1 pixel
-            
-        //     // If the pixel is the color #deface, draw a translucent gray checkerboard pattern
-        //     if (
-        //       imageData.data[pixelIndex] === 222 &&
-        //       imageData.data[pixelIndex + 1] === 250 &&
-        //       imageData.data[pixelIndex + 2] === 206
-        //     ) {
-        //       if ((x + y) % 2 === 0) { // Formula for checkerboard pattern
-        //         imageData.data[pixelIndex] = 0;
-        //         imageData.data[pixelIndex + 1] = 0;
-        //         imageData.data[pixelIndex + 2] = 0;
-        //         imageData.data[pixelIndex + 3] = 32; // Translucent black
-        //       } else { // Transparent negative space
-        //         imageData.data[pixelIndex + 3] = 0;
-        //       }
-        //     } else if (x % shreadSize !== 1 || y % shreadSize !== 1) { // Otherwise make all non-middle pixels transparent
-        //       imageData.data[pixelIndex + 3] = 0; // Make the pixel transparent on the alpha channel
-        //     }
-        //   }
-        // }
 
         console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
 
@@ -225,22 +204,31 @@ export default class Template {
    * @param {ImageData} imageData - The pre-shreaded template "casted" onto a canvas
    * @param {Object} paletteBM - The palette Blue Marble uses for colors
    * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
+   * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
    * @since 0.88.6
    */
-  async #calculateTotalPixelsFromTemplateData(imageData, paletteBM, paletteTolerance) {
+  #calculateTotalPixelsFromTemplateData(imageData, paletteBM) {
 
     const buffer32Arr = new Uint32Array(imageData.data.buffer); // RGB values as a Uint32Array. Each index represents 1 pixel.
+    const { palette: palette, LUT: lookupTable } = paletteBM; // Obtains the palette and LUT
 
     // Makes a copy of the color palette Blue Marble uses, turns it into a Map, and adds data to count the amount of each color
     const _colorpalette = new Map(); // Temp color palette
-    paletteBM.palette.forEach(color => _colorpalette.set(color.id, 0));
-    //paletteBM.palette.forEach(color => _colorpalette.set(color.id, { ...color, amount: 0 }));
+    palette.forEach(color => _colorpalette.set(color.id, 0));
 
     // For every pixel...
     for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
       
-      // Finds the best matching 
-      const bestColorID = this.#findClosestPixelColorID(buffer32Arr[pixelIndex], paletteBM, paletteTolerance);
+      const pixel = buffer32Arr[pixelIndex]; // Current pixel to check
+      let bestColorID = -2; // Will eventually store the best match for color ID
+
+      // If the pixel is transparent...
+      if ((pixel >>> 24) == 0) {
+        bestColorID = 0; // Set the color ID to 0
+      } else {
+        // Else, look up the color ID in the "cube" LUT. If none is found, fallback to -2 ("Other")
+        bestColorID = lookupTable.get(pixel) ?? -2;
+      }
 
       // Adds one to the "amount" value for that pixel in the temporary color palette Map
       _colorpalette.set(bestColorID, _colorpalette.get(bestColorID) + 1);
@@ -248,58 +236,6 @@ export default class Template {
     }
 
     console.log(_colorpalette);
-  }
-
-  /** Takes a 32-bit integer of an RGB value and finds the closest palette color.
-   * This uses squared Euclidean distance calculations to find the closest color in 3D space.
-   * @param {Number} pixelColor32 - Pixel to find the color of
-   * @param {Object} paletteBM - The palette Blue Marble uses for colors
-   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
-   * @returns {Number} The ID value of the color that matches.
-   * @since 0.88.10
-   */
-  #findClosestPixelColorID(pixelColor32, paletteBM, paletteTolerance) {
-
-    let bestIndex = Infinity; // Best matching index palette color
-    let bestDistance = Infinity; // The distance to the best matching index palette color
-    const { palette: palette, RGB: _, R: paletteR, G: paletteG, B: paletteB } = paletteBM; // Gets the full color palette as Array<Object> as well as each R, G, and B palette as a Uint32Array
-
-    const pixelR = (pixelColor32 >> 16) & 0xFF; // Red value for the pixel
-    const pixelG = (pixelColor32 >> 8) & 0xFF; // Green value for the pixel
-    const pixelB = pixelColor32 & 0xFF; // Blue value for the pixel
-
-    // If the pixel we want to find the palette color of is transparent, then return the transparent index early
-    if ((pixelColor32 >>> 24) == 0) {return 0;}
-
-    // For every palette color...
-    for (let paletteColorIndex = 0; paletteColorIndex < palette.length; paletteColorIndex++) {
-      // ...find how close the pixel is in 3D space to each palette color, then return the closest palette color.
-
-      // Skip all colors in the pallete where the color ID is 0 (Transparent color) or less than 0 (Blue Marble custom color)
-      if (palette[paletteColorIndex].id <= 0) {continue;}
-
-      // The difference in RGB values between the pixel color and the palette color for each of the 3 channels
-      const deltaR = paletteR[paletteColorIndex] - pixelR;
-      const deltaG = paletteG[paletteColorIndex] - pixelG;
-      const deltaB = paletteB[paletteColorIndex] - pixelB;
-
-      // If the palette color is outside of the tolerance, skip this color
-      if ((Math.abs(deltaR) + Math.abs(deltaG) + Math.abs(deltaB)) > paletteTolerance) {continue;}
-      // This is is the Manhattan distance. We don't need to do any of the calculations below if this exceeds the tolerance.
-      // The tolerance check here is the sum of the difference across the RGB channels.
-      // E.g. "123,45,6" minus "123,44,5" is 2, which is within tolerance. "123,45,6" minus "23,45,6" is 100, which is outside tolerance.
-
-      // Squared Euclidean distance in space between palette color and pixel color
-      const distance = (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB);
-
-      // If this palette color is the closest color YET, then update the "best" variables
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestIndex = paletteColorIndex;
-      }
-    }
-
-    // Returns the ID of the best matching color in the palette, or returns the color ID for "Other" (which is -2)
-    return (bestIndex == Infinity) ? -2 : palette[bestIndex].id;
+    return _colorpalette;
   }
 }

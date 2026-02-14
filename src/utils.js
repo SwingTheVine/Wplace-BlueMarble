@@ -149,31 +149,53 @@ export function selectAllCoordinateInputs(document) {
  * Wplace palette colors have not been modified.
  * @since 0.88.6
  */
-export function colorpaletteForBlueMarble() {
-  
+export function colorpaletteForBlueMarble(tolerance) {
+
   const colorpaletteBM = colorpalette; // Makes a copy
 
   // Adds the Blue Marble color for "erased" and "other" pixels to the palette list
   colorpaletteBM.unshift({ "id": -1,  "premium": false, "name": "Erased",      "rgb": [222, 250, 206] });
   colorpaletteBM.unshift({ "id": -2,  "premium": false, "name": "Other",       "rgb": [  0,   0,   0] });
 
-  const paletteRGB32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of all 3 channels for each color
-  const paletteR32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of just red channel for each color
-  const paletteG32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of just green channel for each color
-  const paletteB32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of just blue channel for each color
+  const lookupTable = new Map();
 
-  // For each color...
-  for (let color = 0; color < colorpaletteBM.length; color++) {
+  // For each color in Blue Marble's palette...
+  for (const color of colorpaletteBM) {
+    if ((color.id == 0) || (color.id == -2)) continue; // skip Transparent or Other colors
 
-    const [red, green, blue] = colorpaletteBM[color].rgb; // Retrieves the RGB values of the color
+    // Target RGB values. These are exactly correct.
+    const targetRed = color.rgb[0];
+    const targetGreen = color.rgb[1];
+    const targetBlue = color.rgb[2];
 
-    paletteRGB32[color] = (red) | (green << 8) | (blue << 16); // Takes 3 ints of RGB of color and puts in 32 bits
-    paletteR32[color] = red; // Red channel of color
-    paletteG32[color] = green; // Green channel of color
-    paletteB32[color] = blue; // Blue channel of color
+    // For each RGB value in the range of RGB values centered on the target RGB value for each channel...
+    for (let deltaRedRange = -tolerance; deltaRedRange <= tolerance; deltaRedRange++) {
+      for (let deltaGreenRange = -tolerance; deltaGreenRange <= tolerance; deltaGreenRange++) {
+        for (let deltaBlueRange = -tolerance; deltaBlueRange <= tolerance; deltaBlueRange++) {
+          // Basically, we are making a "cube" around each target value.
+          // Say the tolerance is 3. The size of the cube will be ((3*2)+1)^3 which is 343 total.
+          // This means 343 colors will be Mapped as associated to the target color ID because 343 colors are in the "cube" surrounding and including the target color
+
+          // This specific deviation from the target RGB color values within the cube
+          const derivativeRed = targetRed + deltaRedRange;
+          const derivativeGreen = targetGreen + deltaGreenRange;
+          const derivativeBlue = targetBlue + deltaBlueRange;
+
+          // If it is impossible for the color to exist, then skip the color
+          if (derivativeRed < 0 || derivativeRed > 255 || derivativeGreen < 0 || derivativeGreen > 255 || derivativeBlue < 0 || derivativeBlue > 255) continue;
+
+          // Packed into 32-bit integer like RGBA = 0xAARRGGBB with the alpha channel forced to be 255
+          // Also, it is forced to be an unsigned 32-bit integer
+          const derivativeColor32 = ((255 << 24) | (derivativeBlue << 16) | (derivativeGreen << 8) | derivativeRed) >>> 0;
+          if (!lookupTable.has(derivativeColor32)) {
+            lookupTable.set(derivativeColor32, color.id);
+          }
+        }
+      }
+    }
   }
 
-  return {palette: colorpaletteBM, RGB: paletteRGB32, R: paletteR32, G: paletteG32, B: paletteB32}
+  return {palette: colorpaletteBM, LUT: lookupTable}
 }
 
 /** The color palette used by wplace.live
