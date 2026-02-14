@@ -153,6 +153,10 @@ div#bm-overlay, div#bm-overlay-telemetry {
   fill: #111;
 }
 
+#bm-contain-userinfo {
+  margin-bottom: 0.5em;
+}
+
 /* Container for action buttons, that is inside the action button container */
 div:has(> #bm-button-teleport) {
   display: flex;
