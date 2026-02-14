@@ -161,16 +161,29 @@ inject(() => {
 const cssOverlay = GM_getResourceText("CSS-BM-File");
 GM_addStyle(cssOverlay);
 
-// Imports the Roboto Mono font family
-var stylesheetLink = document.createElement('link');
-stylesheetLink.href = 'https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap';
-stylesheetLink.rel = 'preload';
-stylesheetLink.as = 'style';
-stylesheetLink.onload = function () {
-  this.onload = null;
-  this.rel = 'stylesheet';
-};
-document.head?.appendChild(stylesheetLink);
+// Injection point for the Roboto Mono font file (only if this is the Standalone version)
+const robotoMonoInjectionPoint = 'robotoMonoInjectionPoint';
+
+// If the Roboto Mono injection point contains '@font-face'...
+if (!!(robotoMonoInjectionPoint.indexOf('@font-face') + 1)) {
+  // A very hacky way of doing truthy/falsy logic
+  
+  console.log(`Loading Roboto Mono as a file...`);
+  GM_addStyle(robotoMonoInjectionPoint); // Add the Roboto Mono font-faces that were injected.
+} else {
+  // Else, no Roboto Mono was found. We need to use a stylesheet.
+  
+  // Imports the Roboto Mono font family as a stylesheet
+  var stylesheetLink = document.createElement('link');
+  stylesheetLink.href = 'https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap';
+  stylesheetLink.rel = 'preload';
+  stylesheetLink.as = 'style';
+  stylesheetLink.onload = function () {
+    this.onload = null;
+    this.rel = 'stylesheet';
+  };
+  document.head?.appendChild(stylesheetLink);
+}
 
 // CONSTRUCTORS
 const observers = new Observers(); // Constructs a new Observers object
