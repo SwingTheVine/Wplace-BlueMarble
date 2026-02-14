@@ -197,7 +197,7 @@ greasyForkBMjs = greasyForkBMjs.replace(/(.*\/\/\s+\@resource\s+CSS-BM-File.*)(B
 greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@updateURL\s+https.*\r?\n?/g, `// @updateURL       ${greasyForkUpdateURL}\n`);
 greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@downloadURL\s+https.*\r?\n?/g, `// @downloadURL     ${greasyForkUpdateURL}\n`);
 
-// Compiles the CSS files
+// Bundles the CSS files without minification
 esbuild.build({
   entryPoints: cssFiles,
   bundle: true,
