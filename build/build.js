@@ -143,8 +143,8 @@ fs.writeFileSync(
 
 console.log(`${consoleStyle.BLUE}Building 2 of 3...${consoleStyle.RESET}`);
 
-const standaloneName = 'BlueMarble-Standalone.user.js'; // Standalone flavor name of flie
-const standaloneBMUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${standaloneName}`;
+const standaloneName = 'BlueMarble-Standalone'; // Standalone flavor name of flie
+const standaloneBMUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${standaloneName}.user.js`;
 
 // Fetches the completed, main Blue Marble userscript files
 const mainBMjs = fs.readFileSync('dist/BlueMarble.user.js', 'utf8');
@@ -180,12 +180,12 @@ standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@updateURL\s+https.*\r?\n?/g, `
 standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@downloadURL\s+https.*\r?\n?/g, `// @downloadURL     ${standaloneBMUpdateURL}\n`);
 
 // Generates the Blue Marble JS file that contains all external resources
-fs.writeFileSync(`dist/${standaloneName}`, standaloneBMjs, 'utf-8');
+fs.writeFileSync(`dist/${standaloneName}.user.js`, standaloneBMjs, 'utf-8');
 
 console.log(`${consoleStyle.BLUE}Building 3 of 3...${consoleStyle.RESET}`);
 
-const greasyForkName = 'BlueMarble-For-GreasyFork.user.js'; // GreasyFork flavor name of file
-const greasyForkUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${greasyForkName}`;
+const greasyForkName = 'BlueMarble-For-GreasyFork'; // GreasyFork flavor name of file
+const greasyForkUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${greasyForkName}.user.js`;
 
 let greasyForkBMjs = metaContent + resultEsbuildJS.text; // Gets the unobfuscated code and adds the metadata banner
 
@@ -193,6 +193,14 @@ let greasyForkBMjs = metaContent + resultEsbuildJS.text; // Gets the unobfuscate
 greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@updateURL\s+https.*\r?\n?/g, `// @updateURL       ${greasyForkUpdateURL}\n`);
 greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@downloadURL\s+https.*\r?\n?/g, `// @downloadURL     ${greasyForkUpdateURL}\n`);
 
-fs.writeFileSync(`dist/${greasyForkName}`, greasyForkBMjs, 'utf-8');
+// Compiles the CSS files
+esbuild.build({
+  entryPoints: cssFiles,
+  bundle: true,
+  outfile: `dist/${greasyForkName}.user.css`,
+  minify: false
+});
+
+fs.writeFileSync(`dist/${greasyForkName}.user.js`, greasyForkBMjs, 'utf-8');
 
 console.log(`${consoleStyle.GREEN + consoleStyle.BOLD + consoleStyle.UNDERLINE}Building complete!${consoleStyle.RESET}`);
