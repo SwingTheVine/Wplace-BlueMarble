@@ -1,4 +1,4 @@
-import { uint8ToBase64, colorpalette } from "./utils";
+import { uint8ToBase64 } from "./utils";
 
 /** An instance of a template.
  * Handles all mathematics, manipulation, and analysis regarding a single template.
@@ -42,17 +42,21 @@ export default class Template {
   }
 
   /** Creates chunks of the template for each tile.
-   * 
+   * @param {Number} tileSize - Size of the tile as determined by templateManager
+   * @param {Object} paletteBM - An collection of Uint32Arrays containing the palette BM uses
+   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
    * @returns {Object} Collection of template bitmaps & buffers organized by tile coordinates
    * @since 0.65.4
    */
-  async createTemplateTiles() {
+  async createTemplateTiles(tileSize, paletteBM, paletteTolerance) {
     console.log('Template coordinates:', this.coords);
 
     const shreadSize = 3; // Scale image factor for pixel art enhancement (must be odd)
     const bitmap = await createImageBitmap(this.file); // Create efficient bitmap from uploaded file
     const imageWidth = bitmap.width;
     const imageHeight = bitmap.height;
+
+    this.tileSize = tileSize; // Tile size predetermined by the templateManager
     
     // Calculate total pixel count using standard width × height formula
     // TODO: Use non-transparent pixels instead of basic width times height
@@ -67,6 +71,26 @@ export default class Template {
 
     const canvas = new OffscreenCanvas(this.tileSize, this.tileSize);
     const context = canvas.getContext('2d', { willReadFrequently: true });
+  
+    // Prep the canvas for drawing the entire template (so we can find total pixels)
+    canvas.width = imageWidth;
+    canvas.height = imageHeight;
+    context.imageSmoothingEnabled = false; // Nearest neighbor
+
+    context.drawImage(bitmap, 0, 0); // Draws the template to the canvas
+
+    let timer = Date.now();
+    this.#calculateTotalPixelsFromTemplateData(context.getImageData(0, 0, imageWidth, imageHeight), paletteBM, paletteTolerance); // Calculates total pixels from the template buffer retrieved from the canvas context image data
+    console.log(`Calculating total pixels took ${(Date.now() - timer) / 1000.0} seconds`);
+
+    timer = Date.now();
+
+    // Creates a mask where the middle pixel is white, and everything else is transparent
+    const canvasMask = new OffscreenCanvas(3, 3);
+    const contextMask = canvasMask.getContext("2d");
+    contextMask.clearRect(0, 0, 3, 3);
+    contextMask.fillStyle = "white";
+    contextMask.fillRect(1, 1, 1, 1);
 
     // For every tile...
     for (let pixelY = this.coords[3]; pixelY < imageHeight + this.coords[3]; ) {
@@ -124,44 +148,56 @@ export default class Template {
         // window.open(url, '_blank'); // Opens a new tab with blob
         // setTimeout(() => URL.revokeObjectURL(url), 60000); // Destroys the blob 1 minute later
 
-        const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight); // Data of the image on the canvas
+        context.save(); // Saves the current context of the canvas
+        context.globalCompositeOperation = "destination-in"; // The existing canvas content is kept where both the new shape and existing canvas content overlap. Everything else is made transparent.
+        // For our purposes, this means any non-transparent pixels on the mask will be kept
 
-        for (let y = 0; y < canvasHeight; y++) {
-          for (let x = 0; x < canvasWidth; x++) {
-            // For every pixel...
-            const pixelIndex = (y * canvasWidth + x) * 4; // Find the pixel index in an array where every 4 indexes are 1 pixel
-            // If the pixel is the color #deface, draw a translucent gray checkerboard pattern
-            if (
-              imageData.data[pixelIndex] === 222 &&
-              imageData.data[pixelIndex + 1] === 250 &&
-              imageData.data[pixelIndex + 2] === 206
-            ) {
-              if ((x + y) % 2 === 0) { // Formula for checkerboard pattern
-                imageData.data[pixelIndex] = 0;
-                imageData.data[pixelIndex + 1] = 0;
-                imageData.data[pixelIndex + 2] = 0;
-                imageData.data[pixelIndex + 3] = 32; // Translucent black
-              } else { // Transparent negative space
-                imageData.data[pixelIndex + 3] = 0;
-              }
-            } else if (x % shreadSize !== 1 || y % shreadSize !== 1) { // Otherwise only draw the middle pixel
-              imageData.data[pixelIndex + 3] = 0; // Make the pixel transparent on the alpha channel
-            }
-          }
-        }
+        // Fills the canvas with the mask
+        context.fillStyle = context.createPattern(canvasMask, "repeat");
+        context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        context.restore(); // Restores the context of the canvas to the previous save
+
+        const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight); // Data of the image on the canvas
+        
+        // TODO: Make Erased pixels calculated when showing the template, not generating it for the first time.
+        // For every pixel...
+        // for (let y = 0; y < canvasHeight; y++) {
+        //   for (let x = 0; x < canvasWidth; x++) {
+
+        //     const pixelIndex = (y * canvasWidth + x) * 4; // Find the pixel index in an array where every 4 indexes are 1 pixel
+            
+        //     // If the pixel is the color #deface, draw a translucent gray checkerboard pattern
+        //     if (
+        //       imageData.data[pixelIndex] === 222 &&
+        //       imageData.data[pixelIndex + 1] === 250 &&
+        //       imageData.data[pixelIndex + 2] === 206
+        //     ) {
+        //       if ((x + y) % 2 === 0) { // Formula for checkerboard pattern
+        //         imageData.data[pixelIndex] = 0;
+        //         imageData.data[pixelIndex + 1] = 0;
+        //         imageData.data[pixelIndex + 2] = 0;
+        //         imageData.data[pixelIndex + 3] = 32; // Translucent black
+        //       } else { // Transparent negative space
+        //         imageData.data[pixelIndex + 3] = 0;
+        //       }
+        //     } else if (x % shreadSize !== 1 || y % shreadSize !== 1) { // Otherwise make all non-middle pixels transparent
+        //       imageData.data[pixelIndex + 3] = 0; // Make the pixel transparent on the alpha channel
+        //     }
+        //   }
+        // }
 
         console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
 
         context.putImageData(imageData, 0, 0);
 
         // Creates the "0000,0000,000,000" key name
-        const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1000))
-          .toString()
-          .padStart(4, '0')},${(this.coords[1] + Math.floor(pixelY / 1000))
-          .toString()
-          .padStart(4, '0')},${(pixelX % 1000)
-          .toString()
-          .padStart(3, '0')},${(pixelY % 1000).toString().padStart(3, '0')}`;
+        const templateTileName = `${
+          (this.coords[0] + Math.floor(pixelX / 1000)).toString().padStart(4, '0')},${
+          (this.coords[1] + Math.floor(pixelY / 1000)).toString().padStart(4, '0')},${
+          (pixelX % 1000).toString().padStart(3, '0')},${
+          (pixelY % 1000).toString().padStart(3, '0')
+        }`;
 
         templateTiles[templateTileName] = await createImageBitmap(canvas); // Creates the bitmap
         
@@ -178,8 +214,92 @@ export default class Template {
       pixelY += drawSizeY;
     }
 
+    console.log(`Parsing template took ${(Date.now() - timer) / 1000.0} seconds`);
     console.log('Template Tiles: ', templateTiles);
     console.log('Template Tiles Buffers: ', templateTilesBuffers);
     return { templateTiles, templateTilesBuffers };
+  }
+
+  /** Calculates the total pixels for each color for the template.
+   * 
+   * @param {ImageData} imageData - The pre-shreaded template "casted" onto a canvas
+   * @param {Object} paletteBM - The palette Blue Marble uses for colors
+   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
+   * @since 0.88.6
+   */
+  async #calculateTotalPixelsFromTemplateData(imageData, paletteBM, paletteTolerance) {
+
+    const buffer32Arr = new Uint32Array(imageData.data.buffer); // RGB values as a Uint32Array. Each index represents 1 pixel.
+
+    // Makes a copy of the color palette Blue Marble uses, turns it into a Map, and adds data to count the amount of each color
+    const _colorpalette = new Map(); // Temp color palette
+    paletteBM.palette.forEach(color => _colorpalette.set(color.id, 0));
+    //paletteBM.palette.forEach(color => _colorpalette.set(color.id, { ...color, amount: 0 }));
+
+    // For every pixel...
+    for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
+      
+      // Finds the best matching 
+      const bestColorID = this.#findClosestPixelColorID(buffer32Arr[pixelIndex], paletteBM, paletteTolerance);
+
+      // Adds one to the "amount" value for that pixel in the temporary color palette Map
+      _colorpalette.set(bestColorID, _colorpalette.get(bestColorID) + 1);
+      // This works since the Map keys are the color ID, which can be negative.
+    }
+
+    console.log(_colorpalette);
+  }
+
+  /** Takes a 32-bit integer of an RGB value and finds the closest palette color.
+   * This uses squared Euclidean distance calculations to find the closest color in 3D space.
+   * @param {Number} pixelColor32 - Pixel to find the color of
+   * @param {Object} paletteBM - The palette Blue Marble uses for colors
+   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
+   * @returns {Number} The ID value of the color that matches.
+   * @since 0.88.10
+   */
+  #findClosestPixelColorID(pixelColor32, paletteBM, paletteTolerance) {
+
+    let bestIndex = Infinity; // Best matching index palette color
+    let bestDistance = Infinity; // The distance to the best matching index palette color
+    const { palette: palette, RGB: _, R: paletteR, G: paletteG, B: paletteB } = paletteBM; // Gets the full color palette as Array<Object> as well as each R, G, and B palette as a Uint32Array
+
+    const pixelR = (pixelColor32 >> 16) & 0xFF; // Red value for the pixel
+    const pixelG = (pixelColor32 >> 8) & 0xFF; // Green value for the pixel
+    const pixelB = pixelColor32 & 0xFF; // Blue value for the pixel
+
+    // If the pixel we want to find the palette color of is transparent, then return the transparent index early
+    if ((pixelColor32 >>> 24) == 0) {return 0;}
+
+    // For every palette color...
+    for (let paletteColorIndex = 0; paletteColorIndex < palette.length; paletteColorIndex++) {
+      // ...find how close the pixel is in 3D space to each palette color, then return the closest palette color.
+
+      // Skip all colors in the pallete where the color ID is 0 (Transparent color) or less than 0 (Blue Marble custom color)
+      if (palette[paletteColorIndex].id <= 0) {continue;}
+
+      // The difference in RGB values between the pixel color and the palette color for each of the 3 channels
+      const deltaR = paletteR[paletteColorIndex] - pixelR;
+      const deltaG = paletteG[paletteColorIndex] - pixelG;
+      const deltaB = paletteB[paletteColorIndex] - pixelB;
+
+      // If the palette color is outside of the tolerance, skip this color
+      if ((Math.abs(deltaR) + Math.abs(deltaG) + Math.abs(deltaB)) > paletteTolerance) {continue;}
+      // This is is the Manhattan distance. We don't need to do any of the calculations below if this exceeds the tolerance.
+      // The tolerance check here is the sum of the difference across the RGB channels.
+      // E.g. "123,45,6" minus "123,44,5" is 2, which is within tolerance. "123,45,6" minus "23,45,6" is 100, which is outside tolerance.
+
+      // Squared Euclidean distance in space between palette color and pixel color
+      const distance = (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB);
+
+      // If this palette color is the closest color YET, then update the "best" variables
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = paletteColorIndex;
+      }
+    }
+
+    // Returns the ID of the best matching color in the palette, or returns the color ID for "Other" (which is -2)
+    return (bestIndex == Infinity) ? -2 : palette[bestIndex].id;
   }
 }
