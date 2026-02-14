@@ -142,6 +142,40 @@ export function selectAllCoordinateInputs(document) {
   return coords;
 }
 
+/** Processes the palette used for Blue Marble.
+ * Each ID is sorted from smallest to largest.
+ * Color ID's are integers, which can be negative.
+ * Custom colors have been added for the Blue Marble purposes.
+ * Wplace palette colors have not been modified.
+ * @since 0.88.6
+ */
+export function colorpaletteForBlueMarble() {
+  
+  const colorpaletteBM = colorpalette; // Makes a copy
+
+  // Adds the Blue Marble color for "erased" and "other" pixels to the palette list
+  colorpaletteBM.unshift({ "id": -1,  "premium": false, "name": "Erased",      "rgb": [222, 250, 206] });
+  colorpaletteBM.unshift({ "id": -2,  "premium": false, "name": "Other",       "rgb": [  0,   0,   0] });
+
+  const paletteRGB32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of all 3 channels for each color
+  const paletteR32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of just red channel for each color
+  const paletteG32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of just green channel for each color
+  const paletteB32 = new Uint32Array(colorpaletteBM.length); // Uint32Array palette of just blue channel for each color
+
+  // For each color...
+  for (let color = 0; color < colorpaletteBM.length; color++) {
+
+    const [red, green, blue] = colorpaletteBM[color].rgb; // Retrieves the RGB values of the color
+
+    paletteRGB32[color] = (red) | (green << 8) | (blue << 16); // Takes 3 ints of RGB of color and puts in 32 bits
+    paletteR32[color] = red; // Red channel of color
+    paletteG32[color] = green; // Green channel of color
+    paletteB32[color] = blue; // Blue channel of color
+  }
+
+  return {palette: colorpaletteBM, RGB: paletteRGB32, R: paletteR32, G: paletteG32, B: paletteB32}
+}
+
 /** The color palette used by wplace.live
  * @since 0.78.0
  * @examples
