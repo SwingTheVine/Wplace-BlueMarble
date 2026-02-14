@@ -189,6 +189,10 @@ const greasyForkUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wpla
 
 let greasyForkBMjs = metaContent + resultEsbuildJS.text; // Gets the unobfuscated code and adds the metadata banner
 
+// Updates the name of the CSS location
+greasyForkBMjs = greasyForkBMjs.replace(/(.*\/\/\s+\@resource\s+CSS-BM-File.*)(BlueMarble\.user\.css)(.*)/gi, `$1${greasyForkName}.user.css$3`);
+// Don't use the multiline flag or everything will break!
+
 // Updates the update/download URLs
 greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@updateURL\s+https.*\r?\n?/g, `// @updateURL       ${greasyForkUpdateURL}\n`);
 greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@downloadURL\s+https.*\r?\n?/g, `// @downloadURL     ${greasyForkUpdateURL}\n`);
