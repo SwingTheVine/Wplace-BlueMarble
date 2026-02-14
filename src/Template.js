@@ -17,7 +17,7 @@ export default class Template {
    * @param {Array<number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
    * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk
    * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
-   * @param {number} [params.pixelCount=0] - Total number of pixels in the template (calculated automatically during processing)
+   * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
    * @since 0.65.2
    */
   constructor({
@@ -38,7 +38,7 @@ export default class Template {
     this.coords = coords;
     this.chunked = chunked;
     this.tileSize = tileSize;
-    this.pixelCount = 0; // Total pixel count in template
+    this.pixelCount = { total: 0, colors: new Map }; // Total pixel count in template
   }
 
   /** Creates chunks of the template for each tile.
@@ -77,8 +77,6 @@ export default class Template {
     let totalPixels = 0; // Will store the total amount of non-Transparent color pixels
     const transparentColorID = 0; // Color ID for the Transparent color
 
-    console.log(totalPixelMap);
-
     // For each color in the total pixel Map...
     for (const [color, total] of totalPixelMap) {
 
@@ -87,7 +85,7 @@ export default class Template {
       totalPixels += total; // Adds the total amount for the pixel color to the total amount for all colors
     }
 
-    this.pixelCount = totalPixels; // Stores the total pixel count in the Template instance
+    this.pixelCount = { total: totalPixels, colors: totalPixelMap }; // Stores the total pixel count in the Template instance
 
     timer = Date.now();
 
@@ -214,7 +212,7 @@ export default class Template {
 
     // Makes a copy of the color palette Blue Marble uses, turns it into a Map, and adds data to count the amount of each color
     const _colorpalette = new Map(); // Temp color palette
-    palette.forEach(color => _colorpalette.set(color.id, 0));
+    //palette.forEach(color => _colorpalette.set(color.id, 0));
 
     // For every pixel...
     for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
@@ -230,9 +228,16 @@ export default class Template {
         bestColorID = lookupTable.get(pixel) ?? -2;
       }
 
-      // Adds one to the "amount" value for that pixel in the temporary color palette Map
-      _colorpalette.set(bestColorID, _colorpalette.get(bestColorID) + 1);
-      // This works since the Map keys are the color ID, which can be negative.
+      // If the color has not been counted until now, we define it
+      if (_colorpalette.get(bestColorID) == null) {
+        _colorpalette.set(bestColorID, 1);
+      } else {
+        // Else, we count like normal
+
+        // Adds one to the "amount" value for that pixel in the temporary color palette Map
+        _colorpalette.set(bestColorID, _colorpalette.get(bestColorID) + 1);
+        // This works since the Map keys are the color ID, which can be negative.
+      }
     }
 
     console.log(_colorpalette);
