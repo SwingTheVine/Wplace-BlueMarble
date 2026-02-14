@@ -100,7 +100,11 @@ jobs:
       
       - name: Update compression badge
         run: |
-          dist_size=$(find dist -type f -exec cat {} + | wc -c)
+          dist_size=$(find dist -type f \
+          ! -name "BlueMarble-Standalone.user.js" \
+          ! -name "BlueMarble-For-GreasyFork.user.js" \
+          -exec cat {} + | wc -c)
+
           src_size=$(find src dist/assets -type f -exec cat {} + | wc -c)
           percentage=$(awk "BEGIN {printf \"%.2f\", 100 - ($dist_size * 100) / $src_size}")
           echo "Compression: $percentage"

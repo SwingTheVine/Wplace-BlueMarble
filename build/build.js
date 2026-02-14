@@ -36,7 +36,7 @@ console.log(`${consoleStyle.BLUE}Starting build...${consoleStyle.RESET}`);
 //   }
 // }
 
-console.log(`${consoleStyle.BLUE}Building 1 of 2...${consoleStyle.RESET}`);
+console.log(`${consoleStyle.BLUE}Building 1 of 3...${consoleStyle.RESET}`);
 
 // Tries to bump the version
 try {
@@ -141,7 +141,10 @@ fs.writeFileSync(
   'utf8'
 );
 
-console.log(`${consoleStyle.BLUE}Building 2 of 2...${consoleStyle.RESET}`);
+console.log(`${consoleStyle.BLUE}Building 2 of 3...${consoleStyle.RESET}`);
+
+const standaloneName = 'BlueMarble-Standalone.user.js'; // Standalone flavor name of flie
+const standaloneBMUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${standaloneName}`;
 
 // Fetches the completed, main Blue Marble userscript files
 const mainBMjs = fs.readFileSync('dist/BlueMarble.user.js', 'utf8');
@@ -151,10 +154,10 @@ let mainBMcss = fs.readFileSync('dist/BlueMarble.user.css', 'utf8');
 mainBMcss = mainBMcss.replace(/\r?\n/g, '').trim();
 
 // Injects the CSS into the Blue Marble JavaScript
-let compactBMjs = mainBMjs.replace('GM_getResourceText("CSS-BM-File")', `\`${mainBMcss}\``);
+let standaloneBMjs = mainBMjs.replace('GM_getResourceText("CSS-BM-File")', `\`${mainBMcss}\``);
 
 // Removes the metadata in the header that points to the old CSS location
-compactBMjs = compactBMjs.replace(/\/\/\s+\@resource\s+CSS-BM-File.*\r?\n?/g, '');
+standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@resource\s+CSS-BM-File.*\r?\n?/g, '');
 
 // Obtains the Roboto Mono font to inject
 const robotoMonoLatin = fs.readFileSync('build/assets/RobotoMonoLatin.woff2');
@@ -162,18 +165,34 @@ const robotoMonoLatinBase64 = robotoMonoLatin.toString('base64');
 const fontfaces = `@font-face{font-family:'Roboto Mono';font-style:normal;font-weight:400;src:url(data:font/woff2;base64,${robotoMonoLatinBase64})format('woff2');}`;
 
 // Injects Roboto Mono into the JavaScript file
-compactBMjs = compactBMjs.replace(/robotoMonoInjectionPoint[^'"]*/g, fontfaces);
-// compactBMjs = compactBMjs.replace(/https:\/\/fonts.googleapis.com\/[^'"]*/g, fontfaces);
+standaloneBMjs = standaloneBMjs.replace(/robotoMonoInjectionPoint[^'"]*/g, fontfaces);
 
 // Obtains the Favicon to inject
 const favicon = fs.readFileSync('dist/assets/Favicon.png');
 const faviconBase64DataURI = `data:image/png;base64,${favicon.toString('base64')}`;
 
 // Replaces the 2 different types of icon requests with base64
-compactBMjs = compactBMjs.replace(/\/\/\s+\@icon\s+https.*\r?\n?/g, `// @icon64       ${faviconBase64DataURI}\n`);
-compactBMjs = compactBMjs.replace(/https[^'"]+dist\/assets\/Favicon\.png[^'"]*/gi, faviconBase64DataURI);
+standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@icon\s+https.*\r?\n?/g, `// @icon64          ${faviconBase64DataURI}\n`);
+standaloneBMjs = standaloneBMjs.replace(/https[^'"]+dist\/assets\/Favicon\.png[^'"]*/gi, faviconBase64DataURI);
+
+// Updates the update/download URLs
+standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@updateURL\s+https.*\r?\n?/g, `// @updateURL       ${standaloneBMUpdateURL}\n`);
+standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@downloadURL\s+https.*\r?\n?/g, `// @downloadURL     ${standaloneBMUpdateURL}\n`);
 
 // Generates the Blue Marble JS file that contains all external resources
-fs.writeFileSync('dist/BlueMarbleStandalone.user.js', compactBMjs, 'utf-8');
+fs.writeFileSync(`dist/${standaloneName}`, standaloneBMjs, 'utf-8');
+
+console.log(`${consoleStyle.BLUE}Building 3 of 3...${consoleStyle.RESET}`);
+
+const greasyForkName = 'BlueMarble-For-GreasyFork.user.js'; // GreasyFork flavor name of file
+const greasyForkUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${greasyForkName}`;
+
+let greasyForkBMjs = metaContent + resultEsbuildJS.text; // Gets the unobfuscated code and adds the metadata banner
+
+// Updates the update/download URLs
+greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@updateURL\s+https.*\r?\n?/g, `// @updateURL       ${greasyForkUpdateURL}\n`);
+greasyForkBMjs = greasyForkBMjs.replace(/\/\/\s+\@downloadURL\s+https.*\r?\n?/g, `// @downloadURL     ${greasyForkUpdateURL}\n`);
+
+fs.writeFileSync(`dist/${greasyForkName}`, greasyForkBMjs, 'utf-8');
 
 console.log(`${consoleStyle.GREEN + consoleStyle.BOLD + consoleStyle.UNDERLINE}Building complete!${consoleStyle.RESET}`);
