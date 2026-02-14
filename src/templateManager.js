@@ -7,7 +7,8 @@ import { base64ToUint8, colorpaletteForBlueMarble, numberToEncoded } from "./uti
  * @class TemplateManager
  * @since 0.55.8
  * @example
- * // JSON structure for a template
+ * // JSON structure for a template.
+ * // Note: The pixel "colors" Object contains more than 2 keys.
  * {
  *   "whoami": "BlueMarble",
  *   "scriptVersion": "1.13.0",
@@ -16,6 +17,13 @@ import { base64ToUint8, colorpaletteForBlueMarble, numberToEncoded } from "./uti
  *     "0 $Z": {
  *       "name": "My Template",
  *       "enabled": true,
+ *       "pixels": {
+ *         "total": 40399,
+ *         "colors": {
+ *           "-2": 40000,
+ *           "0": 399
+ *         }
+ *       }
  *       "tiles": {
  *         "1231,0047,183,593": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA",
  *         "1231,0048,183,000": "data:image/png;AAAFCAYAAACNbyblAAAAHElEQVQI12P4"
@@ -26,6 +34,13 @@ import { base64ToUint8, colorpaletteForBlueMarble, numberToEncoded } from "./uti
  *       "URL": "https://github.com/SwingTheVine/Wplace-BlueMarble/blob/main/dist/assets/Favicon.png",
  *       "URLType": "template",
  *       "enabled": false,
+ *       "pixels": {
+ *         "total": 40399,
+ *         "colors": {
+ *           "-2": 40000,
+ *           "0": 399
+ *         }
+ *       }
  *       "tiles": {
  *         "375,1846,276,188": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA",
  *         "376,1846,000,188": "data:image/png;AAAFCAYAAACNbyblAAAAHElEQVQI12P4"
@@ -139,9 +154,13 @@ export default class TemplateManager {
       file: blob,
       coords: coords
     });
-    //template.chunked = await template.createTemplateTiles(this.tileSize); // Chunks the tiles
+    
     const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize, this.paletteBM); // Chunks the tiles
+    
     template.chunked = templateTiles; // Stores the chunked tile bitmaps
+
+    // Converts total pixel Object/Map variables into JSON-ready format
+    const _pixels = { "total": template.pixelCount.total, "colors": Object.fromEntries(template.pixelCount.colors) }
 
     // Appends a child into the templates object
     // The child's name is the number of templates already in the list (sort order) plus the encoded player ID
@@ -149,6 +168,7 @@ export default class TemplateManager {
       "name": template.displayName, // Display name of template
       "coords": coords.join(', '), // The coords of the template
       "enabled": true,
+      "pixels": _pixels, // The total pixels in the template
       "tiles": templateTilesBuffers // Stores the chunked tile buffers
     };
 
@@ -263,7 +283,7 @@ export default class TemplateManager {
           );
           return matchingTiles.length > 0;
         })
-        .reduce((sum, template) => sum + (template.pixelCount || 0), 0);
+        .reduce((sum, template) => sum + (template.pixelCount.total || 0), 0);
       
       // Format pixel count with locale-appropriate thousands separators for better readability
       // Examples: "1,234,567" (US), "1.234.567" (DE), "1 234 567" (FR)
@@ -274,7 +294,8 @@ export default class TemplateManager {
         `Displaying ${templateCount} template${templateCount == 1 ? '' : 's'}.\nTotal pixels: ${pixelCountFormatted}`
       );
     } else {
-      this.overlay.handleDisplayStatus(`Displaying ${templateCount} templates.`);
+      //this.overlay.handleDisplayStatus(`Displaying ${templateCount} templates.`);
+      this.overlay.handleDisplayStatus(`Sleeping\nVersion: ${this.version}`);
       return tileBlob; // No templates are on this tile. Return the original tile early
     }
     
@@ -331,13 +352,15 @@ export default class TemplateManager {
 
     console.log(`BlueMarble length: ${Object.keys(templates).length}`);
 
+    // Run only if there are templates saved
     if (Object.keys(templates).length > 0) {
 
+      // For each template...
       for (const template in templates) {
 
-        const templateKey = template;
-        const templateValue = templates[template];
-        console.log(templateKey);
+        const templateKey = template; // The identification key for the template. E.g., "0 $Z"
+        const templateValue = templates[template]; // The actual content of the template
+        console.log(`Template Key: ${templateKey}`);
 
         if (templates.hasOwnProperty(template)) {
 
@@ -346,6 +369,14 @@ export default class TemplateManager {
           const authorID = templateKeyArray?.[1] || '0'; // User ID of the person who exported the template
           const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
           //const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
+
+          const pixelCount = {
+            total: templateValue.pixels.total,
+            colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
+          };
+
+          console.log(pixelCount);
+
           const tilesbase64 = templateValue.tiles;
           const templateTiles = {}; // Stores the template bitmap tiles for each tile.
 
@@ -366,8 +397,9 @@ export default class TemplateManager {
             displayName: displayName,
             sortID: sortID || this.templatesArray?.length || 0,
             authorID: authorID || '',
-            //coords: coords
+            //coords: coords,
           });
+          template.pixelCount = pixelCount;
           template.chunked = templateTiles;
           
           this.templatesArray.push(template);
