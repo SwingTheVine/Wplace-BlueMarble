@@ -69,55 +69,11 @@ export default class TemplateManager {
     this.paletteBM = colorpaletteForBlueMarble(this.paletteTolerance); // Retrieves the color palette BM will use as an Object containing multiple Uint32Arrays
     
     // Template
-    this.canvasTemplate = null; // Our canvas
-    this.canvasTemplateZoomed = null; // The template when zoomed out
-    this.canvasTemplateID = 'bm-canvas'; // Our canvas ID
-    this.canvasMainID = 'div#map canvas.maplibregl-canvas'; // The selector for the main canvas
     this.template = null; // The template image.
     this.templateState = ''; // The state of the template ('blob', 'proccessing', 'template', etc.)
     this.templatesArray = []; // All Template instnaces currently loaded (Template)
     this.templatesJSON = null; // All templates currently loaded (JSON)
     this.templatesShouldBeDrawn = true; // Should ALL templates be drawn to the canvas?
-  }
-
-  /** Retrieves the pixel art canvas.
-   * If the canvas has been updated/replaced, it retrieves the new one.
-   * @param {string} selector - The CSS selector to use to find the canvas.
-   * @returns {HTMLCanvasElement|null} The canvas as an HTML Canvas Element, or null if the canvas does not exist
-   * @since 0.58.3
-   * @deprecated Not in use since 0.63.25
-   */
-  /* @__PURE__ */getCanvas() {
-
-    // If the stored canvas is "fresh", return the stored canvas
-    if (document.body.contains(this.canvasTemplate)) {return this.canvasTemplate;}
-    // Else, the stored canvas is "stale", get the canvas again
-
-    // Attempt to find and destroy the "stale" canvas
-    document.getElementById(this.canvasTemplateID)?.remove(); 
-
-    const canvasMain = document.querySelector(this.canvasMainID);
-
-    const canvasTemplateNew = document.createElement('canvas');
-    canvasTemplateNew.id = this.canvasTemplateID;
-    canvasTemplateNew.className = 'maplibregl-canvas';
-    canvasTemplateNew.style.position = 'absolute';
-    canvasTemplateNew.style.top = '0';
-    canvasTemplateNew.style.left = '0';
-    canvasTemplateNew.style.height = `${canvasMain?.clientHeight * (window.devicePixelRatio || 1)}px`;
-    canvasTemplateNew.style.width = `${canvasMain?.clientWidth * (window.devicePixelRatio || 1)}px`;
-    canvasTemplateNew.height = canvasMain?.clientHeight * (window.devicePixelRatio || 1);
-    canvasTemplateNew.width = canvasMain?.clientWidth * (window.devicePixelRatio || 1);
-    canvasTemplateNew.style.zIndex = '8999';
-    canvasTemplateNew.style.pointerEvents = 'none';
-    canvasMain?.parentElement?.appendChild(canvasTemplateNew); // Append the newCanvas as a child of the parent of the main canvas
-    this.canvasTemplate = canvasTemplateNew; // Store the new canvas
-
-    window.addEventListener('move', this.onMove);
-    window.addEventListener('zoom', this.onZoom);
-    window.addEventListener('resize', this.onResize);
-
-    return this.canvasTemplate; // Return the new canvas
   }
 
   /** Creates the JSON object to store templates in
