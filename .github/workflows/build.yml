@@ -103,6 +103,7 @@ jobs:
           dist_size=$(find dist -type f \
           ! -name "BlueMarble-Standalone.user.js" \
           ! -name "BlueMarble-For-GreasyFork.user.js" \
+          ! -name "BlueMarble-For-GreasyFork.user.css" \
           -exec cat {} + | wc -c)
 
           src_size=$(find src dist/assets -type f -exec cat {} + | wc -c)
