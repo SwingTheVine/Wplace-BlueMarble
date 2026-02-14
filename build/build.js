@@ -36,6 +36,8 @@ console.log(`${consoleStyle.BLUE}Starting build...${consoleStyle.RESET}`);
 //   }
 // }
 
+console.log(`${consoleStyle.BLUE}Building 1 of 2...${consoleStyle.RESET}`);
+
 // Tries to bump the version
 try {
   const update = execSync('node build/update-version.js', { stdio: 'inherit' });
@@ -138,5 +140,40 @@ fs.writeFileSync(
   metaContent + fs.readFileSync('dist/BlueMarble.user.js', 'utf8'), 
   'utf8'
 );
+
+console.log(`${consoleStyle.BLUE}Building 2 of 2...${consoleStyle.RESET}`);
+
+// Fetches the completed, main Blue Marble userscript files
+const mainBMjs = fs.readFileSync('dist/BlueMarble.user.js', 'utf8');
+let mainBMcss = fs.readFileSync('dist/BlueMarble.user.css', 'utf8');
+
+// Removes new lines from the CSS file
+mainBMcss = mainBMcss.replace(/\r?\n/g, '').trim();
+
+// Injects the CSS into the Blue Marble JavaScript
+let compactBMjs = mainBMjs.replace('GM_getResourceText("CSS-BM-File")', `\`${mainBMcss}\``);
+
+// Removes the metadata in the header that points to the old CSS location
+compactBMjs = compactBMjs.replace(/\/\/\s+\@resource\s+CSS-BM-File.*\r?\n?/g, '');
+
+// Obtains the Roboto Mono font to inject
+const robotoMonoLatin = fs.readFileSync('build/assets/RobotoMonoLatin.woff2');
+const robotoMonoLatinBase64 = robotoMonoLatin.toString('base64');
+const fontfaces = `@font-face{font-family:'Roboto Mono';font-style:normal;font-weight:400;src:url(data:font/woff2;base64,${robotoMonoLatinBase64})format('woff2');}`;
+
+// Injects Roboto Mono into the JavaScript file
+compactBMjs = compactBMjs.replace(/robotoMonoInjectionPoint[^'"]*/g, fontfaces);
+// compactBMjs = compactBMjs.replace(/https:\/\/fonts.googleapis.com\/[^'"]*/g, fontfaces);
+
+// Obtains the Favicon to inject
+const favicon = fs.readFileSync('dist/assets/Favicon.png');
+const faviconBase64DataURI = `data:image/png;base64,${favicon.toString('base64')}`;
+
+// Replaces the 2 different types of icon requests with base64
+compactBMjs = compactBMjs.replace(/\/\/\s+\@icon\s+https.*\r?\n?/g, `// @icon64       ${faviconBase64DataURI}\n`);
+compactBMjs = compactBMjs.replace(/https[^'"]+dist\/assets\/Favicon\.png[^'"]*/gi, faviconBase64DataURI);
+
+// Generates the Blue Marble JS file that contains all external resources
+fs.writeFileSync('dist/BlueMarbleStandalone.user.js', compactBMjs, 'utf-8');
 
 console.log(`${consoleStyle.GREEN + consoleStyle.BOLD + consoleStyle.UNDERLINE}Building complete!${consoleStyle.RESET}`);
