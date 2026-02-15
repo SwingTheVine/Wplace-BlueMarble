@@ -41,7 +41,7 @@ export default class Template {
     this.chunked = chunked;
     this.chunked32 = chunked32;
     this.tileSize = tileSize;
-    this.pixelCount = { total: 0, colors: new Map }; // Total pixel count in template
+    this.pixelCount = { total: 0, colors: new Map() }; // Total pixel count in template
   }
 
   /** Creates chunks of the template for each tile.

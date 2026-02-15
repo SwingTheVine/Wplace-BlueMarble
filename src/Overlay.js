@@ -201,6 +201,56 @@ export default class Overlay {
     return this;
   }
 
+  /** Adds a `details` to the overlay.
+   * This `details` element will have properties shared between all `details` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `details` that are NOT shared between all overlay `details` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLParagraphElement):void} [callback=()=>{}] - Additional JS modification to the `details`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.96
+   * @example
+   * // Assume all <details> elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addDetails({'id': 'foo'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <details id="foo" class="bar"></details>
+   * </body>
+   */
+  addDetails(additionalProperties = {}, callback = () => {}) {
+
+    const properties = {}; // Shared <details> DOM properties
+
+    const details = this.#createElement('details', properties, additionalProperties); // Creates the <details> element
+    callback(this, details); // Runs any script passed in through the callback
+    return this;
+  }
+
+  /** Adds a `summary` to the overlay.
+   * This `summary` element will have properties shared between all `summary` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `summary` that are NOT shared between all overlay `summary` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLParagraphElement):void} [callback=()=>{}] - Additional JS modification to the `summary`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.96
+   * @example
+   * // Assume all <summary> elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addSummary({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <summary id="foo" class="bar">Foobar.</summary>
+   * </body>
+   */
+  addSummary(additionalProperties = {}, callback = () => {}) {
+
+    const properties = {}; // Shared <summary> DOM properties
+
+    const summary = this.#createElement('summary', properties, additionalProperties); // Creates the <summary> element
+    callback(this, summary); // Runs any script passed in through the callback
+    return this;
+  }
+
   /** Adds a `img` to the overlay.
    * This `img` element will have properties shared between all `img` elements in the overlay.
    * You can override the shared properties by using a callback.

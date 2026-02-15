@@ -280,13 +280,14 @@ export default class TemplateManager {
       console.log(`Template:`);
       console.log(template);
 
+      // Obtains the template (for only this tile) as a Uint32Array
+      let templateBeforeFilter32 = template.chunked32;
+
       // Draws each template on the tile based on it's relative position
       const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
       const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
       context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
 
-      // Obtains the template (for only this tile) as a Uint32Array
-      let templateBeforeFilter32 = template.chunked32;
       // If we failed to get the template for this tile, we use a shoddy, buggy, failsafe
       if (!templateBeforeFilter32) {
         const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
@@ -313,8 +314,9 @@ export default class TemplateManager {
 
         pixelsCorrectTotal += total;
       }
-
       console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
+
+      template.pixelCount['correct'] = pixelsCorrect; // Adds the correct pixel Map to the template instance
     }
 
     return await canvas.convertToBlob({ type: 'image/png' });
