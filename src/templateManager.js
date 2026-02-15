@@ -214,6 +214,7 @@ export default class TemplateManager {
           
           return {
             bitmap: template.chunked[tile],
+            chunked32: template.chunked32?.[tile],
             tileCoords: [coords[0], coords[1]],
             pixelCoords: [coords[2], coords[3]]
           }
@@ -284,8 +285,13 @@ export default class TemplateManager {
       const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
       context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
 
-      const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
-      const templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+      // Obtains the template (for only this tile) as a Uint32Array
+      let templateBeforeFilter32 = template.chunked32;
+      // If we failed to get the template for this tile, we use a shoddy, buggy, failsafe
+      if (!templateBeforeFilter32) {
+        const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
+        templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+      }
 
       // Filter template colors before drawing to canvas
       // const filteredTemplate = this.#filterTemplateWithPaletteBlacklist(templateBeforeFilter, this.paletteBM);
@@ -363,10 +369,11 @@ export default class TemplateManager {
             colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
           };
 
-          console.log(pixelCount);
-
           const tilesbase64 = templateValue.tiles;
           const templateTiles = {}; // Stores the template bitmap tiles for each tile.
+          const templateTiles32 = {}; // Stores the template Uint32Array tiles for each tile.
+
+          const actualTileSize = this.tileSize * this.drawMult;
 
           for (const tile in tilesbase64) {
             console.log(tile);
@@ -377,6 +384,13 @@ export default class TemplateManager {
               const templateBlob = new Blob([templateUint8Array], { type: "image/png" }); // Uint8Array -> Blob
               const templateBitmap = await createImageBitmap(templateBlob) // Blob -> Bitmap
               templateTiles[tile] = templateBitmap;
+
+              // Converts to Uint32Array
+              const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
+              const context = canvas.getContext('2d');
+              context.drawImage(templateBitmap, 0, 0);
+              const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
+              templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
             }
           }
 
@@ -389,6 +403,7 @@ export default class TemplateManager {
           });
           template.pixelCount = pixelCount;
           template.chunked = templateTiles;
+          template.chunked32 = templateTiles32;
           
           this.templatesArray.push(template);
           console.log(this.templatesArray);

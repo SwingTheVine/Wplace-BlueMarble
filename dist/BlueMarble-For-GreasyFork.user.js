@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.92
+// @version         0.88.95
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -821,7 +821,8 @@
      * @param {string} [params.url=''] - The URL to the source image
      * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
      * @param {Array<number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
-     * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk
+     * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
+     * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
      * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
      * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
      * @since 0.65.2
@@ -834,6 +835,7 @@
       file = null,
       coords: coords2 = null,
       chunked = null,
+      chunked32 = {},
       tileSize = 1e3
     } = {}) {
       __privateAdd(this, _Template_instances);
@@ -844,6 +846,7 @@
       this.file = file;
       this.coords = coords2;
       this.chunked = chunked;
+      this.chunked32 = chunked32;
       this.tileSize = tileSize;
       this.pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() };
     }
@@ -937,6 +940,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
           context.putImageData(imageData, 0, 0);
           const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
+          this.chunked32[templateTileName] = new Uint32Array(context.getImageData(0, 0, canvasWidth, canvasHeight));
           templateTiles[templateTileName] = await createImageBitmap(canvas);
           const canvasBlob = await canvas.convertToBlob();
           const canvasBuffer = await canvasBlob.arrayBuffer();
@@ -950,6 +954,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       console.log(`Parsing template took ${(Date.now() - timer) / 1e3} seconds`);
       console.log("Template Tiles: ", templateTiles);
       console.log("Template Tiles Buffers: ", templateTilesBuffers);
+      console.log("Template Tiles Uint32Array: ", this.chunked32);
       return { templateTiles, templateTilesBuffers };
     }
   };
@@ -1108,6 +1113,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           const coords2 = tile.split(",");
           return {
             bitmap: template.chunked[tile],
+            chunked32: template.chunked32?.[tile],
             tileCoords: [coords2[0], coords2[1]],
             pixelCoords: [coords2[2], coords2[3]]
           };
@@ -1151,8 +1157,12 @@ Version: ${this.version}`);
         const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
         const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
         context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
-        const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
-        const templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+        let templateBeforeFilter32 = template.chunked32;
+        console.log("TemplateBeforeFilter32: ", templateBeforeFilter32);
+        if (!templateBeforeFilter32) {
+          const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
+          templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+        }
         const timer = Date.now();
         const pixelsCorrect = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_fn).call(this, tileBeforeTemplates32, templateBeforeFilter32, [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]);
         let pixelsCorrectTotal = 0;
@@ -1212,9 +1222,10 @@ There are ${pixelsCorrectTotal} correct pixels.`);
             total: templateValue.pixels.total,
             colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
           };
-          console.log(pixelCount);
           const tilesbase64 = templateValue.tiles;
           const templateTiles = {};
+          const templateTiles32 = {};
+          const actualTileSize = this.tileSize * this.drawMult;
           for (const tile in tilesbase64) {
             console.log(tile);
             if (tilesbase64.hasOwnProperty(tile)) {
@@ -1223,6 +1234,11 @@ There are ${pixelsCorrectTotal} correct pixels.`);
               const templateBlob = new Blob([templateUint8Array], { type: "image/png" });
               const templateBitmap = await createImageBitmap(templateBlob);
               templateTiles[tile] = templateBitmap;
+              const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
+              const context = canvas.getContext("2d");
+              context.drawImage(templateBitmap, 0, 0);
+              const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
+              templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
             }
           }
           const template2 = new Template({
@@ -1233,6 +1249,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
           });
           template2.pixelCount = pixelCount;
           template2.chunked = templateTiles;
+          template2.chunked32 = templateTiles32;
           this.templatesArray.push(template2);
           console.log(this.templatesArray);
           console.log(`^^^ This ^^^`);
