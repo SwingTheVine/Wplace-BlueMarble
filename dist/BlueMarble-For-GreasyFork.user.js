@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.122
+// @version         0.88.123
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -523,8 +523,9 @@
     }
     /** Handles dragging of the overlay.
      * Uses requestAnimationFrame for smooth animations and GPU-accelerated transforms.
-     * @param {string} moveMe - The ID of the element to be moved
-     * @param {string} iMoveThings - The ID of the drag handle element
+     * Use the appropriate CSS selectors.
+     * @param {string} moveMe - The element to be moved
+     * @param {string} iMoveThings - The drag handle element
      * @since 0.8.2
     */
     handleDrag(moveMe, iMoveThings) {
@@ -535,8 +536,9 @@
       let currentY = 0;
       let targetX = 0;
       let targetY = 0;
-      moveMe = document.querySelector(moveMe?.[0] == "#" ? moveMe : "#" + moveMe);
-      iMoveThings = document.querySelector(iMoveThings?.[0] == "#" ? iMoveThings : "#" + iMoveThings);
+      let initialRect = null;
+      moveMe = document.querySelector(moveMe);
+      iMoveThings = document.querySelector(iMoveThings);
       if (!moveMe || !iMoveThings) {
         this.handleDisplayError(`Can not drag! ${!moveMe ? "moveMe" : ""} ${!moveMe && !iMoveThings ? "and " : ""}${!iMoveThings ? "iMoveThings " : ""}was not found!`);
         return;
@@ -556,7 +558,6 @@
           animationFrame = requestAnimationFrame(updatePosition);
         }
       };
-      let initialRect = null;
       const startDrag = (clientX, clientY) => {
         isDragging = true;
         initialRect = moveMe.getBoundingClientRect();
@@ -575,7 +576,12 @@
         targetX = currentX;
         targetY = currentY;
         document.body.style.userSelect = "none";
-        iMoveThings.classList.add("dragging");
+        iMoveThings.classList.add("bm-dragging");
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("touchmove", onTouchMove, { passive: false });
+        document.addEventListener("mouseup", endDrag);
+        document.addEventListener("touchend", endDrag);
+        document.addEventListener("touchcancel", endDrag);
         if (animationFrame) {
           cancelAnimationFrame(animationFrame);
         }
@@ -588,7 +594,27 @@
           animationFrame = null;
         }
         document.body.style.userSelect = "";
-        iMoveThings.classList.remove("dragging");
+        iMoveThings.classList.remove("bm-dragging");
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("touchmove", onTouchMove);
+        document.removeEventListener("mouseup", endDrag);
+        document.removeEventListener("touchend", endDrag);
+        document.removeEventListener("touchcancel", endDrag);
+      };
+      const onMouseMove = (event) => {
+        if (isDragging && initialRect) {
+          targetX = event.clientX - offsetX;
+          targetY = event.clientY - offsetY;
+        }
+      };
+      const onTouchMove = (event) => {
+        if (isDragging && initialRect) {
+          const touch = event.touches[0];
+          if (!touch) return;
+          targetX = touch.clientX - offsetX;
+          targetY = touch.clientY - offsetY;
+          event.preventDefault();
+        }
       };
       iMoveThings.addEventListener("mousedown", function(event) {
         event.preventDefault();
@@ -602,26 +628,6 @@
         startDrag(touch.clientX, touch.clientY);
         event.preventDefault();
       }, { passive: false });
-      document.addEventListener("mousemove", function(event) {
-        if (isDragging && initialRect) {
-          targetX = event.clientX - offsetX;
-          targetY = event.clientY - offsetY;
-        }
-      }, { passive: true });
-      document.addEventListener("touchmove", function(event) {
-        if (isDragging && initialRect) {
-          const touch = event?.touches?.[0];
-          if (!touch) {
-            return;
-          }
-          targetX = touch.clientX - offsetX;
-          targetY = touch.clientY - offsetY;
-          event.preventDefault();
-        }
-      }, { passive: false });
-      document.addEventListener("mouseup", endDrag);
-      document.addEventListener("touchend", endDrag);
-      document.addEventListener("touchcancel", endDrag);
     }
     /** Handles status display.
      * This will output plain text into the output Status box.
@@ -1659,7 +1665,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     buildTelemetryOverlay(telemetryOverlay);
   }
   buildOverlayMain();
-  overlayMain.handleDrag("#bm-overlay", "#bm-bar-drag");
+  overlayMain.handleDrag("#bm-window-main.bm-window", "#bm-window-main .bm-dragbar");
   apiManager.spontaneousResponseListener(overlayMain);
   observeBlack();
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
@@ -1692,7 +1698,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     observer.observe(document.body, { childList: true, subtree: true });
   }
   function buildOverlayMain() {
-    overlayMain.addDiv({ "class": "bm-window", "style": "top: 10px; right: 75px;" }).addDiv({ "class": "bm-dragbar" }).addDiv().addButton({ "class": "bm-button-circle", "textContent": "\u25BC" }, (instance, button) => {
+    overlayMain.addDiv({ "id": "bm-window-main", "class": "bm-window", "style": "top: 10px; right: 75px;" }).addDiv({ "class": "bm-dragbar" }).addDiv().addButton({ "class": "bm-button-circle", "textContent": "\u25BC" }, (instance, button) => {
       button.onclick = () => {
         const window2 = button.closest(".bm-window");
         const dragbar = button.closest(".bm-dragbar");

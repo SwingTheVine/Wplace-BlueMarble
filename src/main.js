@@ -218,8 +218,7 @@ if ((userSettings?.telemetry == undefined) || (userSettings?.telemetry > 1)) { /
 }
 
 buildOverlayMain(); // Builds the main overlay
-
-overlayMain.handleDrag('#bm-overlay', '#bm-bar-drag'); // Creates dragging capability on the drag bar for dragging the overlay
+overlayMain.handleDrag('#bm-window-main.bm-window', '#bm-window-main .bm-dragbar'); // Creates dragging capability on the drag bar for dragging the overlay
 
 apiManager.spontaneousResponseListener(overlayMain); // Reads spontaneous fetch responces
 
@@ -274,7 +273,7 @@ function observeBlack() {
  */
 function buildOverlayMain() {
 
-  overlayMain.addDiv({'class': 'bm-window', 'style': 'top: 10px; right: 75px;'})
+  overlayMain.addDiv({'id': 'bm-window-main', 'class': 'bm-window', 'style': 'top: 10px; right: 75px;'})
     .addDiv({'class': 'bm-dragbar'})
       .addDiv()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼'}, (instance, button) => {
