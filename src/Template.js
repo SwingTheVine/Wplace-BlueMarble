@@ -71,7 +71,7 @@ export default class Template {
     context.drawImage(bitmap, 0, 0); // Draws the template to the canvas
 
     let timer = Date.now();
-    const totalPixelMap = this.#calculateTotalPixelsFromTemplateData(context.getImageData(0, 0, imageWidth, imageHeight), paletteBM); // Calculates total pixels from the template buffer retrieved from the canvas context image data
+    const totalPixelMap = this.#calculateTotalPixelsFromImageData(context.getImageData(0, 0, imageWidth, imageHeight), paletteBM); // Calculates total pixels from the template buffer retrieved from the canvas context image data
     console.log(`Calculating total pixels took ${(Date.now() - timer) / 1000.0} seconds`);
 
     let totalPixels = 0; // Will store the total amount of non-Transparent color pixels
@@ -197,22 +197,21 @@ export default class Template {
     return { templateTiles, templateTilesBuffers };
   }
 
-  /** Calculates the total pixels for each color for the template.
+  /** Calculates the total pixels for each color for the image.
    * 
-   * @param {ImageData} imageData - The pre-shreaded template "casted" onto a canvas
+   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
    * @param {Object} paletteBM - The palette Blue Marble uses for colors
    * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
    * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
    * @since 0.88.6
    */
-  #calculateTotalPixelsFromTemplateData(imageData, paletteBM) {
+  #calculateTotalPixelsFromImageData(imageData, paletteBM) {
 
     const buffer32Arr = new Uint32Array(imageData.data.buffer); // RGB values as a Uint32Array. Each index represents 1 pixel.
-    const { palette: palette, LUT: lookupTable } = paletteBM; // Obtains the palette and LUT
+    const { palette: _, LUT: lookupTable } = paletteBM; // Obtains the palette and LUT
 
     // Makes a copy of the color palette Blue Marble uses, turns it into a Map, and adds data to count the amount of each color
     const _colorpalette = new Map(); // Temp color palette
-    //palette.forEach(color => _colorpalette.set(color.id, 0));
 
     // For every pixel...
     for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
@@ -228,16 +227,10 @@ export default class Template {
         bestColorID = lookupTable.get(pixel) ?? -2;
       }
 
-      // If the color has not been counted until now, we define it
-      if (_colorpalette.get(bestColorID) == null) {
-        _colorpalette.set(bestColorID, 1);
-      } else {
-        // Else, we count like normal
-
-        // Adds one to the "amount" value for that pixel in the temporary color palette Map
-        _colorpalette.set(bestColorID, _colorpalette.get(bestColorID) + 1);
-        // This works since the Map keys are the color ID, which can be negative.
-      }
+      // Increments the count by 1 for the best matching color ID (which can be negative).
+      // If the color ID has not been counted yet, default to 1
+      const colorIDcount = _colorpalette.get(bestColorID);
+      _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
     }
 
     console.log(_colorpalette);

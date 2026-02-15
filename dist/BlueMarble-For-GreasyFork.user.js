@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.81
+// @version         0.88.92
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -811,7 +811,7 @@
   ];
 
   // src/Template.js
-  var _Template_instances, calculateTotalPixelsFromTemplateData_fn;
+  var _Template_instances, calculateTotalPixelsFromImageData_fn;
   var Template = class {
     /** The constructor for the {@link Template} class with enhanced pixel tracking.
      * @param {Object} [params={}] - Object containing all optional parameters
@@ -869,7 +869,7 @@
       context.imageSmoothingEnabled = false;
       context.drawImage(bitmap, 0, 0);
       let timer = Date.now();
-      const totalPixelMap = __privateMethod(this, _Template_instances, calculateTotalPixelsFromTemplateData_fn).call(this, context.getImageData(0, 0, imageWidth, imageHeight), paletteBM);
+      const totalPixelMap = __privateMethod(this, _Template_instances, calculateTotalPixelsFromImageData_fn).call(this, context.getImageData(0, 0, imageWidth, imageHeight), paletteBM);
       console.log(`Calculating total pixels took ${(Date.now() - timer) / 1e3} seconds`);
       let totalPixels = 0;
       const transparentColorID = 0;
@@ -954,17 +954,17 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     }
   };
   _Template_instances = new WeakSet();
-  /** Calculates the total pixels for each color for the template.
+  /** Calculates the total pixels for each color for the image.
    * 
-   * @param {ImageData} imageData - The pre-shreaded template "casted" onto a canvas
+   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
    * @param {Object} paletteBM - The palette Blue Marble uses for colors
    * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
    * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
    * @since 0.88.6
    */
-  calculateTotalPixelsFromTemplateData_fn = function(imageData, paletteBM) {
+  calculateTotalPixelsFromImageData_fn = function(imageData, paletteBM) {
     const buffer32Arr = new Uint32Array(imageData.data.buffer);
-    const { palette, LUT: lookupTable } = paletteBM;
+    const { palette: _, LUT: lookupTable } = paletteBM;
     const _colorpalette = /* @__PURE__ */ new Map();
     for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
       const pixel = buffer32Arr[pixelIndex];
@@ -974,18 +974,15 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       } else {
         bestColorID = lookupTable.get(pixel) ?? -2;
       }
-      if (_colorpalette.get(bestColorID) == null) {
-        _colorpalette.set(bestColorID, 1);
-      } else {
-        _colorpalette.set(bestColorID, _colorpalette.get(bestColorID) + 1);
-      }
+      const colorIDcount = _colorpalette.get(bestColorID);
+      _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
     }
     console.log(_colorpalette);
     return _colorpalette;
   };
 
   // src/templateManager.js
-  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn;
+  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_fn;
   var TemplateManager = class {
     /** The constructor for the {@link TemplateManager} class.
      * @since 0.55.8
@@ -1002,47 +999,12 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.drawMult = 3;
       this.paletteTolerance = 3;
       this.paletteBM = colorpaletteForBlueMarble(this.paletteTolerance);
-      this.canvasTemplate = null;
-      this.canvasTemplateZoomed = null;
-      this.canvasTemplateID = "bm-canvas";
-      this.canvasMainID = "div#map canvas.maplibregl-canvas";
       this.template = null;
       this.templateState = "";
       this.templatesArray = [];
       this.templatesJSON = null;
       this.templatesShouldBeDrawn = true;
-    }
-    /** Retrieves the pixel art canvas.
-     * If the canvas has been updated/replaced, it retrieves the new one.
-     * @param {string} selector - The CSS selector to use to find the canvas.
-     * @returns {HTMLCanvasElement|null} The canvas as an HTML Canvas Element, or null if the canvas does not exist
-     * @since 0.58.3
-     * @deprecated Not in use since 0.63.25
-     */
-    getCanvas() {
-      if (document.body.contains(this.canvasTemplate)) {
-        return this.canvasTemplate;
-      }
-      document.getElementById(this.canvasTemplateID)?.remove();
-      const canvasMain = document.querySelector(this.canvasMainID);
-      const canvasTemplateNew = document.createElement("canvas");
-      canvasTemplateNew.id = this.canvasTemplateID;
-      canvasTemplateNew.className = "maplibregl-canvas";
-      canvasTemplateNew.style.position = "absolute";
-      canvasTemplateNew.style.top = "0";
-      canvasTemplateNew.style.left = "0";
-      canvasTemplateNew.style.height = `${canvasMain?.clientHeight * (window.devicePixelRatio || 1)}px`;
-      canvasTemplateNew.style.width = `${canvasMain?.clientWidth * (window.devicePixelRatio || 1)}px`;
-      canvasTemplateNew.height = canvasMain?.clientHeight * (window.devicePixelRatio || 1);
-      canvasTemplateNew.width = canvasMain?.clientWidth * (window.devicePixelRatio || 1);
-      canvasTemplateNew.style.zIndex = "8999";
-      canvasTemplateNew.style.pointerEvents = "none";
-      canvasMain?.parentElement?.appendChild(canvasTemplateNew);
-      this.canvasTemplate = canvasTemplateNew;
-      window.addEventListener("move", this.onMove);
-      window.addEventListener("zoom", this.onZoom);
-      window.addEventListener("resize", this.onResize);
-      return this.canvasTemplate;
+      this.templatePixelsCorrect = null;
     }
     /** Creates the JSON object to store templates in
      * @returns {{ whoami: string, scriptVersion: string, schemaVersion: string, templates: Object }} The JSON object
@@ -1181,10 +1143,28 @@ Version: ${this.version}`);
       context.clip();
       context.clearRect(0, 0, drawSize, drawSize);
       context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
+      const tileBeforeTemplates = context.getImageData(0, 0, drawSize, drawSize);
+      const tileBeforeTemplates32 = new Uint32Array(tileBeforeTemplates.data.buffer);
       for (const template of templatesToDraw) {
         console.log(`Template:`);
         console.log(template);
-        context.drawImage(template.bitmap, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
+        const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
+        const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
+        context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
+        const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
+        const templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+        const timer = Date.now();
+        const pixelsCorrect = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_fn).call(this, tileBeforeTemplates32, templateBeforeFilter32, [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]);
+        let pixelsCorrectTotal = 0;
+        const transparentColorID = 0;
+        for (const [color, total] of pixelsCorrect) {
+          if (color == transparentColorID) {
+            continue;
+          }
+          pixelsCorrectTotal += total;
+        }
+        console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
+There are ${pixelsCorrectTotal} correct pixels.`);
       }
       return await canvas.convertToBlob({ type: "image/png" });
     }
@@ -1263,6 +1243,49 @@ Version: ${this.version}`);
   /** Parses the OSU! Place JSON object
    */
   parseOSU_fn = function() {
+  };
+  /** Calculates the correct pixels on this tile.
+   * @param {Uint32Array} tile32 - The tile without templates as a Uint32Array
+   * @param {Uint32Array} template32 - The template without filtering as a Uint32Array
+   * @param {Array<Number, Number, Number, Number>} templateInformation - Information about template location and size
+   * @returns {Map} - A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
+   */
+  calculateCorrectPixelsOnTile_fn = function(tile32, template32, templateInformation) {
+    const pixelSize = this.drawMult;
+    const tileWidth = this.tileSize * pixelSize;
+    const tileHeight = tileWidth;
+    const tilePixelOffsetY = -1;
+    const tilePixelOffsetX = 0;
+    const templateCoordX = templateInformation[0];
+    const templateCoordY = templateInformation[1];
+    const templateWidth = templateInformation[2];
+    const templateHeight = templateInformation[3];
+    const tolerance = this.paletteTolerance;
+    const { palette: _, LUT: lookupTable } = this.paletteBM;
+    const _colorpalette = /* @__PURE__ */ new Map();
+    for (let templateRow = 1; templateRow < templateHeight; templateRow += pixelSize) {
+      for (let templateColumn = 1; templateColumn < templateWidth; templateColumn += pixelSize) {
+        const tileRow = templateCoordY + templateRow + tilePixelOffsetY;
+        const tileColumn = templateCoordX + templateColumn + tilePixelOffsetX;
+        const tilePixelAbove = tile32[tileRow * tileWidth + tileColumn];
+        const templatePixel = template32[templateRow * templateWidth + templateColumn];
+        const templatePixelAlpha = templatePixel >>> 24 & 255;
+        const tilePixelAlpha = tilePixelAbove >>> 24 & 255;
+        if (templatePixelAlpha <= tolerance || tilePixelAlpha <= tolerance) {
+          continue;
+        }
+        const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
+        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
+        if (bestTileColorID != bestTemplateColorID) {
+          continue;
+        }
+        const colorIDcount = _colorpalette.get(bestTemplateColorID);
+        _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
+      }
+    }
+    console.log(`List of template pixels that match the tile:`);
+    console.log(_colorpalette);
+    return _colorpalette;
   };
 
   // src/apiManager.js
@@ -1350,7 +1373,9 @@ Did you try clicking the canvas first?`);
             tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace(".png", ""))];
             const blobUUID = data["blobID"];
             const blobData = data["blobData"];
+            const timer = Date.now();
             const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
+            console.log(`Finished loading the tile in ${(Date.now() - timer) / 1e3} seconds!`);
             window.postMessage({
               source: "blue-marble",
               blobID: blobUUID,
