@@ -73,12 +73,12 @@ export default class Overlay {
 
     // For every passed in property (shared by all like-elements), apply the it to the element
     for (const [property, value] of Object.entries(properties)) {
-      element[property] = value;
+      element[(property != 'class') ? property : 'className'] = value; // if the property is 'class', pass in 'className' instead
     }
 
     // For every passed in additional property, apply the it to the element
     for (const [property, value] of Object.entries(additionalProperties)) {
-      element[property] = value;
+      element[(property != 'class') ? property : 'className'] = value; // if the property is 'class', pass in 'className' instead
     }
     
     return element;

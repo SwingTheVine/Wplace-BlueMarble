@@ -213,6 +213,7 @@ export default class TemplateManager {
           const coords = tile.split(','); // [x, y, x, y] Tile/pixel coordinates
           
           return {
+            instance: template,
             bitmap: template.chunked[tile],
             chunked32: template.chunked32?.[tile],
             tileCoords: [coords[0], coords[1]],
@@ -316,7 +317,7 @@ export default class TemplateManager {
       }
       console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
 
-      template.pixelCount['correct'] = pixelsCorrect; // Adds the correct pixel Map to the template instance
+      template.instance.pixelCount['correct'] = pixelsCorrect; // Adds the correct pixel Map to the template instance
     }
 
     return await canvas.convertToBlob({ type: 'image/png' });
