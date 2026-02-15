@@ -594,8 +594,9 @@ export default class Overlay {
 
   /** Handles dragging of the overlay.
    * Uses requestAnimationFrame for smooth animations and GPU-accelerated transforms.
-   * @param {string} moveMe - The ID of the element to be moved
-   * @param {string} iMoveThings - The ID of the drag handle element
+   * Use the appropriate CSS selectors.
+   * @param {string} moveMe - The element to be moved
+   * @param {string} iMoveThings - The drag handle element
    * @since 0.8.2
   */
   handleDrag(moveMe, iMoveThings) {
@@ -606,10 +607,11 @@ export default class Overlay {
     let currentY = 0;
     let targetX = 0;
     let targetY = 0;
+    let initialRect = null; // Cache initial position to avoid expensive getBoundingClientRect calls during drag
 
     // Retrieves the elements (allows either '#id' or 'id' to be passed in)
-    moveMe = document.querySelector(moveMe?.[0] == '#' ? moveMe : '#' + moveMe);
-    iMoveThings = document.querySelector(iMoveThings?.[0] == '#' ? iMoveThings : '#' + iMoveThings);
+    moveMe = document.querySelector(moveMe);
+    iMoveThings = document.querySelector(iMoveThings);
 
     // What to do when one of the two elements are not found
     if (!moveMe || !iMoveThings) {
@@ -638,9 +640,6 @@ export default class Overlay {
         animationFrame = requestAnimationFrame(updatePosition);
       }
     };
-
-    // Cache initial position to avoid expensive getBoundingClientRect calls during drag
-    let initialRect = null;
     
     const startDrag = (clientX, clientY) => {
       isDragging = true;
@@ -665,7 +664,14 @@ export default class Overlay {
       targetY = currentY;
       
       document.body.style.userSelect = 'none';
-      iMoveThings.classList.add('dragging');
+      iMoveThings.classList.add('bm-dragging');
+
+      // Add move listeners when dragging starts
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('touchend', endDrag);
+      document.addEventListener('touchcancel', endDrag);
       
       // Start animation loop
       if (animationFrame) {
@@ -681,7 +687,33 @@ export default class Overlay {
         animationFrame = null;
       }
       document.body.style.userSelect = '';
-      iMoveThings.classList.remove('dragging');
+      iMoveThings.classList.remove('bm-dragging');
+
+      // Remove move listeners when drag ends
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('mouseup', endDrag);
+      document.removeEventListener('touchend', endDrag);
+      document.removeEventListener('touchcancel', endDrag);
+    };
+
+    // Mouse move
+    const onMouseMove = event => {
+      if (isDragging && initialRect) {
+        targetX = event.clientX - offsetX;
+        targetY = event.clientY - offsetY;
+      }
+    }
+
+    // Touch move
+    const onTouchMove = event => {
+      if (isDragging && initialRect) {
+        const touch = event.touches[0];
+        if (!touch) return;
+        targetX = touch.clientX - offsetX;
+        targetY = touch.clientY - offsetY;
+        event.preventDefault();
+      }
     };
 
     // Mouse down - start dragging
@@ -697,30 +729,6 @@ export default class Overlay {
       startDrag(touch.clientX, touch.clientY);
       event.preventDefault();
     }, { passive: false });
-
-    // Mouse move - update target position
-    document.addEventListener('mousemove', function(event) {
-      if (isDragging && initialRect) {
-        targetX = event.clientX - offsetX;
-        targetY = event.clientY - offsetY;
-      }
-    }, { passive: true });
-
-    // Touch move - update target position
-    document.addEventListener('touchmove', function(event) {
-      if (isDragging && initialRect) {
-        const touch = event?.touches?.[0];
-        if (!touch) {return;}
-        targetX = touch.clientX - offsetX;
-        targetY = touch.clientY - offsetY;
-        event.preventDefault();
-      }
-    }, { passive: false });
-
-    // End drag events
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-    document.addEventListener('touchcancel', endDrag);
   }
 
   /** Handles status display.
