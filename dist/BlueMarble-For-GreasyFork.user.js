@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.133
+// @version         0.88.144
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -37,7 +37,7 @@
   var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 
   // src/Overlay.js
-  var _Overlay_instances, createElement_fn;
+  var _Overlay_instances, createElement_fn, applyAttribute_fn;
   var Overlay = class {
     /** Constructor for the Overlay class.
      * @param {string} name - The name of the userscript
@@ -449,6 +449,8 @@
     }) {
       const properties = {
         "type": "file",
+        "tabindex": "-1",
+        "aria-hidden": "true",
         "style": "display: none !important; visibility: hidden !important; position: absolute !important; left: -9999px !important; width: 0 !important; height: 0 !important; opacity: 0 !important;"
       };
       const text = additionalProperties["textContent"] ?? "";
@@ -459,8 +461,6 @@
       const button = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "button", { "textContent": text });
       this.buildElement();
       this.buildElement();
-      input.setAttribute("tabindex", "-1");
-      input.setAttribute("aria-hidden", "true");
       button.addEventListener("click", () => {
         input.click();
       });
@@ -519,6 +519,52 @@
         element.textContent = html;
       } else {
         element.innerHTML = html;
+      }
+    }
+    /** Handles the minimization logic for windows spawned by Blue Marble
+     * @param {HTMLButtonElement} button - The UI button that triggered this minimization event
+     * @since 0.88.142
+    */
+    handleMinimization(button) {
+      button.disabled = true;
+      button.style.textDecoration = "none";
+      const window2 = button.closest(".bm-window");
+      const dragbar = button.closest(".bm-dragbar");
+      const header = window2.querySelector("h1");
+      const windowContent = window2.querySelector(".bm-window-content");
+      if (button.dataset["buttonStatus"] == "expanded") {
+        const dragbarHeader1 = header.cloneNode(true);
+        const dragbarHeader1Text = dragbarHeader1.textContent;
+        button.parentNode.appendChild(dragbarHeader1);
+        windowContent.style.height = windowContent.scrollHeight + "px";
+        window2.style.width = window2.scrollWidth + "px";
+        windowContent.style.height = "0";
+        windowContent.addEventListener("transitionend", function handler() {
+          windowContent.style.display = "none";
+          button.disabled = false;
+          button.style.textDecoration = "";
+          windowContent.removeEventListener("transitionend", handler);
+        });
+        button.textContent = "\u25B6";
+        button.dataset["buttonStatus"] = "collapsed";
+        button.ariaLabel = `Unminimize window "${dragbarHeader1Text}"`;
+      } else {
+        const dragbarHeader1 = dragbar.querySelector("h1");
+        const dragbarHeader1Text = dragbarHeader1.textContent;
+        dragbarHeader1.remove();
+        windowContent.style.display = "";
+        windowContent.style.height = "0";
+        window2.style.width = "";
+        windowContent.style.height = windowContent.scrollHeight + "px";
+        windowContent.addEventListener("transitionend", function handler() {
+          windowContent.style.height = "";
+          button.disabled = false;
+          button.style.textDecoration = "";
+          windowContent.removeEventListener("transitionend", handler);
+        });
+        button.textContent = "\u25BC";
+        button.dataset["buttonStatus"] = "expanded";
+        button.ariaLabel = `Minimize window "${dragbarHeader1Text}"`;
       }
     }
     /** Handles dragging of the overlay.
@@ -671,12 +717,42 @@
       this.currentParent = element;
     }
     for (const [property, value] of Object.entries(properties)) {
-      element[property != "class" ? property : "className"] = value;
+      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value);
     }
     for (const [property, value] of Object.entries(additionalProperties)) {
-      element[property != "class" ? property : "className"] = value;
+      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value);
     }
     return element;
+  };
+  /** Applies an attribute to an element
+   * @param {HTMLElement} element - The element to apply the attribute to
+   * @param {String} property - The name of the attribute to apply
+   * @param {String} value - The value of the attribute
+   * @since 0.88.136
+   */
+  applyAttribute_fn = function(element, property, value) {
+    if (property == "class") {
+      element.classList.add(...value.split(/\s+/));
+    } else if (property == "for") {
+      element.htmlFor = value;
+    } else if (property == "tabindex") {
+      element.tabIndex = Number(value);
+    } else if (property == "readonly") {
+      element.readOnly = value == "true" || value == "1";
+    } else if (property == "maxlength") {
+      element.maxLength = Number(value);
+    } else if (property.startsWith("data")) {
+      element.dataset[property.slice(5).split("-").map(
+        (part, i) => i == 0 ? part : part[0].toUpperCase() + part.slice(1)
+      ).join("")] = value;
+    } else if (property.startsWith("aria")) {
+      const camelCase = property.slice(5).split("-").map(
+        (part, i) => i == 0 ? part : part[0].toUpperCase() + part.slice(1)
+      ).join("");
+      element["aria" + camelCase[0].toUpperCase() + camelCase.slice(1)] = value;
+    } else {
+      element[property] = value;
+    }
   };
 
   // src/observers.js
@@ -1698,36 +1774,8 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     observer.observe(document.body, { childList: true, subtree: true });
   }
   function buildOverlayMain() {
-    overlayMain.addDiv({ "id": "bm-window-main", "class": "bm-window", "style": "top: 10px; right: 75px;" }).addDiv({ "class": "bm-dragbar" }).addDiv().addButton({ "class": "bm-button-circle", "textContent": "\u25BC" }, (instance, button) => {
-      button.onclick = () => {
-        const window2 = button.closest(".bm-window");
-        const dragbar = button.closest(".bm-dragbar");
-        const header = window2.querySelector("h1");
-        const windowContent = window2.querySelector(".bm-window-content");
-        if (button.textContent == "\u25BC") {
-          const dragbarHeader1 = header.cloneNode(true);
-          button.parentNode.appendChild(dragbarHeader1);
-          windowContent.style.height = windowContent.scrollHeight + "px";
-          window2.style.width = window2.scrollWidth + "px";
-          windowContent.style.height = "0";
-          windowContent.addEventListener("transitionend", function handler() {
-            windowContent.style.display = "none";
-            windowContent.removeEventListener("transitionend", handler);
-          });
-        } else {
-          const dragbarHeader1 = dragbar.querySelector("h1");
-          dragbarHeader1.remove();
-          windowContent.style.display = "";
-          windowContent.style.height = "0";
-          window2.style.width = "";
-          windowContent.style.height = windowContent.scrollHeight + "px";
-          windowContent.addEventListener("transitionend", function handler() {
-            windowContent.style.height = "";
-            windowContent.removeEventListener("transitionend", handler);
-          });
-        }
-        button.textContent = button.textContent == "\u25BC" ? "\u25B6" : "\u25BC";
-      };
+    overlayMain.addDiv({ "id": "bm-window-main", "class": "bm-window", "style": "top: 10px; right: 75px;" }).addDiv({ "class": "bm-dragbar" }).addDiv().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
+      button.onclick = () => instance.handleMinimization(button);
     }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addP({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
       { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>' },
       (instance, button) => {
@@ -1755,25 +1803,21 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
         }
         event.preventDefault();
       });
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "class": "bm-input-coords", "placeholder": "Tl Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "class": "bm-input-coords", "placeholder": "Px X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "class": "bm-input-coords", "placeholder": "Px Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addInputFile({ "class": "bm-input-file", "textContent": "Upload Template", "accept": "image/png, image/jpeg, image/webp, image/bmp, image/gif" }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between" }).addButton({ "textContent": "Enable" }, (instance, button) => {
+    }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "class": "bm-input-coords", "placeholder": "Tl Y", "min": 0, "max": 2047, "step": 1, "required": true }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "class": "bm-input-coords", "placeholder": "Px X", "min": 0, "max": 2047, "step": 1, "required": true }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "class": "bm-input-coords", "placeholder": "Px Y", "min": 0, "max": 2047, "step": 1, "required": true }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addInputFile({ "class": "bm-input-file", "textContent": "Upload Template", "accept": "image/png, image/jpeg, image/webp, image/bmp, image/gif" }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between" }).addButton({ "textContent": "Disable", "data-button-status": "shown" }, (instance, button) => {
       button.onclick = () => {
-        instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
-        instance.handleDisplayStatus(`Enabled templates!`);
+        button.disabled = true;
+        if (button.dataset["buttonStatus"] == "shown") {
+          instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
+          button.dataset["buttonStatus"] = "hidden";
+          button.textContent = "Enable";
+          instance.handleDisplayStatus(`Disabled templates!`);
+        } else {
+          instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
+          button.dataset["buttonStatus"] = "shown";
+          button.textContent = "Disable";
+          instance.handleDisplayStatus(`Enabled templates!`);
+        }
+        button.disabled = false;
       };
     }).buildElement().addButton({ "textContent": "Create" }, (instance, button) => {
       button.onclick = () => {
@@ -1809,27 +1853,19 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
         templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ""), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
         instance.handleDisplayStatus(`Drew to canvas!`);
       };
-    }).buildElement().addButton({ "textContent": "Disable" }, (instance, button) => {
+    }).buildElement().addButton({ "textContent": "Filter" }, (instance, button) => {
       button.onclick = () => {
-        instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
-        instance.handleDisplayStatus(`Disabled templates!`);
       };
     }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addTextarea({ "id": overlayMain.outputStatusId, "placeholder": `Status: Sleeping...
-Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0;" }).addDiv({ "class": "bm-flex-between" }).addButton(
-      { "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" },
-      (instance, button) => {
-        button.addEventListener("click", () => {
-          window.open("https://pepoafonso.github.io/color_converter_wplace/", "_blank", "noopener noreferrer");
-        });
-      }
-    ).buildElement().addButton(
-      { "class": "bm-button-circle", "innerHTML": "\u{1F310}", "title": "Official Blue Marble Website" },
-      (instance, button) => {
-        button.addEventListener("click", () => {
-          window.open("https://bluemarble.lol/", "_blank", "noopener noreferrer");
-        });
-      }
-    ).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
+Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0;" }).addDiv({ "class": "bm-flex-between" }).addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" }, (instance, button) => {
+      button.onclick = () => {
+        window.open("https://pepoafonso.github.io/color_converter_wplace/", "_blank", "noopener noreferrer");
+      };
+    }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F310}", "title": "Official Blue Marble Website" }, (instance, button) => {
+      button.onclick = () => {
+        window.open("https://bluemarble.lol/", "_blank", "noopener noreferrer");
+      };
+    }).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
   }
   function buildTelemetryOverlay(overlay) {
     overlay.addDiv({ "id": "bm-overlay-telemetry", style: "top: 0px; left: 0px; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; z-index: 9999;" }).addDiv({ "id": "bm-contain-all-telemetry", style: "display: flex; flex-direction: column; align-items: center;" }).addDiv({ "id": "bm-contain-header-telemetry", style: "margin-top: 10%;" }).addHeader(1, { "textContent": `${name} Telemetry` }).buildElement().buildElement().addDiv({ "id": "bm-contain-telemetry", style: "max-width: 50%; overflow-y: auto; max-height: 80vh;" }).addHr().buildElement().addBr().buildElement().addDiv({ "style": "width: fit-content; margin: auto; text-align: center;" }).addButton({ "id": "bm-button-telemetry-more", "textContent": "More Information" }, (instance, button) => {

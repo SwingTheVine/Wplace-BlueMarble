@@ -276,36 +276,8 @@ function buildOverlayMain() {
   overlayMain.addDiv({'id': 'bm-window-main', 'class': 'bm-window', 'style': 'top: 10px; right: 75px;'})
     .addDiv({'class': 'bm-dragbar'})
       .addDiv()
-        .addButton({'class': 'bm-button-circle', 'textContent': '▼'}, (instance, button) => {
-          button.onclick = () => {
-            const window = button.closest('.bm-window'); // Get the window
-            const dragbar = button.closest('.bm-dragbar'); // Get the dragbar
-            const header = window.querySelector('h1'); // Get the header
-            const windowContent = window.querySelector('.bm-window-content'); // Get the window content container
-            if (button.textContent == '▼') { // If window content is open...
-              const dragbarHeader1 = header.cloneNode(true); // Makes a copy of the header 1
-              button.parentNode.appendChild(dragbarHeader1); // Adds the header to the dragbar
-              windowContent.style.height = windowContent.scrollHeight + 'px';
-              window.style.width = window.scrollWidth + 'px'; // So the width of the window does not change due to the lack of content
-              windowContent.style.height = '0'; // Set the height to 0px
-              windowContent.addEventListener('transitionend', function handler() { // Add an event listener to cleanup once the minimize transition is complete
-                windowContent.style.display = 'none'; // Changes "display" to "none" for screen readers
-                windowContent.removeEventListener('transitionend', handler); // Removes the event listener
-              });
-            } else { // Else, the window is closed
-              const dragbarHeader1 = dragbar.querySelector('h1'); // Get the header 1
-              dragbarHeader1.remove(); // Removes the dragbar header 1
-              windowContent.style.display = ''; // Resets display to default
-              windowContent.style.height = '0'; // Sets the height to 0
-              window.style.width = ''; // Resets the window width to default
-              windowContent.style.height = windowContent.scrollHeight + 'px'; // Change the height back to normal
-              windowContent.addEventListener('transitionend', function handler() { // Add an event listener to cleanup once the minimize transition is complete
-                windowContent.style.height = ''; // Changes the height back to default
-                windowContent.removeEventListener('transitionend', handler); // Removes the event listener
-              });
-            }
-            button.textContent = (button.textContent == '▼') ? '▶' : '▼'; // Swap button icon
-          }
+        .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
+          button.onclick = () => instance.handleMinimization(button);
         }).buildElement()
       .buildElement()
     .buildElement()
@@ -350,40 +322,37 @@ function buildOverlayMain() {
               }
               event.preventDefault(); //prevent the pasting of the original paste that would overide the split value
             })
-            const handler = () => persistCoords();
-            input.addEventListener('input', handler);
-            input.addEventListener('change', handler);
           }).buildElement()
-          .addInput({'type': 'number', 'id': 'bm-input-ty', 'class': 'bm-input-coords', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-            const handler = () => persistCoords();
-            input.addEventListener('input', handler);
-            input.addEventListener('change', handler);
-          }).buildElement()
-          .addInput({'type': 'number', 'id': 'bm-input-px', 'class': 'bm-input-coords', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-            const handler = () => persistCoords();
-            input.addEventListener('input', handler);
-            input.addEventListener('change', handler);
-          }).buildElement()
-          .addInput({'type': 'number', 'id': 'bm-input-py', 'class': 'bm-input-coords', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-            const handler = () => persistCoords();
-            input.addEventListener('input', handler);
-            input.addEventListener('change', handler);
-          }).buildElement()
+          .addInput({'type': 'number', 'id': 'bm-input-ty', 'class': 'bm-input-coords', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
+          .addInput({'type': 'number', 'id': 'bm-input-px', 'class': 'bm-input-coords', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
+          .addInput({'type': 'number', 'id': 'bm-input-py', 'class': 'bm-input-coords', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
         .buildElement()
         .addDiv({'class': 'bm-container'})
           .addInputFile({'class': 'bm-input-file', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
         .buildElement()
         .addDiv({'class': 'bm-container bm-flex-between'})
-          .addButton({'textContent': 'Enable'}, (instance, button) => {
+          .addButton({'textContent': 'Disable', 'data-button-status': 'shown'}, (instance, button) => {
             button.onclick = () => {
-              instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
-              instance.handleDisplayStatus(`Enabled templates!`);
+              button.disabled = true; // Disables the button until the transition ends
+              if (button.dataset['buttonStatus'] == 'shown') { // If templates are currently being 'shown' then hide them
+                instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false); // Disables templates from being drawn
+                button.dataset['buttonStatus'] = 'hidden'; // Swap internal button status tracker
+                button.textContent = 'Enable'; // Swap button text
+                instance.handleDisplayStatus(`Disabled templates!`); // Inform the user
+              } else { // In all other cases, we should show templates instead of hiding them
+                instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true); // Allows templates to be drawn
+                button.dataset['buttonStatus'] = 'shown'; // Swap internal button status tracker
+                button.textContent = 'Disable'; // Swap button text
+                instance.handleDisplayStatus(`Enabled templates!`); // Inform the user
+              }
+              button.disabled = false; // Enables the button
             }
           }).buildElement()
           .addButton({'textContent': 'Create'}, (instance, button) => {
             button.onclick = () => {
               const input = document.querySelector('#bm-window-main button.bm-input-file');
 
+              // Checks to see if the coordinates are valid. Throws an error if they are not
               const coordTlX = document.querySelector('#bm-input-tx');
               if (!coordTlX.checkValidity()) {coordTlX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
               const coordTlY = document.querySelector('#bm-input-ty');
@@ -400,10 +369,9 @@ function buildOverlayMain() {
               instance.handleDisplayStatus(`Drew to canvas!`);
             }
           }).buildElement()
-          .addButton({'textContent': 'Disable'}, (instance, button) => {
+          .addButton({'textContent': 'Filter'}, (instance, button) => {
             button.onclick = () => {
-              instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
-              instance.handleDisplayStatus(`Disabled templates!`);
+              
             }
           }).buildElement()
         .buildElement()
@@ -413,17 +381,15 @@ function buildOverlayMain() {
         .addDiv({'class': 'bm-container bm-flex-between', 'style': 'margin-bottom: 0;'})
           .addDiv({'class': 'bm-flex-between'})
             // .addButton({'class': 'bm-button-circle', 'innerHTML': '🖌'}).buildElement()
-            .addButton({'class': 'bm-button-circle', 'innerHTML': '🎨', 'title': 'Template Color Converter'}, 
-              (instance, button) => {
-              button.addEventListener('click', () => {
+            .addButton({'class': 'bm-button-circle', 'innerHTML': '🎨', 'title': 'Template Color Converter'}, (instance, button) => {
+              button.onclick = () => {
                 window.open('https://pepoafonso.github.io/color_converter_wplace/', '_blank', 'noopener noreferrer');
-              });
+              }
             }).buildElement()
-            .addButton({'class': 'bm-button-circle', 'innerHTML': '🌐', 'title': 'Official Blue Marble Website'}, 
-              (instance, button) => {
-              button.addEventListener('click', () => {
+            .addButton({'class': 'bm-button-circle', 'innerHTML': '🌐', 'title': 'Official Blue Marble Website'}, (instance, button) => {
+              button.onclick = () => {
                 window.open('https://bluemarble.lol/', '_blank', 'noopener noreferrer');
-              });
+              }
             }).buildElement()
           .buildElement()
           .addSmall({'textContent': 'Made by SwingTheVine', 'style': 'margin-top: auto;'}).buildElement()
@@ -431,345 +397,6 @@ function buildOverlayMain() {
       .buildElement()
     .buildElement()
   .buildElement().buildOverlay(document.body);
-
-
-  // let isMinimized = false; // Overlay state tracker (false = maximized, true = minimized)
-  
-  // overlayMain.addDiv({'id': 'bm-overlay', 'style': 'top: 10px; right: 75px;'})
-  //   .addDiv({'id': 'bm-contain-header'})
-  //     .addDiv({'id': 'bm-bar-drag'}).buildElement()
-  //     .addImg({'alt': 'Blue Marble Icon - Click to minimize/maximize', 'src': 'https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png', 'style': 'cursor: pointer;'}, 
-  //       (instance, img) => {
-  //         /** Click event handler for overlay minimize/maximize functionality.
-  //          * 
-  //          * Toggles between two distinct UI states:
-  //          * 1. MINIMIZED STATE (60×76px):
-  //          *    - Shows only the Blue Marble icon and drag bar
-  //          *    - Hides all input fields, buttons, and status information
-  //          *    - Applies fixed dimensions for consistent appearance
-  //          *    - Repositions icon with 3px right offset for visual centering
-  //          * 
-  //          * 2. MAXIMIZED STATE (responsive):
-  //          *    - Restores full functionality with all UI elements
-  //          *    - Removes fixed dimensions to allow responsive behavior
-  //          *    - Resets icon positioning to default alignment
-  //          *    - Shows success message when returning to maximized state
-  //          * 
-  //          * @param {Event} event - The click event object (implicit)
-  //          */
-  //         img.addEventListener('click', () => {
-  //           isMinimized = !isMinimized; // Toggle the current state
-
-  //           const overlay = document.querySelector('#bm-overlay');
-  //           const header = document.querySelector('#bm-contain-header');
-  //           const dragBar = document.querySelector('#bm-bar-drag');
-  //           const coordsContainer = document.querySelector('#bm-contain-coords');
-  //           const coordsButton = document.querySelector('#bm-button-coords');
-  //           const createButton = document.querySelector('#bm-button-create');
-  //           const enableButton = document.querySelector('#bm-button-enable');
-  //           const disableButton = document.querySelector('#bm-button-disable');
-  //           const coordInputs = document.querySelectorAll('#bm-contain-coords input');
-            
-  //           // Pre-restore original dimensions when switching to maximized state
-  //           // This ensures smooth transition and prevents layout issues
-  //           if (!isMinimized) {
-  //             overlay.style.width = "auto";
-  //             overlay.style.maxWidth = "300px";
-  //             overlay.style.minWidth = "200px";
-  //             overlay.style.padding = "10px";
-  //           }
-            
-  //           // Define elements that should be hidden/shown during state transitions
-  //           // Each element is documented with its purpose for maintainability
-  //           const elementsToToggle = [
-  //             '#bm-overlay h1',                    // Main title "Blue Marble"
-  //             '#bm-contain-userinfo',              // User information section (username, droplets, level)
-  //             '#bm-overlay hr',                    // Visual separator lines
-  //             '#bm-contain-automation > *:not(#bm-contain-coords)', // Automation section excluding coordinates
-  //             '#bm-input-file-template',           // Template file upload interface
-  //             '#bm-contain-buttons-action',        // Action buttons container
-  //             `#${instance.outputStatusId}`,       // Status log textarea for user feedback
-  //           ];
-            
-  //           // Apply visibility changes to all toggleable elements
-  //           elementsToToggle.forEach(selector => {
-  //             const elements = document.querySelectorAll(selector);
-  //             elements.forEach(element => {
-  //               element.style.display = isMinimized ? 'none' : '';
-  //             });
-  //           });
-  //           // Handle coordinate container and button visibility based on state
-  //           if (isMinimized) {
-  //             // ==================== MINIMIZED STATE CONFIGURATION ====================
-  //             // In minimized state, we hide ALL interactive elements except the icon and drag bar
-  //             // This creates a clean, unobtrusive interface that maintains only essential functionality
-              
-  //             // Hide coordinate input container completely
-  //             if (coordsContainer) {
-  //               coordsContainer.style.display = 'none';
-  //             }
-              
-  //             // Hide coordinate button (pin icon)
-  //             if (coordsButton) {
-  //               coordsButton.style.display = 'none';
-  //             }
-              
-  //             // Hide create template button
-  //             if (createButton) {
-  //               createButton.style.display = 'none';
-  //             }
-
-  //             // Hide enable templates button
-  //             if (enableButton) {
-  //               enableButton.style.display = 'none';
-  //             }
-
-  //             // Hide disable templates button
-  //             if (disableButton) {
-  //               disableButton.style.display = 'none';
-  //             }
-              
-  //             // Hide all coordinate input fields individually (failsafe)
-  //             coordInputs.forEach(input => {
-  //               input.style.display = 'none';
-  //             });
-              
-  //             // Apply fixed dimensions for consistent minimized appearance
-  //             // These dimensions were chosen to accommodate the icon while remaining compact
-  //             overlay.style.width = '60px';    // Fixed width for consistency
-  //             overlay.style.height = '76px';   // Fixed height (60px + 16px for better proportions)
-  //             overlay.style.maxWidth = '60px';  // Prevent expansion
-  //             overlay.style.minWidth = '60px';  // Prevent shrinking
-  //             overlay.style.padding = '8px';    // Comfortable padding around icon
-              
-  //             // Apply icon positioning for better visual centering in minimized state
-  //             // The 3px offset compensates for visual weight distribution
-  //             img.style.marginLeft = '3px';
-              
-  //             // Configure header layout for minimized state
-  //             header.style.textAlign = 'center';
-  //             header.style.margin = '0';
-  //             header.style.marginBottom = '0';
-              
-  //             // Ensure drag bar remains visible and properly spaced
-  //             if (dragBar) {
-  //               dragBar.style.display = '';
-  //               dragBar.style.marginBottom = '0.25em';
-  //             }
-  //           } else {
-  //             // ==================== MAXIMIZED STATE RESTORATION ====================
-  //             // In maximized state, we restore all elements to their default functionality
-  //             // This involves clearing all style overrides applied during minimization
-              
-  //             // Restore coordinate container to default state
-  //             if (coordsContainer) {
-  //               coordsContainer.style.display = '';           // Show container
-  //               coordsContainer.style.flexDirection = '';     // Reset flex layout
-  //               coordsContainer.style.justifyContent = '';    // Reset alignment
-  //               coordsContainer.style.alignItems = '';        // Reset alignment
-  //               coordsContainer.style.gap = '';               // Reset spacing
-  //               coordsContainer.style.textAlign = '';         // Reset text alignment
-  //               coordsContainer.style.margin = '';            // Reset margins
-  //             }
-              
-  //             // Restore coordinate button visibility
-  //             if (coordsButton) {
-  //               coordsButton.style.display = '';
-  //             }
-              
-  //             // Restore create button visibility and reset positioning
-  //             if (createButton) {
-  //               createButton.style.display = '';
-  //               createButton.style.marginTop = '';
-  //             }
-
-  //             // Restore enable button visibility and reset positioning
-  //             if (enableButton) {
-  //               enableButton.style.display = '';
-  //               enableButton.style.marginTop = '';
-  //             }
-
-  //             // Restore disable button visibility and reset positioning
-  //             if (disableButton) {
-  //               disableButton.style.display = '';
-  //               disableButton.style.marginTop = '';
-  //             }
-              
-  //             // Restore all coordinate input fields
-  //             coordInputs.forEach(input => {
-  //               input.style.display = '';
-  //             });
-              
-  //             // Reset icon positioning to default (remove minimized state offset)
-  //             img.style.marginLeft = '';
-              
-  //             // Restore overlay to responsive dimensions
-  //             overlay.style.padding = '10px';
-              
-  //             // Reset header styling to defaults
-  //             header.style.textAlign = '';
-  //             header.style.margin = '';
-  //             header.style.marginBottom = '';
-              
-  //             // Reset drag bar spacing
-  //             if (dragBar) {
-  //               dragBar.style.marginBottom = '0.5em';
-  //             }
-              
-  //             // Remove all fixed dimensions to allow responsive behavior
-  //             // This ensures the overlay can adapt to content changes
-  //             overlay.style.width = '';
-  //             overlay.style.height = '';
-  //           }
-            
-  //           // ==================== ACCESSIBILITY AND USER FEEDBACK ====================
-  //           // Update accessibility information for screen readers and tooltips
-            
-  //           // Update alt text to reflect current state for screen readers and tooltips
-  //           img.alt = isMinimized ? 
-  //             'Blue Marble Icon - Minimized (Click to maximize)' : 
-  //             'Blue Marble Icon - Maximized (Click to minimize)';
-            
-  //           // No status message needed - state change is visually obvious to users
-  //         });
-  //       }
-  //     ).buildElement()
-  //     .addHeader(1, {'textContent': name}).buildElement()
-  //   .buildElement()
-
-  //   .addHr().buildElement()
-
-  //   .addDiv({'id': 'bm-contain-userinfo'})
-  //     .addP({'id': 'bm-user-droplets', 'textContent': 'Droplets:'}).buildElement()
-  //     .addP({'id': 'bm-user-nextlevel', 'textContent': 'Next level in...'}).buildElement()
-  //   .buildElement()
-
-  //   .addHr().buildElement()
-
-  //   .addDiv({'id': 'bm-contain-automation'})
-  //     // .addCheckbox({'id': 'bm-input-stealth', 'textContent': 'Stealth', 'checked': true}).buildElement()
-  //     // .addButtonHelp({'title': 'Waits for the website to make requests, instead of sending requests.'}).buildElement()
-  //     // .addBr().buildElement()
-  //     // .addCheckbox({'id': 'bm-input-possessed', 'textContent': 'Possessed', 'checked': true}).buildElement()
-  //     // .addButtonHelp({'title': 'Controls the website as if it were possessed.'}).buildElement()
-  //     // .addBr().buildElement()
-  //     .addDiv({'id': 'bm-contain-coords'})
-  //       .addButton({'id': 'bm-button-coords', 'className': 'bm-help', 'style': 'margin-top: 0;', 'innerHTML': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>'},
-  //         (instance, button) => {
-  //           button.onclick = () => {
-  //             const coords = instance.apiManager?.coordsTilePixel; // Retrieves the coords from the API manager
-  //             if (!coords?.[0]) {
-  //               instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?');
-  //               return;
-  //             }
-  //             instance.updateInnerHTML('bm-input-tx', coords?.[0] || '');
-  //             instance.updateInnerHTML('bm-input-ty', coords?.[1] || '');
-  //             instance.updateInnerHTML('bm-input-px', coords?.[2] || '');
-  //             instance.updateInnerHTML('bm-input-py', coords?.[3] || '');
-  //           }
-  //         }
-  //       ).buildElement()
-  //       .addInput({'type': 'number', 'id': 'bm-input-tx', 'placeholder': 'Tl X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-  //         //if a paste happens on tx, split and format it into other coordinates if possible
-  //         input.addEventListener("paste", (event) => {
-  //           let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter(n => n).map(Number).filter(n => !isNaN(n)); //split and filter all Non Numbers
-
-  //           if (splitText.length !== 4 ) { // If we don't have 4 clean coordinates, end the function.
-  //             return;
-  //           }
-
-  //           let coords = selectAllCoordinateInputs(document); 
-
-  //           for (let i = 0; i < coords.length; i++) { 
-  //             coords[i].value = splitText[i]; //add the split vales
-  //           }
-
-  //           event.preventDefault(); //prevent the pasting of the original paste that would overide the split value
-  //         })
-  //         const handler = () => persistCoords();
-  //         input.addEventListener('input', handler);
-  //         input.addEventListener('change', handler);
-  //       }).buildElement()
-  //       .addInput({'type': 'number', 'id': 'bm-input-ty', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-  //         const handler = () => persistCoords();
-  //         input.addEventListener('input', handler);
-  //         input.addEventListener('change', handler);
-  //       }).buildElement()
-  //       .addInput({'type': 'number', 'id': 'bm-input-px', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-  //         const handler = () => persistCoords();
-  //         input.addEventListener('input', handler);
-  //         input.addEventListener('change', handler);
-  //       }).buildElement()
-  //       .addInput({'type': 'number', 'id': 'bm-input-py', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-  //         const handler = () => persistCoords();
-  //         input.addEventListener('input', handler);
-  //         input.addEventListener('change', handler);
-  //       }).buildElement()
-  //     .buildElement()
-  //     .addInputFile({'id': 'bm-input-file-template', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
-  //     .addDiv({'id': 'bm-contain-buttons-template'})
-  //       .addButton({'id': 'bm-button-enable', 'textContent': 'Enable'}, (instance, button) => {
-  //         button.onclick = () => {
-  //           instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
-  //           instance.handleDisplayStatus(`Enabled templates!`);
-  //         }
-  //       }).buildElement()
-  //       .addButton({'id': 'bm-button-create', 'textContent': 'Create'}, (instance, button) => {
-  //         button.onclick = () => {
-  //           const input = document.querySelector('#bm-input-file-template');
-
-  //           const coordTlX = document.querySelector('#bm-input-tx');
-  //           if (!coordTlX.checkValidity()) {coordTlX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-  //           const coordTlY = document.querySelector('#bm-input-ty');
-  //           if (!coordTlY.checkValidity()) {coordTlY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-  //           const coordPxX = document.querySelector('#bm-input-px');
-  //           if (!coordPxX.checkValidity()) {coordPxX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-  //           const coordPxY = document.querySelector('#bm-input-py');
-  //           if (!coordPxY.checkValidity()) {coordPxY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
-
-  //           // Kills itself if there is no file
-  //           if (!input?.files[0]) {instance.handleDisplayError(`No file selected!`); return;}
-
-  //           templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ''), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
-
-  //           // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
-  //           // apiManager.templateCoordsTilePixel = apiManager.coordsTilePixel; // Update template coords
-  //           // console.log(`TCoords: ${apiManager.templateCoordsTilePixel}\nCoords: ${apiManager.coordsTilePixel}`);
-  //           // templateManager.setTemplateImage(input.files[0]);
-
-  //           instance.handleDisplayStatus(`Drew to canvas!`);
-  //         }
-  //       }).buildElement()
-  //       .addButton({'id': 'bm-button-disable', 'textContent': 'Disable'}, (instance, button) => {
-  //         button.onclick = () => {
-  //           instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
-  //           instance.handleDisplayStatus(`Disabled templates!`);
-  //         }
-  //       }).buildElement()
-  //     .buildElement()
-  //     .addTextarea({'id': overlayMain.outputStatusId, 'placeholder': `Status: Sleeping...\nVersion: ${version}`, 'readOnly': true}).buildElement()
-  //     .addDiv({'id': 'bm-contain-buttons-action'})
-  //       .addDiv()
-  //         // .addButton({'id': 'bm-button-teleport', 'className': 'bm-help', 'textContent': '✈'}).buildElement()
-  //         // .addButton({'id': 'bm-button-favorite', 'className': 'bm-help', 'innerHTML': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><polygon points="10,2 12,7.5 18,7.5 13.5,11.5 15.5,18 10,14 4.5,18 6.5,11.5 2,7.5 8,7.5" fill="white"></polygon></svg>'}).buildElement()
-  //         // .addButton({'id': 'bm-button-templates', 'className': 'bm-help', 'innerHTML': '🖌'}).buildElement()
-  //         .addButton({'id': 'bm-button-convert', 'className': 'bm-help', 'innerHTML': '🎨', 'title': 'Template Color Converter'}, 
-  //           (instance, button) => {
-  //           button.addEventListener('click', () => {
-  //             window.open('https://pepoafonso.github.io/color_converter_wplace/', '_blank', 'noopener noreferrer');
-  //           });
-  //         }).buildElement()
-  //         .addButton({'id': 'bm-button-website', 'className': 'bm-help', 'innerHTML': '🌐', 'title': 'Official Blue Marble Website'}, 
-  //           (instance, button) => {
-  //           button.addEventListener('click', () => {
-  //             window.open('https://bluemarble.lol/', '_blank', 'noopener noreferrer');
-  //           });
-  //         }).buildElement()
-  //       .buildElement()
-  //       .addSmall({'textContent': 'Made by SwingTheVine', 'style': 'margin-top: auto;'}).buildElement()
-  //     .buildElement()
-  //   .buildElement()
-  // .buildOverlay(document.body);
 }
 
 function buildTelemetryOverlay(overlay) {

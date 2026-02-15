@@ -73,15 +73,48 @@ export default class Overlay {
 
     // For every passed in property (shared by all like-elements), apply the it to the element
     for (const [property, value] of Object.entries(properties)) {
-      element[(property != 'class') ? property : 'className'] = value; // if the property is 'class', pass in 'className' instead
+      this.#applyAttribute(element, property, value);
     }
 
     // For every passed in additional property, apply the it to the element
     for (const [property, value] of Object.entries(additionalProperties)) {
-      element[(property != 'class') ? property : 'className'] = value; // if the property is 'class', pass in 'className' instead
+      this.#applyAttribute(element, property, value);
     }
     
     return element;
+  }
+
+  /** Applies an attribute to an element
+   * @param {HTMLElement} element - The element to apply the attribute to
+   * @param {String} property - The name of the attribute to apply
+   * @param {String} value - The value of the attribute
+   * @since 0.88.136
+   */
+  #applyAttribute(element, property, value) {
+    if (property == 'class') {
+      element.classList.add(...value.split(/\s+/)); // converts `'foo bar'` to `'foo', 'bar'` which is accepted
+    } else if (property == 'for') {
+      element.htmlFor = value;
+    } else if (property == 'tabindex') {
+      element.tabIndex = Number(value);
+    } else if (property == 'readonly') {
+      element.readOnly = ((value == 'true') || (value == '1'));
+    } else if (property == 'maxlength') {
+      element.maxLength = Number(value);
+    } else if (property.startsWith('data')) {
+      element.dataset[
+        property.slice(5).split('-').map(
+          (part, i) => (i == 0) ? part : part[0].toUpperCase() + part.slice(1)
+        ).join('')
+      ] = value;
+    } else if (property.startsWith('aria')) {
+      const camelCase = property.slice(5).split('-').map(
+        (part, i) => (i == 0) ? part : part[0].toUpperCase() + part.slice(1)
+      ).join('');
+      element['aria' + camelCase[0].toUpperCase() + camelCase.slice(1)] = value;
+    } else {
+      element[property] = value;
+    }
   }
 
   /** Finishes building an element.
@@ -505,6 +538,8 @@ export default class Overlay {
     
     const properties = {
       'type': 'file', 
+      'tabindex': '-1',
+      'aria-hidden': 'true',
       'style': 'display: none !important; visibility: hidden !important; position: absolute !important; left: -9999px !important; width: 0 !important; height: 0 !important; opacity: 0 !important;'
     }; // Complete file input hiding to prevent native browser text interference
     const text = additionalProperties['textContent'] ?? ''; // Retrieves the text content
@@ -519,8 +554,8 @@ export default class Overlay {
     this.buildElement(); // Signifies that we are done adding children to the container
 
     // Prevent file input from being accessible or visible by screen-readers and tabbing
-    input.setAttribute('tabindex', '-1');
-    input.setAttribute('aria-hidden', 'true');
+    //input.setAttribute('tabindex', '-1');
+    //input.setAttribute('aria-hidden', 'true');
     
     button.addEventListener('click', () => {
       input.click(); // Clicks the file input
@@ -589,6 +624,69 @@ export default class Overlay {
       element.textContent = html; // Populate element with plain-text HTML/text
     } else {
       element.innerHTML = html; // Populate element with HTML/text
+    }
+  }
+
+  /** Handles the minimization logic for windows spawned by Blue Marble
+   * @param {HTMLButtonElement} button - The UI button that triggered this minimization event
+   * @since 0.88.142
+  */
+  handleMinimization(button) {
+
+    button.disabled = true; // Disables the button until the transition ends
+    button.style.textDecoration = 'none'; // Disables the disabled button text decoration strikethrough line
+
+    const window = button.closest('.bm-window'); // Get the window
+    const dragbar = button.closest('.bm-dragbar'); // Get the dragbar
+    const header = window.querySelector('h1'); // Get the header
+    const windowContent = window.querySelector('.bm-window-content'); // Get the window content container
+
+    // If window content is open...
+    if (button.dataset['buttonStatus'] == 'expanded') {
+      // ...we want to close it
+
+      // Makes a clone of the h1 element inside the window, and adds it to the dragbar
+      const dragbarHeader1 = header.cloneNode(true);
+      const dragbarHeader1Text = dragbarHeader1.textContent;
+      button.parentNode.appendChild(dragbarHeader1);
+
+      // Logic for the transition animation to collapse the window
+      windowContent.style.height = windowContent.scrollHeight + 'px';
+      window.style.width = window.scrollWidth + 'px'; // So the width of the window does not change due to the lack of content
+      windowContent.style.height = '0'; // Set the height to 0px
+      windowContent.addEventListener('transitionend', function handler() { // Add an event listener to cleanup once the minimize transition is complete
+        windowContent.style.display = 'none'; // Changes "display" to "none" for screen readers
+        button.disabled = false; // Enables the button
+        button.style.textDecoration = ''; // Resets the text decoration to default
+        windowContent.removeEventListener('transitionend', handler); // Removes the event listener
+      });
+
+      button.textContent = '▶'; // Swap button icon
+      button.dataset['buttonStatus'] = 'collapsed'; // Swap button status tracker
+      button.ariaLabel = `Unminimize window "${dragbarHeader1Text}"`; // Screen reader label
+    } else {
+      // Else, the window is closed, and we want to open it
+
+      // Deletes the h1 element inside the dragbar
+      const dragbarHeader1 = dragbar.querySelector('h1');
+      const dragbarHeader1Text = dragbarHeader1.textContent;
+      dragbarHeader1.remove();
+
+      // Logic for the transition animation to expand the window
+      windowContent.style.display = ''; // Resets display to default
+      windowContent.style.height = '0'; // Sets the height to 0
+      window.style.width = ''; // Resets the window width to default
+      windowContent.style.height = windowContent.scrollHeight + 'px'; // Change the height back to normal
+      windowContent.addEventListener('transitionend', function handler() { // Add an event listener to cleanup once the minimize transition is complete
+        windowContent.style.height = ''; // Changes the height back to default
+        button.disabled = false; // Enables the button
+        button.style.textDecoration = ''; // Resets the text decoration to default
+        windowContent.removeEventListener('transitionend', handler); // Removes the event listener
+      });
+
+      button.textContent = '▼'; // Swap button icon
+      button.dataset['buttonStatus'] = 'expanded'; // Swap button status tracker
+      button.ariaLabel = `Minimize window "${dragbarHeader1Text}"`; // Screen reader label
     }
   }
 
