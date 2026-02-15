@@ -128,12 +128,97 @@
   padding: 0 !important; /* Overrides the padding in ".bm-window button" */
 }
 
+/* Pin button */
+.bm-button-pin {
+  vertical-align: middle;
+}
+
+/* Pin button image*/
+.bm-button-pin svg {
+  width: 50%;
+  margin: 0 auto;
+  fill: #111;
+}
+
+/* Tile (x, y) & Pixel (x, y) input fields */
+input[type="number"].bm-input-coords {
+  appearance: auto;
+  -moz-appearance: textfield;
+  width: 5.5ch;
+  margin-left: 1ch;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0 0.5ch;
+  font-size: small;
+}
+
+/* Removes scroll bar on tile & pixel input fields */
+input[type="number"].bm-input-coords::-webkit-outer-spin-button,
+input[type="number"].bm-input-coords::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* The template file upload button */
+div:has(> .bm-input-file) > button {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Force complete invisibility of file input to prevent native browser text */
+.bm-input-file,
+input[type="file"] {
+  display: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  z-index: -9999 !important;
+  pointer-events: none !important;
+}
+
 /* Window content container */
 .bm-window-content {
   overflow: hidden;
   transition: height 300ms cubic-bezier(.4, 0, .2, 1);
 }
 
+/* Text areas */
+.bm-window textarea {
+  font-size: small;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0 0.5ch;
+  height: 5.25em;
+  width: 100%;
+}
+
+/* Small elements */
+.bm-window small {
+  font-size: x-small;
+  color: lightgray;
+}
+
+/* Flex children space between */
+.bm-flex-between {
+  display: flex;
+  align-content: center;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5ch;
+}
+
+/* Flex children space center */
+.bm-flex-center {
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5ch;
+}
 
 
 

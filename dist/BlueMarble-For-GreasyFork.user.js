@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.123
+// @version         0.88.133
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -1728,7 +1728,108 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
         }
         button.textContent = button.textContent == "\u25BC" ? "\u25B6" : "\u25BC";
       };
-    }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().buildElement().buildOverlay(document.body);
+    }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addP({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
+      { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>' },
+      (instance, button) => {
+        button.onclick = () => {
+          const coords2 = instance.apiManager?.coordsTilePixel;
+          if (!coords2?.[0]) {
+            instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
+            return;
+          }
+          instance.updateInnerHTML("bm-input-tx", coords2?.[0] || "");
+          instance.updateInnerHTML("bm-input-ty", coords2?.[1] || "");
+          instance.updateInnerHTML("bm-input-px", coords2?.[2] || "");
+          instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
+        };
+      }
+    ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      input.addEventListener("paste", (event) => {
+        let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter((n) => n).map(Number).filter((n) => !isNaN(n));
+        if (splitText.length !== 4) {
+          return;
+        }
+        let coords2 = selectAllCoordinateInputs(document);
+        for (let i = 0; i < coords2.length; i++) {
+          coords2[i].value = splitText[i];
+        }
+        event.preventDefault();
+      });
+      const handler = () => persistCoords();
+      input.addEventListener("input", handler);
+      input.addEventListener("change", handler);
+    }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "class": "bm-input-coords", "placeholder": "Tl Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      const handler = () => persistCoords();
+      input.addEventListener("input", handler);
+      input.addEventListener("change", handler);
+    }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "class": "bm-input-coords", "placeholder": "Px X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      const handler = () => persistCoords();
+      input.addEventListener("input", handler);
+      input.addEventListener("change", handler);
+    }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "class": "bm-input-coords", "placeholder": "Px Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      const handler = () => persistCoords();
+      input.addEventListener("input", handler);
+      input.addEventListener("change", handler);
+    }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addInputFile({ "class": "bm-input-file", "textContent": "Upload Template", "accept": "image/png, image/jpeg, image/webp, image/bmp, image/gif" }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between" }).addButton({ "textContent": "Enable" }, (instance, button) => {
+      button.onclick = () => {
+        instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
+        instance.handleDisplayStatus(`Enabled templates!`);
+      };
+    }).buildElement().addButton({ "textContent": "Create" }, (instance, button) => {
+      button.onclick = () => {
+        const input = document.querySelector("#bm-window-main button.bm-input-file");
+        const coordTlX = document.querySelector("#bm-input-tx");
+        if (!coordTlX.checkValidity()) {
+          coordTlX.reportValidity();
+          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
+          return;
+        }
+        const coordTlY = document.querySelector("#bm-input-ty");
+        if (!coordTlY.checkValidity()) {
+          coordTlY.reportValidity();
+          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
+          return;
+        }
+        const coordPxX = document.querySelector("#bm-input-px");
+        if (!coordPxX.checkValidity()) {
+          coordPxX.reportValidity();
+          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
+          return;
+        }
+        const coordPxY = document.querySelector("#bm-input-py");
+        if (!coordPxY.checkValidity()) {
+          coordPxY.reportValidity();
+          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
+          return;
+        }
+        if (!input?.files[0]) {
+          instance.handleDisplayError(`No file selected!`);
+          return;
+        }
+        templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ""), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
+        instance.handleDisplayStatus(`Drew to canvas!`);
+      };
+    }).buildElement().addButton({ "textContent": "Disable" }, (instance, button) => {
+      button.onclick = () => {
+        instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
+        instance.handleDisplayStatus(`Disabled templates!`);
+      };
+    }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addTextarea({ "id": overlayMain.outputStatusId, "placeholder": `Status: Sleeping...
+Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0;" }).addDiv({ "class": "bm-flex-between" }).addButton(
+      { "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" },
+      (instance, button) => {
+        button.addEventListener("click", () => {
+          window.open("https://pepoafonso.github.io/color_converter_wplace/", "_blank", "noopener noreferrer");
+        });
+      }
+    ).buildElement().addButton(
+      { "class": "bm-button-circle", "innerHTML": "\u{1F310}", "title": "Official Blue Marble Website" },
+      (instance, button) => {
+        button.addEventListener("click", () => {
+          window.open("https://bluemarble.lol/", "_blank", "noopener noreferrer");
+        });
+      }
+    ).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
   }
   function buildTelemetryOverlay(overlay) {
     overlay.addDiv({ "id": "bm-overlay-telemetry", style: "top: 0px; left: 0px; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; z-index: 9999;" }).addDiv({ "id": "bm-contain-all-telemetry", style: "display: flex; flex-direction: column; align-items: center;" }).addDiv({ "id": "bm-contain-header-telemetry", style: "margin-top: 10%;" }).addHeader(1, { "textContent": `${name} Telemetry` }).buildElement().buildElement().addDiv({ "id": "bm-contain-telemetry", style: "max-width: 50%; overflow-y: auto; max-height: 80vh;" }).addHr().buildElement().addBr().buildElement().addDiv({ "style": "width: fit-content; margin: auto; text-align: center;" }).addButton({ "id": "bm-button-telemetry-more", "textContent": "More Information" }, (instance, button) => {

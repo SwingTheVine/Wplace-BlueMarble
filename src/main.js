@@ -314,7 +314,121 @@ function buildOverlayMain() {
         .addImg({'class': 'bm-favicon', 'src': 'https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png'}).buildElement()
         .addHeader(1, {'textContent': name}).buildElement()
       .buildElement()
-      .addHr()
+      .addHr().buildElement()
+      .addDiv({'class': 'bm-container'})
+        .addP({'id': 'bm-user-droplets', 'textContent': 'Droplets:'}).buildElement()
+        .addP({'id': 'bm-user-nextlevel', 'textContent': 'Next level in...'}).buildElement()
+      .buildElement()
+      .addHr().buildElement()
+      .addDiv({'class': 'bm-container'})
+        .addDiv({'class': 'bm-container'})
+          .addButton({'class': 'bm-button-circle bm-button-pin', 'style': 'margin-top: 0;', 'innerHTML': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>'},
+            (instance, button) => {
+              button.onclick = () => {
+                const coords = instance.apiManager?.coordsTilePixel; // Retrieves the coords from the API manager
+                if (!coords?.[0]) {
+                  instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?');
+                  return;
+                }
+                instance.updateInnerHTML('bm-input-tx', coords?.[0] || '');
+                instance.updateInnerHTML('bm-input-ty', coords?.[1] || '');
+                instance.updateInnerHTML('bm-input-px', coords?.[2] || '');
+                instance.updateInnerHTML('bm-input-py', coords?.[3] || '');
+              }
+            }
+          ).buildElement()
+          .addInput({'type': 'number', 'id': 'bm-input-tx', 'class': 'bm-input-coords', 'placeholder': 'Tl X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            //if a paste happens on tx, split and format it into other coordinates if possible
+            input.addEventListener("paste", (event) => {
+              let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter(n => n).map(Number).filter(n => !isNaN(n)); //split and filter all Non Numbers
+              if (splitText.length !== 4 ) { // If we don't have 4 clean coordinates, end the function.
+                return;
+              }
+              let coords = selectAllCoordinateInputs(document); 
+              for (let i = 0; i < coords.length; i++) { 
+                coords[i].value = splitText[i]; //add the split vales
+              }
+              event.preventDefault(); //prevent the pasting of the original paste that would overide the split value
+            })
+            const handler = () => persistCoords();
+            input.addEventListener('input', handler);
+            input.addEventListener('change', handler);
+          }).buildElement()
+          .addInput({'type': 'number', 'id': 'bm-input-ty', 'class': 'bm-input-coords', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            const handler = () => persistCoords();
+            input.addEventListener('input', handler);
+            input.addEventListener('change', handler);
+          }).buildElement()
+          .addInput({'type': 'number', 'id': 'bm-input-px', 'class': 'bm-input-coords', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            const handler = () => persistCoords();
+            input.addEventListener('input', handler);
+            input.addEventListener('change', handler);
+          }).buildElement()
+          .addInput({'type': 'number', 'id': 'bm-input-py', 'class': 'bm-input-coords', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            const handler = () => persistCoords();
+            input.addEventListener('input', handler);
+            input.addEventListener('change', handler);
+          }).buildElement()
+        .buildElement()
+        .addDiv({'class': 'bm-container'})
+          .addInputFile({'class': 'bm-input-file', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
+        .buildElement()
+        .addDiv({'class': 'bm-container bm-flex-between'})
+          .addButton({'textContent': 'Enable'}, (instance, button) => {
+            button.onclick = () => {
+              instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
+              instance.handleDisplayStatus(`Enabled templates!`);
+            }
+          }).buildElement()
+          .addButton({'textContent': 'Create'}, (instance, button) => {
+            button.onclick = () => {
+              const input = document.querySelector('#bm-window-main button.bm-input-file');
+
+              const coordTlX = document.querySelector('#bm-input-tx');
+              if (!coordTlX.checkValidity()) {coordTlX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+              const coordTlY = document.querySelector('#bm-input-ty');
+              if (!coordTlY.checkValidity()) {coordTlY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+              const coordPxX = document.querySelector('#bm-input-px');
+              if (!coordPxX.checkValidity()) {coordPxX.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+              const coordPxY = document.querySelector('#bm-input-py');
+              if (!coordPxY.checkValidity()) {coordPxY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
+
+              // Kills itself if there is no file
+              if (!input?.files[0]) {instance.handleDisplayError(`No file selected!`); return;}
+
+              templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ''), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
+              instance.handleDisplayStatus(`Drew to canvas!`);
+            }
+          }).buildElement()
+          .addButton({'textContent': 'Disable'}, (instance, button) => {
+            button.onclick = () => {
+              instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
+              instance.handleDisplayStatus(`Disabled templates!`);
+            }
+          }).buildElement()
+        .buildElement()
+        .addDiv({'class': 'bm-container'})
+          .addTextarea({'id': overlayMain.outputStatusId, 'placeholder': `Status: Sleeping...\nVersion: ${version}`, 'readOnly': true}).buildElement()
+        .buildElement()
+        .addDiv({'class': 'bm-container bm-flex-between', 'style': 'margin-bottom: 0;'})
+          .addDiv({'class': 'bm-flex-between'})
+            // .addButton({'class': 'bm-button-circle', 'innerHTML': '🖌'}).buildElement()
+            .addButton({'class': 'bm-button-circle', 'innerHTML': '🎨', 'title': 'Template Color Converter'}, 
+              (instance, button) => {
+              button.addEventListener('click', () => {
+                window.open('https://pepoafonso.github.io/color_converter_wplace/', '_blank', 'noopener noreferrer');
+              });
+            }).buildElement()
+            .addButton({'class': 'bm-button-circle', 'innerHTML': '🌐', 'title': 'Official Blue Marble Website'}, 
+              (instance, button) => {
+              button.addEventListener('click', () => {
+                window.open('https://bluemarble.lol/', '_blank', 'noopener noreferrer');
+              });
+            }).buildElement()
+          .buildElement()
+          .addSmall({'textContent': 'Made by SwingTheVine', 'style': 'margin-top: auto;'}).buildElement()
+        .buildElement()
+      .buildElement()
     .buildElement()
   .buildElement().buildOverlay(document.body);
 
