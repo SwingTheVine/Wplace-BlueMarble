@@ -74,6 +74,7 @@ export default class TemplateManager {
     this.templatesArray = []; // All Template instnaces currently loaded (Template)
     this.templatesJSON = null; // All templates currently loaded (JSON)
     this.templatesShouldBeDrawn = true; // Should ALL templates be drawn to the canvas?
+    this.templatePixelsCorrect = null; // An object where the keys are the tile coords, and the values are Maps (BM palette color IDs) containing the amount of correctly placed pixels for that tile in this template
   }
 
   /** Creates the JSON object to store templates in
@@ -268,15 +269,46 @@ export default class TemplateManager {
     context.clip();
 
     context.clearRect(0, 0, drawSize, drawSize); // Draws transparent background
-    context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
+    context.drawImage(tileBitmap, 0, 0, drawSize, drawSize); // Draw tile to canvas
 
+    const tileBeforeTemplates = context.getImageData(0, 0, drawSize, drawSize);
+    const tileBeforeTemplates32 = new Uint32Array(tileBeforeTemplates.data.buffer);
+    
     // For each template in this tile, draw them.
     for (const template of templatesToDraw) {
       console.log(`Template:`);
       console.log(template);
 
-      // Draws the each template on the tile based on it's relative position
-      context.drawImage(template.bitmap, Number(template.pixelCoords[0]) * this.drawMult, Number(template.pixelCoords[1]) * this.drawMult);
+      // Draws each template on the tile based on it's relative position
+      const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
+      const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
+      context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
+
+      const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
+      const templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+
+      // Filter template colors before drawing to canvas
+      // const filteredTemplate = this.#filterTemplateWithPaletteBlacklist(templateBeforeFilter, this.paletteBM);
+
+      // Take the pre-filter template ImageData + the pre-filter tile ImageData, and use that to calculate the correct pixels
+      const timer = Date.now();
+      const pixelsCorrect = this.#calculateCorrectPixelsOnTile(
+        tileBeforeTemplates32,
+        templateBeforeFilter32,
+        [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]
+      );
+
+      let pixelsCorrectTotal = 0;
+      const transparentColorID = 0;
+
+      for (const [color, total] of pixelsCorrect) {
+
+        if (color == transparentColorID) {continue;} // Skip Transparent color
+
+        pixelsCorrectTotal += total;
+      }
+
+      console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
     }
 
     return await canvas.convertToBlob({ type: 'image/png' });
@@ -378,5 +410,83 @@ export default class TemplateManager {
    */
   setTemplatesShouldBeDrawn(value) {
     this.templatesShouldBeDrawn = value;
+  }
+
+  /** Calculates the correct pixels on this tile.
+   * @param {Uint32Array} tile32 - The tile without templates as a Uint32Array
+   * @param {Uint32Array} template32 - The template without filtering as a Uint32Array
+   * @param {Array<Number, Number, Number, Number>} templateInformation - Information about template location and size
+   * @returns {Map} - A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
+   */
+  #calculateCorrectPixelsOnTile(tile32, template32, templateInformation) {
+
+    // Size of a pixel in actuality
+    const pixelSize = this.drawMult;
+
+    // Tile information
+    const tileWidth = this.tileSize * pixelSize;
+    const tileHeight = tileWidth;
+    const tilePixelOffsetY = -1; // Shift off of target template pixel to target on tile. E.g. "-1" would be the pixel above the template pixel on the tile
+    const tilePixelOffsetX = 0; // Shift off of target template pixel to target on tile. E.g. "-1" would be the pixel to the left of the template pixel on the tile
+
+    // Template information
+    const templateCoordX = templateInformation[0];
+    const templateCoordY = templateInformation[1];
+    const templateWidth = templateInformation[2];
+    const templateHeight = templateInformation[3];
+    const tolerance = this.paletteTolerance;
+
+    //console.log(`TemplateX: ${templateCoordX}\nTemplateY: ${templateCoordY}\nStarting Row:${templateCoordY+tilePixelOffsetY}\nStarting Column:${templateCoordX+tilePixelOffsetX}`);
+
+    const { palette: _, LUT: lookupTable } = this.paletteBM; // Obtains the palette and LUT
+
+    // Makes a copy of the color palette Blue Marble uses, turns it into a Map, and adds data to count the amount of each color
+    const _colorpalette = new Map(); // Temp color palette
+
+    // For each center pixel...
+    for (let templateRow = 1; templateRow < templateHeight; templateRow += pixelSize) {
+      for (let templateColumn = 1; templateColumn < templateWidth; templateColumn += pixelSize) {
+
+        // The pixel on the tile to target (1 pixel above the template)
+        const tileRow = (templateCoordY + templateRow) + tilePixelOffsetY; // (Template offset + current row) - 1
+        const tileColumn = (templateCoordX + templateColumn) + tilePixelOffsetX; // Template offset + current column
+        
+        // Retrieves the targeted pixels
+        const tilePixelAbove = tile32[(tileRow * tileWidth) + tileColumn];
+        const templatePixel = template32[(templateRow * templateWidth) + templateColumn];
+
+        // Obtains the alpha channel of the targeted pixels
+        const templatePixelAlpha = (templatePixel >>> 24) & 0xFF;
+        const tilePixelAlpha = (tilePixelAbove >>> 24) & 0xFF;
+
+        // if (templatePixelAlpha > tolerance) {
+        //   console.log(`Opaque tile pixel found: (${tileColumn}, ${tileRow})`);
+        // }
+
+        // If either pixel is transparent...
+        if ((templatePixelAlpha <= tolerance) || (tilePixelAlpha <= tolerance)) {
+          continue; // ...we skip it. We can't match the RGB color of transparent pixels.
+        }
+
+        //console.log(`Opaque template & opaque tile pixel found: (${templateColumn}, ${tileRow-tilePixelOffsetY})`);
+
+        // Finds the best matching color ID for each pixel. If none is found, default to "-2"
+        const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
+        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
+
+        // If the template pixel does not match the tile pixel, then the pixel is skipped.
+        if (bestTileColorID != bestTemplateColorID) {continue;}
+        // If the code passes this point, the template pixel matches the tile pixel.
+
+        // Increments the count by 1 for the best matching color ID (which can be negative).
+        // If the color ID has not been counted yet, default to 1
+        const colorIDcount = _colorpalette.get(bestTemplateColorID);
+        _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
+      }
+    }
+
+    console.log(`List of template pixels that match the tile:`);
+    console.log(_colorpalette);
+    return _colorpalette;
   }
 }

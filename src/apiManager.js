@@ -124,7 +124,9 @@ export default class ApiManager {
           const blobUUID = data['blobID'];
           const blobData = data['blobData'];
           
+          const timer = Date.now();
           const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
+          console.log(`Finished loading the tile in ${(Date.now() - timer) / 1000} seconds!`);
 
           window.postMessage({
             source: 'blue-marble',
