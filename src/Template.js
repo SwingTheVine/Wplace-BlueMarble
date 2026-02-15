@@ -15,7 +15,8 @@ export default class Template {
    * @param {string} [params.url=''] - The URL to the source image
    * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
    * @param {Array<number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
-   * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk
+   * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
+   * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
    * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
    * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
    * @since 0.65.2
@@ -28,6 +29,7 @@ export default class Template {
     file = null,
     coords = null,
     chunked = null,
+    chunked32 = {},
     tileSize = 1000,
   } = {}) {
     this.displayName = displayName;
@@ -37,6 +39,7 @@ export default class Template {
     this.file = file;
     this.coords = coords;
     this.chunked = chunked;
+    this.chunked32 = chunked32;
     this.tileSize = tileSize;
     this.pixelCount = { total: 0, colors: new Map }; // Total pixel count in template
   }
@@ -176,6 +179,8 @@ export default class Template {
           (pixelY % 1000).toString().padStart(3, '0')
         }`;
 
+        this.chunked32[templateTileName] = new Uint32Array(context.getImageData(0, 0, canvasWidth, canvasHeight)); // Creates the Uint32Array
+
         templateTiles[templateTileName] = await createImageBitmap(canvas); // Creates the bitmap
         
         const canvasBlob = await canvas.convertToBlob();
@@ -194,6 +199,7 @@ export default class Template {
     console.log(`Parsing template took ${(Date.now() - timer) / 1000.0} seconds`);
     console.log('Template Tiles: ', templateTiles);
     console.log('Template Tiles Buffers: ', templateTilesBuffers);
+    console.log('Template Tiles Uint32Array: ', this.chunked32);
     return { templateTiles, templateTilesBuffers };
   }
 
