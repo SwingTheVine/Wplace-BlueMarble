@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.95
+// @version         0.88.122
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -167,6 +167,52 @@
       const properties = {};
       const small = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "small", properties, additionalProperties);
       callback(this, small);
+      return this;
+    }
+    /** Adds a `details` to the overlay.
+     * This `details` element will have properties shared between all `details` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `details` that are NOT shared between all overlay `details` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLParagraphElement):void} [callback=()=>{}] - Additional JS modification to the `details`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.96
+     * @example
+     * // Assume all <details> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addDetails({'id': 'foo'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <details id="foo" class="bar"></details>
+     * </body>
+     */
+    addDetails(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const details = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "details", properties, additionalProperties);
+      callback(this, details);
+      return this;
+    }
+    /** Adds a `summary` to the overlay.
+     * This `summary` element will have properties shared between all `summary` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `summary` that are NOT shared between all overlay `summary` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLParagraphElement):void} [callback=()=>{}] - Additional JS modification to the `summary`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.96
+     * @example
+     * // Assume all <summary> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addSummary({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <summary id="foo" class="bar">Foobar.</summary>
+     * </body>
+     */
+    addSummary(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const summary = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "summary", properties, additionalProperties);
+      callback(this, summary);
       return this;
     }
     /** Adds a `img` to the overlay.
@@ -619,10 +665,10 @@
       this.currentParent = element;
     }
     for (const [property, value] of Object.entries(properties)) {
-      element[property] = value;
+      element[property != "class" ? property : "className"] = value;
     }
     for (const [property, value] of Object.entries(additionalProperties)) {
-      element[property] = value;
+      element[property != "class" ? property : "className"] = value;
     }
     return element;
   };
@@ -1112,6 +1158,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         const matchingTileBlobs = matchingTiles.map((tile) => {
           const coords2 = tile.split(",");
           return {
+            instance: template,
             bitmap: template.chunked[tile],
             chunked32: template.chunked32?.[tile],
             tileCoords: [coords2[0], coords2[1]],
@@ -1154,11 +1201,10 @@ Version: ${this.version}`);
       for (const template of templatesToDraw) {
         console.log(`Template:`);
         console.log(template);
+        let templateBeforeFilter32 = template.chunked32;
         const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
         const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
         context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
-        let templateBeforeFilter32 = template.chunked32;
-        console.log("TemplateBeforeFilter32: ", templateBeforeFilter32);
         if (!templateBeforeFilter32) {
           const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
           templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
@@ -1175,6 +1221,7 @@ Version: ${this.version}`);
         }
         console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
 There are ${pixelsCorrectTotal} correct pixels.`);
+        template.instance.pixelCount["correct"] = pixelsCorrect;
       }
       return await canvas.convertToBlob({ type: "image/png" });
     }
@@ -1645,225 +1692,37 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     observer.observe(document.body, { childList: true, subtree: true });
   }
   function buildOverlayMain() {
-    let isMinimized = false;
-    overlayMain.addDiv({ "id": "bm-overlay", "style": "top: 10px; right: 75px;" }).addDiv({ "id": "bm-contain-header" }).addDiv({ "id": "bm-bar-drag" }).buildElement().addImg(
-      { "alt": "Blue Marble Icon - Click to minimize/maximize", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png", "style": "cursor: pointer;" },
-      (instance, img) => {
-        img.addEventListener("click", () => {
-          isMinimized = !isMinimized;
-          const overlay = document.querySelector("#bm-overlay");
-          const header = document.querySelector("#bm-contain-header");
-          const dragBar = document.querySelector("#bm-bar-drag");
-          const coordsContainer = document.querySelector("#bm-contain-coords");
-          const coordsButton = document.querySelector("#bm-button-coords");
-          const createButton = document.querySelector("#bm-button-create");
-          const enableButton = document.querySelector("#bm-button-enable");
-          const disableButton = document.querySelector("#bm-button-disable");
-          const coordInputs = document.querySelectorAll("#bm-contain-coords input");
-          if (!isMinimized) {
-            overlay.style.width = "auto";
-            overlay.style.maxWidth = "300px";
-            overlay.style.minWidth = "200px";
-            overlay.style.padding = "10px";
-          }
-          const elementsToToggle = [
-            "#bm-overlay h1",
-            // Main title "Blue Marble"
-            "#bm-contain-userinfo",
-            // User information section (username, droplets, level)
-            "#bm-overlay hr",
-            // Visual separator lines
-            "#bm-contain-automation > *:not(#bm-contain-coords)",
-            // Automation section excluding coordinates
-            "#bm-input-file-template",
-            // Template file upload interface
-            "#bm-contain-buttons-action",
-            // Action buttons container
-            `#${instance.outputStatusId}`
-            // Status log textarea for user feedback
-          ];
-          elementsToToggle.forEach((selector) => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach((element) => {
-              element.style.display = isMinimized ? "none" : "";
-            });
+    overlayMain.addDiv({ "class": "bm-window", "style": "top: 10px; right: 75px;" }).addDiv({ "class": "bm-dragbar" }).addDiv().addButton({ "class": "bm-button-circle", "textContent": "\u25BC" }, (instance, button) => {
+      button.onclick = () => {
+        const window2 = button.closest(".bm-window");
+        const dragbar = button.closest(".bm-dragbar");
+        const header = window2.querySelector("h1");
+        const windowContent = window2.querySelector(".bm-window-content");
+        if (button.textContent == "\u25BC") {
+          const dragbarHeader1 = header.cloneNode(true);
+          button.parentNode.appendChild(dragbarHeader1);
+          windowContent.style.height = windowContent.scrollHeight + "px";
+          window2.style.width = window2.scrollWidth + "px";
+          windowContent.style.height = "0";
+          windowContent.addEventListener("transitionend", function handler() {
+            windowContent.style.display = "none";
+            windowContent.removeEventListener("transitionend", handler);
           });
-          if (isMinimized) {
-            if (coordsContainer) {
-              coordsContainer.style.display = "none";
-            }
-            if (coordsButton) {
-              coordsButton.style.display = "none";
-            }
-            if (createButton) {
-              createButton.style.display = "none";
-            }
-            if (enableButton) {
-              enableButton.style.display = "none";
-            }
-            if (disableButton) {
-              disableButton.style.display = "none";
-            }
-            coordInputs.forEach((input) => {
-              input.style.display = "none";
-            });
-            overlay.style.width = "60px";
-            overlay.style.height = "76px";
-            overlay.style.maxWidth = "60px";
-            overlay.style.minWidth = "60px";
-            overlay.style.padding = "8px";
-            img.style.marginLeft = "3px";
-            header.style.textAlign = "center";
-            header.style.margin = "0";
-            header.style.marginBottom = "0";
-            if (dragBar) {
-              dragBar.style.display = "";
-              dragBar.style.marginBottom = "0.25em";
-            }
-          } else {
-            if (coordsContainer) {
-              coordsContainer.style.display = "";
-              coordsContainer.style.flexDirection = "";
-              coordsContainer.style.justifyContent = "";
-              coordsContainer.style.alignItems = "";
-              coordsContainer.style.gap = "";
-              coordsContainer.style.textAlign = "";
-              coordsContainer.style.margin = "";
-            }
-            if (coordsButton) {
-              coordsButton.style.display = "";
-            }
-            if (createButton) {
-              createButton.style.display = "";
-              createButton.style.marginTop = "";
-            }
-            if (enableButton) {
-              enableButton.style.display = "";
-              enableButton.style.marginTop = "";
-            }
-            if (disableButton) {
-              disableButton.style.display = "";
-              disableButton.style.marginTop = "";
-            }
-            coordInputs.forEach((input) => {
-              input.style.display = "";
-            });
-            img.style.marginLeft = "";
-            overlay.style.padding = "10px";
-            header.style.textAlign = "";
-            header.style.margin = "";
-            header.style.marginBottom = "";
-            if (dragBar) {
-              dragBar.style.marginBottom = "0.5em";
-            }
-            overlay.style.width = "";
-            overlay.style.height = "";
-          }
-          img.alt = isMinimized ? "Blue Marble Icon - Minimized (Click to maximize)" : "Blue Marble Icon - Maximized (Click to minimize)";
-        });
-      }
-    ).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "id": "bm-contain-userinfo" }).addP({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addP({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().buildElement().addHr().buildElement().addDiv({ "id": "bm-contain-automation" }).addDiv({ "id": "bm-contain-coords" }).addButton(
-      { "id": "bm-button-coords", "className": "bm-help", "style": "margin-top: 0;", "innerHTML": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>' },
-      (instance, button) => {
-        button.onclick = () => {
-          const coords2 = instance.apiManager?.coordsTilePixel;
-          if (!coords2?.[0]) {
-            instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
-            return;
-          }
-          instance.updateInnerHTML("bm-input-tx", coords2?.[0] || "");
-          instance.updateInnerHTML("bm-input-ty", coords2?.[1] || "");
-          instance.updateInnerHTML("bm-input-px", coords2?.[2] || "");
-          instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
-        };
-      }
-    ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      input.addEventListener("paste", (event) => {
-        let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter((n) => n).map(Number).filter((n) => !isNaN(n));
-        if (splitText.length !== 4) {
-          return;
+        } else {
+          const dragbarHeader1 = dragbar.querySelector("h1");
+          dragbarHeader1.remove();
+          windowContent.style.display = "";
+          windowContent.style.height = "0";
+          window2.style.width = "";
+          windowContent.style.height = windowContent.scrollHeight + "px";
+          windowContent.addEventListener("transitionend", function handler() {
+            windowContent.style.height = "";
+            windowContent.removeEventListener("transitionend", handler);
+          });
         }
-        let coords2 = selectAllCoordinateInputs(document);
-        for (let i = 0; i < coords2.length; i++) {
-          coords2[i].value = splitText[i];
-        }
-        event.preventDefault();
-      });
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "placeholder": "Tl Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "placeholder": "Px X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "placeholder": "Px Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      const handler = () => persistCoords();
-      input.addEventListener("input", handler);
-      input.addEventListener("change", handler);
-    }).buildElement().buildElement().addInputFile({ "id": "bm-input-file-template", "textContent": "Upload Template", "accept": "image/png, image/jpeg, image/webp, image/bmp, image/gif" }).buildElement().addDiv({ "id": "bm-contain-buttons-template" }).addButton({ "id": "bm-button-enable", "textContent": "Enable" }, (instance, button) => {
-      button.onclick = () => {
-        instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(true);
-        instance.handleDisplayStatus(`Enabled templates!`);
+        button.textContent = button.textContent == "\u25BC" ? "\u25B6" : "\u25BC";
       };
-    }).buildElement().addButton({ "id": "bm-button-create", "textContent": "Create" }, (instance, button) => {
-      button.onclick = () => {
-        const input = document.querySelector("#bm-input-file-template");
-        const coordTlX = document.querySelector("#bm-input-tx");
-        if (!coordTlX.checkValidity()) {
-          coordTlX.reportValidity();
-          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
-          return;
-        }
-        const coordTlY = document.querySelector("#bm-input-ty");
-        if (!coordTlY.checkValidity()) {
-          coordTlY.reportValidity();
-          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
-          return;
-        }
-        const coordPxX = document.querySelector("#bm-input-px");
-        if (!coordPxX.checkValidity()) {
-          coordPxX.reportValidity();
-          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
-          return;
-        }
-        const coordPxY = document.querySelector("#bm-input-py");
-        if (!coordPxY.checkValidity()) {
-          coordPxY.reportValidity();
-          instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
-          return;
-        }
-        if (!input?.files[0]) {
-          instance.handleDisplayError(`No file selected!`);
-          return;
-        }
-        templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ""), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
-        instance.handleDisplayStatus(`Drew to canvas!`);
-      };
-    }).buildElement().addButton({ "id": "bm-button-disable", "textContent": "Disable" }, (instance, button) => {
-      button.onclick = () => {
-        instance.apiManager?.templateManager?.setTemplatesShouldBeDrawn(false);
-        instance.handleDisplayStatus(`Disabled templates!`);
-      };
-    }).buildElement().buildElement().addTextarea({ "id": overlayMain.outputStatusId, "placeholder": `Status: Sleeping...
-Version: ${version}`, "readOnly": true }).buildElement().addDiv({ "id": "bm-contain-buttons-action" }).addDiv().addButton(
-      { "id": "bm-button-convert", "className": "bm-help", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" },
-      (instance, button) => {
-        button.addEventListener("click", () => {
-          window.open("https://pepoafonso.github.io/color_converter_wplace/", "_blank", "noopener noreferrer");
-        });
-      }
-    ).buildElement().addButton(
-      { "id": "bm-button-website", "className": "bm-help", "innerHTML": "\u{1F310}", "title": "Official Blue Marble Website" },
-      (instance, button) => {
-        button.addEventListener("click", () => {
-          window.open("https://bluemarble.lol/", "_blank", "noopener noreferrer");
-        });
-      }
-    ).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildOverlay(document.body);
+    }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().buildElement().buildOverlay(document.body);
   }
   function buildTelemetryOverlay(overlay) {
     overlay.addDiv({ "id": "bm-overlay-telemetry", style: "top: 0px; left: 0px; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; z-index: 9999;" }).addDiv({ "id": "bm-contain-all-telemetry", style: "display: flex; flex-direction: column; align-items: center;" }).addDiv({ "id": "bm-contain-header-telemetry", style: "margin-top: 10%;" }).addHeader(1, { "textContent": `${name} Telemetry` }).buildElement().buildElement().addDiv({ "id": "bm-contain-telemetry", style: "max-width: 50%; overflow-y: auto; max-height: 80vh;" }).addHr().buildElement().addBr().buildElement().addDiv({ "style": "width: fit-content; margin: auto; text-align: center;" }).addButton({ "id": "bm-button-telemetry-more", "textContent": "More Information" }, (instance, button) => {

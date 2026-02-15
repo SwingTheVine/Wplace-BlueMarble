@@ -1,5 +1,149 @@
 /* @since 0.5.1 */
 
+
+/* The Blue Marble window(s) */
+.bm-window {
+  position: fixed;
+  background-color: rgba(21, 48, 99, 0.9);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  z-index: 9000;
+  transition: all 0.3s ease, transform 0s;
+  max-width: 300px;
+  width: auto;
+  /* Font stack is as follows:
+   * Highest Priority (Roboto Mono)
+   * Windows fallback (Courier New)
+   * macOS fallback (Monaco)
+   * Linux fallback (DejaVu Sans Mono)
+   * Any possible monospace font (monospace)
+   * Last resort (Arial) */
+  font-family: 'Roboto Mono', 'Courier New', 'Monaco', 'DejaVu Sans Mono', monospace, 'Arial';
+  letter-spacing: 0.05em;
+}
+
+/* The drag bar */
+.bm-dragbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 0.5ch;
+  /* For background circles, width & height should be odd, cx & cy should be half of width & height, and r should be less than or equal to cx & cy */
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="5" height="5"><circle cx="3" cy="3" r="1.5" fill="CornflowerBlue" /></svg>') repeat;
+  cursor: grab;
+  width: 100%;
+  height: fit-content;
+}
+
+/* When a window is being dragged */
+.bm-dragbar.bm-dragging {
+  cursor: grabbing;
+}
+
+/* Disable interactions during drag for better performance */
+.bm-window:has(.bm-dragbar.bm-dragging) {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Keep drag bar interactive when dragging */
+.bm-dragbar.bm-dragging {
+  pointer-events: auto;
+}
+
+/* The Blue Marble Favicon */
+.bm-favicon {
+  display: inline-block;
+  height: 2.5em;
+  margin-right: 1ch;
+  vertical-align: middle;
+}
+
+
+/* Header 1 */
+.bm-window h1 {
+  display: inline-block;
+  font-size: x-large;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+/* Header 1 when inside dragbar */
+.bm-dragbar h1 {
+  font-size: 1.2em;
+  margin-left: 0.5ch;
+  user-select: none;
+  text-shadow:
+    3px  0px rgba(21, 48, 99, 0.5),
+   -3px  0px rgba(21, 48, 99, 0.5),
+    0px  3px rgba(21, 48, 99, 0.5),
+    0px -3px rgba(21, 48, 99, 0.5),
+    3px  3px rgba(21, 48, 99, 0.5),
+   -3px  3px rgba(21, 48, 99, 0.5),
+    3px -3px rgba(21, 48, 99, 0.5),
+   -3px -3px rgba(21, 48, 99, 0.5);
+}
+
+/* Containers for "sections" of elements */
+.bm-container {
+  margin: 0.5em 0;
+}
+
+/* All window buttons */
+.bm-window button {
+  background-color: #144eb9;
+  border-radius: 1em;
+  padding: 0 0.75ch;
+}
+
+/* All window buttons when hovered/focused */
+.bm-window button:hover, .bm-window button:focus-visible {
+  background-color: #1061e5;
+}
+
+/* All window buttons when pressed (plus disabled color) */
+.bm-window button:active
+.bm-window button:disabled {
+  background-color: #2e97ff;
+}
+
+/* All window buttons when disabled */
+.bm-window button:disabled, .bm-window button:disabled {
+  text-decoration: line-through;
+}
+
+/* Icon buttons (single character text content buttons) */
+.bm-button-circle {
+  border: white 1px solid;
+  height: 1.5em;
+  width: 1.5em;
+  margin-top: 2px;
+  text-align: center;
+  line-height: 1em;
+  padding: 0 !important; /* Overrides the padding in ".bm-window button" */
+}
+
+/* Window content container */
+.bm-window-content {
+  overflow: hidden;
+  transition: height 300ms cubic-bezier(.4, 0, .2, 1);
+}
+
+
+
+
+
+
+
+
+
+
+
 /* The entire overlay */
 #bm-overlay, #bm-overlay-telemetry {
   position: fixed;
