@@ -470,7 +470,10 @@ function buildWindowFilter() {
         button.ontouchend = () => instance.handleMinimization(button);
       }).buildElement()
       .addDiv().buildElement() // Contains the minimized h1 element
-      .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Color Filter"'}).buildElement()
+      .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Color Filter"'}, (instance, button) => {
+        button.onclick = () => {document.querySelector('#bm-window-filter')?.remove();}
+        button.ontouchend = () => {document.querySelector('#bm-window-filter')?.remove();}
+      }).buildElement()
     .buildElement()
     .addDiv({'class': 'bm-window-content'})
       .addHeader(1, {'textContent': 'Color Filter'}).buildElement()

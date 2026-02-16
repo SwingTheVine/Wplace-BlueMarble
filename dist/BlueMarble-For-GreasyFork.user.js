@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.160
+// @version         0.88.163
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -551,6 +551,9 @@
      * @since 0.88.142
     */
     handleMinimization(button) {
+      if (button.disabled) {
+        return;
+      }
       button.disabled = true;
       button.style.textDecoration = "none";
       const window2 = button.closest(".bm-window");
@@ -1928,7 +1931,14 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
     overlayFilter.addDiv({ "id": "bm-window-filter", "class": "bm-window", "style": "top: 10px; left: 75px;" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
       button.onclick = () => instance.handleMinimization(button);
       button.ontouchend = () => instance.handleMinimization(button);
-    }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u{1F7AA}", "aria-label": 'Close window "Color Filter"' }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().buildElement().buildOverlay(document.body);
+    }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u{1F7AA}", "aria-label": 'Close window "Color Filter"' }, (instance, button) => {
+      button.onclick = () => {
+        document.querySelector("#bm-window-filter")?.remove();
+      };
+      button.ontouchend = () => {
+        document.querySelector("#bm-window-filter")?.remove();
+      };
+    }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().buildElement().buildOverlay(document.body);
     overlayFilter.handleDrag("#bm-window-filter.bm-window", "#bm-window-filter .bm-dragbar");
   }
 })();

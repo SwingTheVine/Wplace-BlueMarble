@@ -661,6 +661,8 @@ export default class Overlay {
   */
   handleMinimization(button) {
 
+    if (button.disabled) {return;} // Don't minimize if the window is currently minimizing
+
     button.disabled = true; // Disables the button until the transition ends
     button.style.textDecoration = 'none'; // Disables the disabled button text decoration strikethrough line
 
