@@ -19,10 +19,9 @@
   letter-spacing: 0.05em;
 }
 .bm-dragbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  flex-wrap: nowrap;
-  justify-content: space-between;
   gap: 0.5ch;
   background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="5" height="5"><circle cx="3" cy="3" r="1.5" fill="CornflowerBlue" /></svg>') repeat;
   cursor: grab;
@@ -56,8 +55,10 @@
 }
 .bm-dragbar h1 {
   font-size: 1.2em;
-  margin-left: 0.5ch;
   user-select: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   text-shadow:
     3px 0px rgba(21, 48, 99, 0.5),
     -3px 0px rgba(21, 48, 99, 0.5),
@@ -67,6 +68,9 @@
     -3px 3px rgba(21, 48, 99, 0.5),
     3px -3px rgba(21, 48, 99, 0.5),
     -3px -3px rgba(21, 48, 99, 0.5);
+}
+.bm-dragbar div:has(h1) {
+  display: contents;
 }
 .bm-container {
   margin: 0.5em 0;
