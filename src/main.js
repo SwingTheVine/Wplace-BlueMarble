@@ -218,7 +218,6 @@ if ((userSettings?.telemetry == undefined) || (userSettings?.telemetry > 1)) { /
 }
 
 buildOverlayMain(); // Builds the main overlay
-overlayMain.handleDrag('#bm-window-main.bm-window', '#bm-window-main .bm-dragbar'); // Creates dragging capability on the drag bar for dragging the overlay
 
 apiManager.spontaneousResponseListener(overlayMain); // Reads spontaneous fetch responces
 
@@ -274,10 +273,11 @@ function observeBlack() {
 function buildOverlayMain() {
 
   overlayMain.addDiv({'id': 'bm-window-main', 'class': 'bm-window', 'style': 'top: 10px; right: 75px;'})
-    .addDiv({'class': 'bm-dragbar'})
+    .addDragbar()
       .addDiv()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);
+          button.ontouchend = () => instance.handleMinimization(button);
         }).buildElement()
       .buildElement()
     .buildElement()
@@ -397,6 +397,9 @@ function buildOverlayMain() {
       .buildElement()
     .buildElement()
   .buildElement().buildOverlay(document.body);
+
+  // Creates dragging capability on the drag bar for dragging the window
+  overlayMain.handleDrag('#bm-window-main.bm-window', '#bm-window-main .bm-dragbar');
 }
 
 function buildTelemetryOverlay(overlay) {
