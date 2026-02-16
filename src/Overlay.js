@@ -600,6 +600,34 @@ export default class Overlay {
     return this;
   }
 
+  /** Adds a dragbar `div` element to the overlay.
+   * This dragbar element will have properties shared between all dragbar elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the dragbar that are NOT shared between all overlay dragbars. These should be camelCase.
+   * @param {function(Overlay, HTMLTextAreaElement):void} [callback=()=>{}] - Additional JS modification to the dragbar.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.145
+   * @example
+   * // Assume all dragbar elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addDragbar({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <div id="foo" class="bar">Foobar.</div>
+   * </body>
+   */
+  addDragbar(additionalProperties = {}, callback = () => {}) {
+
+    // Shared dragbar DOM properties
+    const properties = {
+      'class': 'bm-dragbar'
+    };
+
+    const dragbar = this.#createElement('div', properties, additionalProperties); // Creates the dragbar element
+    callback(this, dragbar); // Runs any script passed in through the callback
+    return this;
+  }
+
   /** Updates the inner HTML of the element.
    * The element is discovered by it's id.
    * If the element is an `input`, it will modify the value attribute instead.
@@ -692,12 +720,23 @@ export default class Overlay {
 
   /** Handles dragging of the overlay.
    * Uses requestAnimationFrame for smooth animations and GPU-accelerated transforms.
-   * Use the appropriate CSS selectors.
+   * Make sure to use the appropriate CSS selectors.
    * @param {string} moveMe - The element to be moved
    * @param {string} iMoveThings - The drag handle element
    * @since 0.8.2
   */
   handleDrag(moveMe, iMoveThings) {
+
+    // Retrieves the elements (allows either '#id' or 'id' to be passed in)
+    moveMe = document.querySelector(moveMe);
+    iMoveThings = document.querySelector(iMoveThings);
+    
+    // What to do when one of the two elements are not found
+    if (!moveMe || !iMoveThings) {
+      this.handleDisplayError(`Can not drag! ${!moveMe ? 'moveMe' : ''} ${!moveMe && !iMoveThings ? 'and ' : ''}${!iMoveThings ? 'iMoveThings ' : ''}was not found!`);
+      return; // Kills itself
+    }
+
     let isDragging = false;
     let offsetX, offsetY = 0;
     let animationFrame = null;
@@ -706,16 +745,6 @@ export default class Overlay {
     let targetX = 0;
     let targetY = 0;
     let initialRect = null; // Cache initial position to avoid expensive getBoundingClientRect calls during drag
-
-    // Retrieves the elements (allows either '#id' or 'id' to be passed in)
-    moveMe = document.querySelector(moveMe);
-    iMoveThings = document.querySelector(iMoveThings);
-
-    // What to do when one of the two elements are not found
-    if (!moveMe || !iMoveThings) {
-      this.handleDisplayError(`Can not drag! ${!moveMe ? 'moveMe' : ''} ${!moveMe && !iMoveThings ? 'and ' : ''}${!iMoveThings ? 'iMoveThings ' : ''}was not found!`);
-      return; // Kills itself
-    }
 
     // Smooth animation loop using requestAnimationFrame for optimal performance
     const updatePosition = () => {

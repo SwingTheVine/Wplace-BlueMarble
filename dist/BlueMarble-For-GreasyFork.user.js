@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.144
+// @version         0.88.148
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -498,6 +498,31 @@
       callback(this, textarea);
       return this;
     }
+    /** Adds a dragbar `div` element to the overlay.
+     * This dragbar element will have properties shared between all dragbar elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the dragbar that are NOT shared between all overlay dragbars. These should be camelCase.
+     * @param {function(Overlay, HTMLTextAreaElement):void} [callback=()=>{}] - Additional JS modification to the dragbar.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.145
+     * @example
+     * // Assume all dragbar elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addDragbar({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <div id="foo" class="bar">Foobar.</div>
+     * </body>
+     */
+    addDragbar(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {
+        "class": "bm-dragbar"
+      };
+      const dragbar = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "div", properties, additionalProperties);
+      callback(this, dragbar);
+      return this;
+    }
     /** Updates the inner HTML of the element.
      * The element is discovered by it's id.
      * If the element is an `input`, it will modify the value attribute instead.
@@ -569,12 +594,18 @@
     }
     /** Handles dragging of the overlay.
      * Uses requestAnimationFrame for smooth animations and GPU-accelerated transforms.
-     * Use the appropriate CSS selectors.
+     * Make sure to use the appropriate CSS selectors.
      * @param {string} moveMe - The element to be moved
      * @param {string} iMoveThings - The drag handle element
      * @since 0.8.2
     */
     handleDrag(moveMe, iMoveThings) {
+      moveMe = document.querySelector(moveMe);
+      iMoveThings = document.querySelector(iMoveThings);
+      if (!moveMe || !iMoveThings) {
+        this.handleDisplayError(`Can not drag! ${!moveMe ? "moveMe" : ""} ${!moveMe && !iMoveThings ? "and " : ""}${!iMoveThings ? "iMoveThings " : ""}was not found!`);
+        return;
+      }
       let isDragging = false;
       let offsetX, offsetY = 0;
       let animationFrame = null;
@@ -583,12 +614,6 @@
       let targetX = 0;
       let targetY = 0;
       let initialRect = null;
-      moveMe = document.querySelector(moveMe);
-      iMoveThings = document.querySelector(iMoveThings);
-      if (!moveMe || !iMoveThings) {
-        this.handleDisplayError(`Can not drag! ${!moveMe ? "moveMe" : ""} ${!moveMe && !iMoveThings ? "and " : ""}${!iMoveThings ? "iMoveThings " : ""}was not found!`);
-        return;
-      }
       const updatePosition = () => {
         if (isDragging) {
           const deltaX = Math.abs(currentX - targetX);
@@ -1741,7 +1766,6 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     buildTelemetryOverlay(telemetryOverlay);
   }
   buildOverlayMain();
-  overlayMain.handleDrag("#bm-window-main.bm-window", "#bm-window-main .bm-dragbar");
   apiManager.spontaneousResponseListener(overlayMain);
   observeBlack();
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
@@ -1774,8 +1798,9 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     observer.observe(document.body, { childList: true, subtree: true });
   }
   function buildOverlayMain() {
-    overlayMain.addDiv({ "id": "bm-window-main", "class": "bm-window", "style": "top: 10px; right: 75px;" }).addDiv({ "class": "bm-dragbar" }).addDiv().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
+    overlayMain.addDiv({ "id": "bm-window-main", "class": "bm-window", "style": "top: 10px; right: 75px;" }).addDragbar().addDiv().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
       button.onclick = () => instance.handleMinimization(button);
+      button.ontouchend = () => instance.handleMinimization(button);
     }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addP({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
       { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>' },
       (instance, button) => {
@@ -1866,6 +1891,7 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
         window.open("https://bluemarble.lol/", "_blank", "noopener noreferrer");
       };
     }).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
+    overlayMain.handleDrag("#bm-window-main.bm-window", "#bm-window-main .bm-dragbar");
   }
   function buildTelemetryOverlay(overlay) {
     overlay.addDiv({ "id": "bm-overlay-telemetry", style: "top: 0px; left: 0px; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; z-index: 9999;" }).addDiv({ "id": "bm-contain-all-telemetry", style: "display: flex; flex-direction: column; align-items: center;" }).addDiv({ "id": "bm-contain-header-telemetry", style: "margin-top: 10%;" }).addHeader(1, { "textContent": `${name} Telemetry` }).buildElement().buildElement().addDiv({ "id": "bm-contain-telemetry", style: "max-width: 50%; overflow-y: auto; max-height: 80vh;" }).addHr().buildElement().addBr().buildElement().addDiv({ "style": "width: fit-content; margin: auto; text-align: center;" }).addButton({ "id": "bm-button-telemetry-more", "textContent": "More Information" }, (instance, button) => {
