@@ -217,7 +217,7 @@ if ((userSettings?.telemetry == undefined) || (userSettings?.telemetry > 1)) { /
   buildTelemetryOverlay(telemetryOverlay); // Notifies the user about telemetry
 }
 
-buildOverlayMain(); // Builds the main overlay
+buildWindowMain(); // Builds the main Blue Marble window
 
 apiManager.spontaneousResponseListener(overlayMain); // Reads spontaneous fetch responces
 
@@ -264,14 +264,13 @@ function observeBlack() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-/** Deploys the overlay to the page with minimize/maximize functionality.
- * Creates a responsive overlay UI that can toggle between full-featured and minimized states.
- * 
+/** Creates the main Blue Marble window.
  * Parent/child relationships in the DOM structure below are indicated by indentation.
  * @since 0.58.3
  */
-function buildOverlayMain() {
+function buildWindowMain() {
 
+  // Creates the window
   overlayMain.addDiv({'id': 'bm-window-main', 'class': 'bm-window', 'style': 'top: 10px; right: 75px;'})
     .addDragbar()
       .addDiv()
