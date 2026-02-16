@@ -6,7 +6,7 @@ import Overlay from './Overlay.js';
 import Observers from './observers.js';
 import ApiManager from './apiManager.js';
 import TemplateManager from './templateManager.js';
-import { consoleLog, consoleWarn } from './utils.js';
+import { calculateRelativeLuminance, consoleLog, consoleWarn } from './utils.js';
 
 const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
@@ -292,7 +292,7 @@ function buildWindowMain() {
       .addHr().buildElement()
       .addDiv({'class': 'bm-container'})
         .addDiv({'class': 'bm-container'})
-          .addButton({'class': 'bm-button-circle bm-button-pin', 'style': 'margin-top: 0;', 'innerHTML': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>'},
+          .addButton({'class': 'bm-button-circle bm-button-pin', 'style': 'margin-top: 0;', 'innerHTML': '<svg viewBox="0 0 4 6"><path d="M.5,3.4A2,2 0 1 1 3.5,3.4L2,6"/><circle cx="2" cy="2" r=".7" fill="#fff"/></svg>'},
             (instance, button) => {
               button.onclick = () => {
                 const coords = instance.apiManager?.coordsTilePixel; // Retrieves the coords from the API manager
@@ -509,9 +509,24 @@ function buildWindowFilter() {
   const colorList = new Overlay(name, version);
   colorList.addDiv({'id': 'bm-filter-container-colors', 'class': 'bm-container'})
 
-  // For each color in the palette, construct the DOM tree
+  // For each color in the palette...
   for (const color of palette) {
-    colorList.addDiv({'class': 'bm-container'})
+
+    // Relative Luminance
+    const lumin = calculateRelativeLuminance(color.rgb);
+
+    // Calculates if white or black text would contrast better with the palette color
+    const textColorForPaletteColorBackground = 
+    (((1.05) / (lumin + 0.05)) > ((lumin + 0.05) / 0.05)) 
+    ? 'white' : 'black';
+
+    // <svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>
+
+    // Construct the DOM tree
+    colorList.addDiv({'class': 'bm-container flex-space-between'})
+      .addDiv({'class': '' + textColorForPaletteColorBackground, 'style': `border: thick double white`})
+        .addButton({'class': 'bm-button-trans', 'innerHTML': `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>`}).buildElement()
+      .buildElement()
       .addP({'textContent': `Color ID: ${color.id?.toString()?.padStart(2, '0')}, Name: ${color.name}`}).buildElement()
     .buildElement()
   }
