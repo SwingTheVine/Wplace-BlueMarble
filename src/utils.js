@@ -127,6 +127,23 @@ export function base64ToUint8(base64) {
   return array;
 }
 
+/** Calcualtes the relative luminance of an RGB value
+ * @param {Array<Number, Number, Number>} array - The RGB values as an array
+ * @returns {Number} The relative luminance as a Number
+ * @since 0.88.180
+ */
+export function calculateRelativeLuminance(array) {
+
+  // Convert the 0-255 range to 0-1
+  const srgb = array.map(channel => {
+    channel /= 255;
+    return (channel <= 0.03928) ? (channel / 12.92) : Math.pow((channel + 0.055) / 1.055, 2.4);
+  });
+
+  // https://en.wikipedia.org/wiki/Relative_luminance#Relative_luminance_and_%22gamma_encoded%22_colorspaces
+  return (0.2126 * srgb[0]) + (0.7152 * srgb[1]) + (0.0722 * srgb[2]);
+}
+
 /** Returns the coordinate input fields
  * @returns {Element[]} The 4 coordinate Inputs
  * @since 0.74.0
