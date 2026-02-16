@@ -271,7 +271,7 @@ function observeBlack() {
 function buildWindowMain() {
 
   // Creates the window
-  overlayMain.addDiv({'id': 'bm-window-main', 'class': 'bm-window', 'style': 'top: 10px; right: 75px;'})
+  overlayMain.addDiv({'id': 'bm-window-main', 'class': 'bm-window', 'style': 'top: 10px; left: unset; right: 75px;'})
     .addDragbar()
       .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
@@ -463,7 +463,7 @@ function buildWindowFilter() {
 
   // Creates a new color filter window
   const overlayFilter = new Overlay(name, version);
-  overlayFilter.addDiv({'id': 'bm-window-filter', 'class': 'bm-window', 'style': 'top: 10px; left: 75px;'})
+  overlayFilter.addDiv({'id': 'bm-window-filter', 'class': 'bm-window'})
     .addDragbar()
       .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Color Filter"', 'data-button-status': 'expanded'}, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
@@ -477,6 +477,9 @@ function buildWindowFilter() {
     .buildElement()
     .addDiv({'class': 'bm-window-content'})
       .addHeader(1, {'textContent': 'Color Filter'}).buildElement()
+      .addBr().buildElement()
+      .addHr().buildElement()
+      .addDiv()
     .buildElement()
   .buildElement().buildOverlay(document.body);
 

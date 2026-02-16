@@ -10,8 +10,10 @@
   border-radius: 8px;
   z-index: 9000;
   transition: all 0.3s ease, transform 0s;
-  max-width: 300px;
+  top: 75px;
+  left: 60px;
   width: auto;
+  max-width: calc(100% - 135px);
   /* Font stack is as follows:
    * Highest Priority (Roboto Mono)
    * Windows fallback (Courier New)
@@ -21,6 +23,11 @@
    * Last resort (Arial) */
   font-family: 'Roboto Mono', 'Courier New', 'Monaco', 'DejaVu Sans Mono', monospace, 'Arial';
   letter-spacing: 0.05em;
+}
+
+/* The main window */
+#bm-window-main {
+  max-width: 300px;
 }
 
 /* The drag bar */
@@ -112,7 +119,7 @@
 }
 
 /* All window buttons when pressed (plus disabled color) */
-.bm-window button:active
+.bm-window button:active,
 .bm-window button:disabled {
   background-color: #2e97ff;
 }
