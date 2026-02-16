@@ -7,8 +7,10 @@
   border-radius: 8px;
   z-index: 9000;
   transition: all 0.3s ease, transform 0s;
-  max-width: 300px;
+  top: 75px;
+  left: 60px;
   width: auto;
+  max-width: calc(100% - 135px);
   font-family:
     "Roboto Mono",
     "Courier New",
@@ -17,6 +19,9 @@
     monospace,
     "Arial";
   letter-spacing: 0.05em;
+}
+#bm-window-main {
+  max-width: 300px;
 }
 .bm-dragbar {
   display: grid;
@@ -84,7 +89,8 @@
 .bm-window button:focus-visible {
   background-color: #1061e5;
 }
-.bm-window button:active .bm-window button:disabled {
+.bm-window button:active,
+.bm-window button:disabled {
   background-color: #2e97ff;
 }
 .bm-window button:disabled,
