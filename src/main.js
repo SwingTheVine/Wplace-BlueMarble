@@ -476,15 +476,48 @@ function buildWindowFilter() {
       }).buildElement()
     .buildElement()
     .addDiv({'class': 'bm-window-content'})
-      .addHeader(1, {'textContent': 'Color Filter'}).buildElement()
-      .addBr().buildElement()
+      .addDiv({'class': 'bm-container'})
+        .addHeader(1, {'textContent': 'Color Filter'}).buildElement()
+      .buildElement()
       .addHr().buildElement()
-      .addDiv()
+      .addDiv({'class': 'bm-container bm-flex-between', 'style': 'width: fit-content;'})
+        .addButton({'textContent': 'Select All'}, (instance, button) => {
+          button.onclick = () => {
+
+          }
+        }).buildElement()
+        .addButton({'textContent': 'Unselect All'}, (instance, button) => {
+          button.onclick = () => {
+
+          }
+        }).buildElement()
+      .buildElement()
+      .addDiv().buildElement()
     .buildElement()
   .buildElement().buildOverlay(document.body);
 
   // Creates dragging capability on the drag bar for dragging the window
   overlayFilter.handleDrag('#bm-window-filter.bm-window', '#bm-window-filter .bm-dragbar');
+
+  // Obtains the window content container
+  const windowContent = document.querySelector('#bm-window-filter .bm-window-content');
+
+  // Obtains the palette Blue Marble currently uses
+  const { palette: palette, LUT: _ } = templateManager.paletteBM;
+
+  // Creates the color list container
+  const colorList = new Overlay(name, version);
+  colorList.addDiv({'id': 'bm-filter-container-colors', 'class': 'bm-container'})
+
+  // For each color in the palette, construct the DOM tree
+  for (const color of palette) {
+    colorList.addDiv({'class': 'bm-container'})
+      .addP({'textContent': `Color ID: ${color.id?.toString()?.padStart(2, '0')}, Name: ${color.name}`}).buildElement()
+    .buildElement()
+  }
+
+  // Adds the colors to the color container in the filter window
+  colorList.buildOverlay(windowContent);
 }
 
 function buildOverlayTabTemplate() {
