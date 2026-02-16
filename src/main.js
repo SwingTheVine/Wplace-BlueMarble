@@ -273,12 +273,11 @@ function buildWindowMain() {
   // Creates the window
   overlayMain.addDiv({'id': 'bm-window-main', 'class': 'bm-window', 'style': 'top: 10px; right: 75px;'})
     .addDragbar()
-      .addDiv()
-        .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
-          button.onclick = () => instance.handleMinimization(button);
-          button.ontouchend = () => instance.handleMinimization(button);
-        }).buildElement()
-      .buildElement()
+      .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
+        button.onclick = () => instance.handleMinimization(button);
+        button.ontouchend = () => instance.handleMinimization(button);
+      }).buildElement()
+      .addDiv().buildElement() // Contains the minimized h1 element
     .buildElement()
     .addDiv({'class': 'bm-window-content'})
       .addDiv({'class': 'bm-container'})
@@ -369,9 +368,7 @@ function buildWindowMain() {
             }
           }).buildElement()
           .addButton({'textContent': 'Filter'}, (instance, button) => {
-            button.onclick = () => {
-              
-            }
+            button.onclick = () => buildWindowFilter();
           }).buildElement()
         .buildElement()
         .addDiv({'class': 'bm-container'})
@@ -449,6 +446,39 @@ function buildTelemetryOverlay(overlay) {
       .buildElement()
     .buildElement()
   .buildOverlay(document.body);
+}
+
+/** Spawns a Color Filter window.
+ * If another color filter window already exists, we DON'T spawn another!
+ * Parent/child relationships in the DOM structure below are indicated by indentation.
+ * @since 0.88.149
+ */
+function buildWindowFilter() {
+
+  // If a color filter window already exists, throw an error and return early
+  if (document.querySelector('#bm-window-filter')) {
+    overlayMain.handleDisplayError('Color Filter window already exists!');
+    return;
+  }
+
+  // Creates a new color filter window
+  const overlayFilter = new Overlay(name, version);
+  overlayFilter.addDiv({'id': 'bm-window-filter', 'class': 'bm-window', 'style': 'top: 10px; left: 75px;'})
+    .addDragbar()
+      .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Color Filter"', 'data-button-status': 'expanded'}, (instance, button) => {
+        button.onclick = () => instance.handleMinimization(button);
+        button.ontouchend = () => instance.handleMinimization(button);
+      }).buildElement()
+      .addDiv().buildElement() // Contains the minimized h1 element
+      .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Color Filter"'}).buildElement()
+    .buildElement()
+    .addDiv({'class': 'bm-window-content'})
+      .addHeader(1, {'textContent': 'Color Filter'}).buildElement()
+    .buildElement()
+  .buildElement().buildOverlay(document.body);
+
+  // Creates dragging capability on the drag bar for dragging the window
+  overlayFilter.handleDrag('#bm-window-filter.bm-window', '#bm-window-filter .bm-dragbar');
 }
 
 function buildOverlayTabTemplate() {

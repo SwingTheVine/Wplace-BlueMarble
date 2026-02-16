@@ -672,12 +672,7 @@ export default class Overlay {
     // If window content is open...
     if (button.dataset['buttonStatus'] == 'expanded') {
       // ...we want to close it
-
-      // Makes a clone of the h1 element inside the window, and adds it to the dragbar
-      const dragbarHeader1 = header.cloneNode(true);
-      const dragbarHeader1Text = dragbarHeader1.textContent;
-      button.parentNode.appendChild(dragbarHeader1);
-
+      
       // Logic for the transition animation to collapse the window
       windowContent.style.height = windowContent.scrollHeight + 'px';
       window.style.width = window.scrollWidth + 'px'; // So the width of the window does not change due to the lack of content
@@ -688,7 +683,12 @@ export default class Overlay {
         button.style.textDecoration = ''; // Resets the text decoration to default
         windowContent.removeEventListener('transitionend', handler); // Removes the event listener
       });
-
+      
+      // Makes a clone of the h1 element inside the window, and adds it to the dragbar
+      const dragbarHeader1 = header.cloneNode(true);
+      const dragbarHeader1Text = dragbarHeader1.textContent;
+      button.nextElementSibling.appendChild(dragbarHeader1);
+      
       button.textContent = '▶'; // Swap button icon
       button.dataset['buttonStatus'] = 'collapsed'; // Swap button status tracker
       button.ariaLabel = `Unminimize window "${dragbarHeader1Text}"`; // Screen reader label
