@@ -114,6 +114,14 @@
   display: contents;
 }
 
+/* Header 2 */
+.bm-window h2 {
+  display: inline-block;
+  font-size: larger;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
 /* Containers for "sections" of elements */
 .bm-container {
   margin: 0.5em 0;
@@ -272,107 +280,64 @@ input[type="file"] {
   gap: 0.5ch;
 }
 
-/* Filter window table container */
-#bm-window-filter .bm-container:has(table) {
-  max-height: 60vh;
+/* Filter flex container */
+#bm-window-filter .bm-container:has(> .bm-filter-grid) {
+  max-height: calc(80vh - 150px);
   overflow: auto;
 }
 
-/* Filter window table */
-#bm-window-filter table {
-  table-layout: fixed;
-  width: 50ch;
-  border-collapse: separate;
-  border-spacing: 0 0.5em;
+/* Filter flex */
+.bm-filter-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1em 3ch;
 }
 
-/* Filter window table row */
-#bm-window-filter tr {
-  padding: 0.5em 0;
+/* Filter color */
+.bm-filter-color {
+  width: fit-content;
+  max-width: 35ch;
+  background-color: rgba(21, 48, 99, 0.9);
+  border-radius: 1em;
+  padding: 0.5em;
+  gap: 1ch;
+  transition: background-color 0.3s ease;
 }
 
-/* Filter window table cell for RGB color display */
-.bm-filter-tbl-clr {
+/* Filter color on hover */
+.bm-filter-color:hover,
+.bm-filter-color:focus-within {
+  background-color: rgba(17, 40, 85, 0.9);
+}
+
+/* Filter window container for RGB color display */
+.bm-filter-container-rgb {
   display: block;
-  border: thick double lightgray;
+  border: thick double darkslategray;
   width: fit-content;
   height: fit-content;
   padding: 1ch;
 }
 
 /* Filter window hide color button */
-.bm-filter-tbl-clr button {
+.bm-filter-container-rgb button {
   padding: 0.75em 0.5ch;
 }
 
 /* Filter window hide color button SVG */
-.bm-filter-tbl-clr svg {
+.bm-filter-container-rgb svg {
   width: 4ch;
-  isolation: isolate;
 }
 
-/* Filter window color ID */
-.bm-filter-tbl-id {
-  position: relative;
-  top: 0.75em;
-  left: 0.5ch;
+/* Filter window container for color information */
+.bm-filter-color > .bm-flex-between {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
 
-/* Filter window color premium */
-.bm-filter-tbl-prmim {
-  position: relative;
-  top: 0.75em;
-  left: -3.5ch;
-}
-
-/* Filter window color name */
-.bm-filter-tbl-name {
-  position: relative;
-  top: -0.75em;
-  left: -16ch;
-  text-wrap: nowrap;
-}
-
-/* Filter window color correct pixels */
-.bm-filter-tbl-crct {
-  display: block;
-  width: 100%;
-  position: relative;
-  right: 18ch;
-  top: 0.75em;
-  text-align: right;
-}
-
-/* Filter window color total pixels */
-.bm-filter-tbl-totl {
-  display: block;
-  width: 100%;
-  position: relative;
-  left: -16ch;
-  top: 0.75em;
-  text-align: left;
-}
-
-.bm-filter-tbl-totl::after {
-  content: "/";
-  position: absolute;
-  left: -1.5ch;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* Filter window table footer */
-#bm-window-filter tfoot {
-  display: table-header-group;
-}
-
-/* Filter window table footer header */
-#bm-window-filter tfoot th {
-  text-align: left;
-}
-
-/* Filter window table footer data */
-#bm-window-filter tfoot td {
-  text-align: right;
-  padding-left: 1ch;
+/* Filter window color flavor text */
+.bm-filter-color small {
+  font-size: 0.75em;
 }

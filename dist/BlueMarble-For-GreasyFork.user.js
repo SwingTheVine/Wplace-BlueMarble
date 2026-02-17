@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.207
+// @version         0.88.222
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -2276,18 +2276,17 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
       }
     }
     const colorList = new Overlay(name, version);
-    colorList.addDiv({ "class": "bm-container" }).addTable({ "class": "bm-container" }).addCaption().addHeader(2, { "textContent": "Pixels In Templates By Palette Color" }).buildElement().buildElement().addTfoot().addTr().addTh({ "textContent": "Total Correct", "scope": "row" }).buildElement().addTd({ "textContent": allPixelsCorrectTotal.toString() }).buildElement().buildElement().addTr().addTh({ "textContent": "Total Pixels", "scope": "row" }).buildElement().addTd({ "textContent": allPixelsTotal.toString() }).buildElement().buildElement().buildElement().addThead({ "class": "bm-screenreader" }).addTr().addTh({ "textContent": "Hide Color", "scope": "col" }).buildElement().addTh({ "textContent": "ID", "scope": "col" }).buildElement().addTh({ "textContent": "Is Premium", "scope": "col" }).buildElement().addTh({ "textContent": "Name", "scope": "col" }).buildElement().addTh({ "textContent": "Correct Pixels", "scope": "col" }).buildElement().addTh({ "textContent": "Total Pixels", "scope": "col" }).buildElement().buildElement().buildElement();
+    colorList.addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-filter-grid" });
     for (const color of palette) {
       const lumin = calculateRelativeLuminance(color.rgb);
       const textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
       const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
-      colorList.addTr().addTd().addDiv({ "class": "bm-filter-tbl-clr", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton({ "class": "bm-button-trans " + bgEffectForButtons, "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>` }).buildElement().buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-id", "textContent": `#${color.id}` }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-prmim", "textContent": color.premium ? "\u2605" : "" }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-name", "textContent": color.name }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-crct", "textContent": middleEllipsis(String(allPixelsCorrect.get(color.id) ?? "???"), 7) }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-totl", "textContent": middleEllipsis(String(allPixelsColor.get(color.id) ?? "0"), 7) }).buildElement().buildElement().buildElement();
+      let colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
+      colorCorrect = typeof colorCorrect == "string" ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
+      const colorTotal = new Intl.NumberFormat().format(allPixelsColor.get(color.id) ?? 0);
+      const colorPercent = isNaN(colorCorrect / colorTotal) ? "unknown." : new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+      colorList.addDiv({ "class": "bm-container bm-filter-color bm-flex-between" }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton({ "class": "bm-button-trans " + bgEffectForButtons, "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>` }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrect} / ${colorTotal}` }).buildElement().buildElement().addP({ "textContent": `${colorTotal - colorCorrect || "Unknown"} incorrect pixels. Color completion ${colorPercent}` }).buildElement().buildElement().buildElement();
     }
     colorList.buildOverlay(windowContent);
-    function middleEllipsis(text, maxChars) {
-      if (text.length <= maxChars) return text;
-      const half = Math.floor((maxChars - 3) / 2);
-      return text.slice(0, half) + "\u2026" + text.slice(text.length - half);
-    }
   }
 })();
