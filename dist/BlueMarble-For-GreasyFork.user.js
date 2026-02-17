@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.222
+// @version         0.88.231
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -2275,18 +2275,72 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
         allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
       }
     }
-    const colorList = new Overlay(name, version);
-    colorList.addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-filter-grid" });
-    for (const color of palette) {
-      const lumin = calculateRelativeLuminance(color.rgb);
-      const textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
-      const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
-      let colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
-      colorCorrect = typeof colorCorrect == "string" ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
-      const colorTotal = new Intl.NumberFormat().format(allPixelsColor.get(color.id) ?? 0);
-      const colorPercent = isNaN(colorCorrect / colorTotal) ? "unknown." : new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
-      colorList.addDiv({ "class": "bm-container bm-filter-color bm-flex-between" }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton({ "class": "bm-button-trans " + bgEffectForButtons, "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>` }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrect} / ${colorTotal}` }).buildElement().buildElement().addP({ "textContent": `${colorTotal - colorCorrect || "Unknown"} incorrect pixels. Color completion ${colorPercent}` }).buildElement().buildElement().buildElement();
+    buildColorList();
+    function buildColorList() {
+      const colorList = new Overlay(name, version);
+      colorList.addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-filter-flex" });
+      for (const color of palette) {
+        const lumin = calculateRelativeLuminance(color.rgb);
+        const textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
+        const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
+        let colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
+        const colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
+        const colorTotal = allPixelsColor.get(color.id) ?? 0;
+        const colorTotalLocalized = new Intl.NumberFormat().format(colorTotal);
+        const colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+        colorList.addDiv({
+          "class": "bm-container bm-filter-color bm-flex-between",
+          "data-id": color.id,
+          "data-name": color.name,
+          "data-premium": +color.premium,
+          "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
+          "data-total": colorTotal,
+          "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
+          "data-incorrect": parseInt(colorTotal) - parseInt(colorCorrect) || 0,
+          "data-unused": +!colorTotal
+          // '0' if total is non-zero, '1' if total is zero
+        }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
+          { "class": "bm-button-trans " + bgEffectForButtons, "data-state": "shown", "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>` },
+          (instance, button) => {
+            button.onclick = () => {
+              button.style.textDecoration = "none";
+              button.disabled = true;
+              if (button.dataset["state"] == "shown") {
+                button.innerHTML = `<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" fill="${textColorForPaletteColorBackground}" mask="url(#a)"/></svg>`;
+                button.dataset["state"] = "hidden";
+              } else {
+                button.innerHTML = `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`;
+                button.dataset["state"] = "shown";
+              }
+              button.disabled = false;
+              button.style.textDecoration = "";
+            };
+          }
+        ).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${parseInt(colorTotal) - parseInt(colorCorrect) || "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+      }
+      colorList.buildOverlay(windowContent);
     }
-    colorList.buildOverlay(windowContent);
+    function sortColorList(order) {
+      const colorList = overlayFilter.querySelector(".bm-filter-flex");
+      const colors = Array.from(colorList.children);
+      colors.sort((index, nextIndex) => {
+        const indexValue = index.getAttribute("data-value");
+        const nextIndexValue = nextIndex.getAttribute("data-value");
+        const indexValueNumber = parseFloat(indexValue);
+        const nextIndexValueNumber = parseFloat(nextIndexValue);
+        const indexValueNumberIsNumber = !isNaN(indexValueNumber);
+        const nextIndexValueNumberIsNumber = !isNaN(nextIndexValueNumber);
+        if (indexValueNumberIsNumber && nextIndexValueNumberIsNumber) {
+          return order === "asc" ? indexValueNumber - nextIndexValueNumber : nextIndexValueNumber - indexValueNumber;
+        } else {
+          const indexValueString = indexValue.toLowerCase();
+          const nextIndexValueString = nextIndexValue.toLowerCase();
+          if (indexValueString < nextIndexValueString) return order === "asc" ? -1 : 1;
+          if (indexValueString > nextIndexValueString) return order === "asc" ? 1 : -1;
+          return 0;
+        }
+      });
+      colors.forEach((color) => colorList.appendChild(color));
+    }
   }
 })();

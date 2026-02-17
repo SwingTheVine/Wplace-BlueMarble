@@ -281,16 +281,17 @@ input[type="file"] {
 }
 
 /* Filter flex container */
-#bm-window-filter .bm-container:has(> .bm-filter-grid) {
+#bm-window-filter .bm-container:has(> .bm-filter-flex) {
   max-height: calc(80vh - 150px);
   overflow: auto;
 }
 
 /* Filter flex */
-.bm-filter-grid {
+.bm-filter-flex {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 1em 3ch;
 }
 

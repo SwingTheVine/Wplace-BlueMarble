@@ -211,14 +211,15 @@ input[type=file] {
   align-items: center;
   gap: 0.5ch;
 }
-#bm-window-filter .bm-container:has(> .bm-filter-grid) {
+#bm-window-filter .bm-container:has(> .bm-filter-flex) {
   max-height: calc(80vh - 150px);
   overflow: auto;
 }
-.bm-filter-grid {
+.bm-filter-flex {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 1em 3ch;
 }
 .bm-filter-color {
