@@ -559,33 +559,61 @@ function buildWindowFilter() {
 
       const bgEffectForButtons = (textColorForPaletteColorBackground == 'white') ? 'bm-button-hover-white' : 'bm-button-hover-black';
 
-      // <svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>
+      // 
 
       // Turns "correct" color into a string of a number or "???" if unknown
       let colorCorrect = allPixelsCorrect.get(color.id) ?? '???';
-      colorCorrect = (typeof colorCorrect == 'string') ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
+      const colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
       
       // Turns "total" color into a string of a number; "0" if unknown
-      const colorTotal = new Intl.NumberFormat().format(allPixelsColor.get(color.id) ?? 0);
+      const colorTotal = allPixelsColor.get(color.id) ?? 0
+      const colorTotalLocalized = new Intl.NumberFormat().format(colorTotal);
       
       // Gets the percentage of completion for this color
-      const colorPercent = isNaN(colorCorrect / colorTotal) ? 'unknown.' : new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+      const colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
 
       // Construct the DOM tree
-      colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between'})
-        .addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
-          .addButton({'class': 'bm-button-trans ' + bgEffectForButtons, 'aria-label': `Hide the color ${color.name || 'color'} on templates`, 'innerHTML': `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`}).buildElement()
+      colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between',
+        'data-id': color.id,
+        'data-name': color.name,
+        'data-premium': +color.premium,
+        'data-correct': !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : '0',
+        'data-total': colorTotal,
+        'data-percent': (colorPercent.slice(-1) == '%') ? colorPercent.slice(0, -1) : '0',
+        'data-incorrect': (parseInt(colorTotal) - parseInt(colorCorrect)) || 0,
+        'data-unused': +!colorTotal // '0' if total is non-zero, '1' if total is zero
+      }).addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
+          .addButton({'class': 'bm-button-trans ' + bgEffectForButtons, 'data-state': 'shown', 'aria-label': `Hide the color ${color.name || 'color'} on templates`, 'innerHTML': `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`},
+            (instance, button) => {
+              button.onclick = () => {
+                button.style.textDecoration = 'none';
+                button.disabled = true;
+                if (button.dataset['state'] == 'shown') {
+                  button.innerHTML = `<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" fill="${textColorForPaletteColorBackground}" mask="url(#a)"/></svg>`;
+                  button.dataset['state'] = 'hidden';
+                } else {
+                  button.innerHTML = `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`;
+                  button.dataset['state'] = 'shown';
+                }
+                button.disabled = false;
+                button.style.textDecoration = '';
+              }
+            }
+          ).buildElement()
         .buildElement()
         .addDiv({'class': 'bm-flex-between'})
           .addHeader(2, {'textContent': (color.premium ? '★ ' : '') + color.name}).buildElement()
           .addDiv({'class': 'bm-flex-between', 'style': 'gap: 1.5ch;'})
             .addSmall({'textContent': `#${color.id}`}).buildElement()
-            .addSmall({'textContent': `${colorCorrect} / ${colorTotal}`}).buildElement()
+            .addSmall({'textContent': `${colorCorrectLocalized} / ${colorTotalLocalized}`}).buildElement()
           .buildElement()
-          .addP({'textContent': `${(colorTotal - colorCorrect) || 'Unknown'} incorrect pixels. Color completion ${colorPercent}`}).buildElement()
+          .addP({'textContent': `${(parseInt(colorTotal) - parseInt(colorCorrect)) || '???'} incorrect pixels. Completed: ${colorPercent}`}).buildElement()
         .buildElement()
       .buildElement()
     }
+
+    // Adds the colors to the color container in the filter window
+    colorList.buildOverlay(windowContent);
   }
 
   function sortColorList(order) {
@@ -621,9 +649,6 @@ function buildWindowFilter() {
 
     colors.forEach(color => colorList.appendChild(color));
   }
-
-  // Adds the colors to the color container in the filter window
-  colorList.buildOverlay(windowContent);
 }
 
 function buildOverlayTabTemplate() {
