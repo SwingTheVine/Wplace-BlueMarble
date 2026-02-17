@@ -89,6 +89,12 @@
 .bm-dragbar div:has(h1) {
   display: contents;
 }
+.bm-window h2 {
+  display: inline-block;
+  font-size: larger;
+  font-weight: 700;
+  vertical-align: middle;
+}
 .bm-container {
   margin: 0.5em 0;
 }
@@ -205,79 +211,47 @@ input[type=file] {
   align-items: center;
   gap: 0.5ch;
 }
-#bm-window-filter .bm-container:has(table) {
-  max-height: 60vh;
+#bm-window-filter .bm-container:has(> .bm-filter-grid) {
+  max-height: calc(80vh - 150px);
   overflow: auto;
 }
-#bm-window-filter table {
-  table-layout: fixed;
-  width: 50ch;
-  border-collapse: separate;
-  border-spacing: 0 0.5em;
+.bm-filter-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1em 3ch;
 }
-#bm-window-filter tr {
-  padding: 0.5em 0;
+.bm-filter-color {
+  width: fit-content;
+  max-width: 35ch;
+  background-color: rgba(21, 48, 99, 0.9);
+  border-radius: 1em;
+  padding: 0.5em;
+  gap: 1ch;
+  transition: background-color 0.3s ease;
 }
-.bm-filter-tbl-clr {
+.bm-filter-color:hover,
+.bm-filter-color:focus-within {
+  background-color: rgba(17, 40, 85, 0.9);
+}
+.bm-filter-container-rgb {
   display: block;
-  border: thick double lightgray;
+  border: thick double darkslategray;
   width: fit-content;
   height: fit-content;
   padding: 1ch;
 }
-.bm-filter-tbl-clr button {
+.bm-filter-container-rgb button {
   padding: 0.75em 0.5ch;
 }
-.bm-filter-tbl-clr svg {
+.bm-filter-container-rgb svg {
   width: 4ch;
-  isolation: isolate;
 }
-.bm-filter-tbl-id {
-  position: relative;
-  top: 0.75em;
-  left: 0.5ch;
+.bm-filter-color > .bm-flex-between {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
-.bm-filter-tbl-prmim {
-  position: relative;
-  top: 0.75em;
-  left: -3.5ch;
-}
-.bm-filter-tbl-name {
-  position: relative;
-  top: -0.75em;
-  left: -16ch;
-  text-wrap: nowrap;
-}
-.bm-filter-tbl-crct {
-  display: block;
-  width: 100%;
-  position: relative;
-  right: 18ch;
-  top: 0.75em;
-  text-align: right;
-}
-.bm-filter-tbl-totl {
-  display: block;
-  width: 100%;
-  position: relative;
-  left: -16ch;
-  top: 0.75em;
-  text-align: left;
-}
-.bm-filter-tbl-totl::after {
-  content: "/";
-  position: absolute;
-  left: -1.5ch;
-  top: 50%;
-  transform: translateY(-50%);
-}
-#bm-window-filter tfoot {
-  display: table-header-group;
-}
-#bm-window-filter tfoot th {
-  text-align: left;
-}
-#bm-window-filter tfoot td {
-  text-align: right;
-  padding-left: 1ch;
+.bm-filter-color small {
+  font-size: 0.75em;
 }

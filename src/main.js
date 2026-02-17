@@ -536,90 +536,94 @@ function buildWindowFilter() {
     }
   }
 
+  buildColorList();
+
   // Creates the color list container
-  const colorList = new Overlay(name, version);
-  colorList.addDiv({'class': 'bm-container'})
-    .addTable({'class': 'bm-container'})
-      .addCaption()
-        .addHeader(2, {'textContent': 'Pixels In Templates By Palette Color'}).buildElement()
-      .buildElement()
-      .addTfoot()
-        .addTr()
-          .addTh({'textContent': 'Total Correct', 'scope': 'row'}).buildElement()
-          .addTd({'textContent': allPixelsCorrectTotal.toString()}).buildElement()
-        .buildElement()
-        .addTr()
-          .addTh({'textContent': 'Total Pixels', 'scope': 'row'}).buildElement()
-          .addTd({'textContent': allPixelsTotal.toString()}).buildElement()
-        .buildElement()
-      .buildElement()
-      .addThead({'class': 'bm-screenreader'})
-        .addTr()
-          .addTh({'textContent': 'Hide Color', 'scope': 'col'}).buildElement()
-          .addTh({'textContent': 'ID', 'scope': 'col'}).buildElement()
-          .addTh({'textContent': 'Is Premium', 'scope': 'col'}).buildElement()
-          .addTh({'textContent': 'Name', 'scope': 'col'}).buildElement()
-          .addTh({'textContent': 'Correct Pixels', 'scope': 'col'}).buildElement()
-          .addTh({'textContent': 'Total Pixels', 'scope': 'col'}).buildElement()
-        .buildElement()
-      .buildElement()
-    // Notice that there is no buildElement() for the table here?
-    // We leave the table open so we can continue to add children.
+  function buildColorList() {
 
-  // For each color in the palette...
-  for (const color of palette) {
+    const colorList = new Overlay(name, version);
+    colorList.addDiv({'class': 'bm-container'})
+      .addDiv({'class': 'bm-filter-flex'})
+    // We leave it open so we can add children to the grid
 
-    // Relative Luminance
-    const lumin = calculateRelativeLuminance(color.rgb);
+    // For each color in the palette...
+    for (const color of palette) {
 
-    // Calculates if white or black text would contrast better with the palette color
-    const textColorForPaletteColorBackground = 
-    (((1.05) / (lumin + 0.05)) > ((lumin + 0.05) / 0.05)) 
-    ? 'white' : 'black';
+      // Relative Luminance
+      const lumin = calculateRelativeLuminance(color.rgb);
 
-    const bgEffectForButtons = (textColorForPaletteColorBackground == 'white') ? 'bm-button-hover-white' : 'bm-button-hover-black';
+      // Calculates if white or black text would contrast better with the palette color
+      const textColorForPaletteColorBackground = 
+      (((1.05) / (lumin + 0.05)) > ((lumin + 0.05) / 0.05)) 
+      ? 'white' : 'black';
 
-    // <svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>
+      const bgEffectForButtons = (textColorForPaletteColorBackground == 'white') ? 'bm-button-hover-white' : 'bm-button-hover-black';
 
+      // <svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>
 
-    // Construct the DOM tree
-    colorList.addTr()
-      .addTd()
-        .addDiv({'class': 'bm-filter-tbl-clr', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
+      // Turns "correct" color into a string of a number or "???" if unknown
+      let colorCorrect = allPixelsCorrect.get(color.id) ?? '???';
+      colorCorrect = (typeof colorCorrect == 'string') ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
+      
+      // Turns "total" color into a string of a number; "0" if unknown
+      const colorTotal = new Intl.NumberFormat().format(allPixelsColor.get(color.id) ?? 0);
+      
+      // Gets the percentage of completion for this color
+      const colorPercent = isNaN(colorCorrect / colorTotal) ? 'unknown.' : new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+
+      // Construct the DOM tree
+      colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between'})
+        .addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
           .addButton({'class': 'bm-button-trans ' + bgEffectForButtons, 'aria-label': `Hide the color ${color.name || 'color'} on templates`, 'innerHTML': `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`}).buildElement()
         .buildElement()
+        .addDiv({'class': 'bm-flex-between'})
+          .addHeader(2, {'textContent': (color.premium ? '★ ' : '') + color.name}).buildElement()
+          .addDiv({'class': 'bm-flex-between', 'style': 'gap: 1.5ch;'})
+            .addSmall({'textContent': `#${color.id}`}).buildElement()
+            .addSmall({'textContent': `${colorCorrect} / ${colorTotal}`}).buildElement()
+          .buildElement()
+          .addP({'textContent': `${(colorTotal - colorCorrect) || 'Unknown'} incorrect pixels. Color completion ${colorPercent}`}).buildElement()
+        .buildElement()
       .buildElement()
-      .addTd()
-        .addSpan({'class': 'bm-filter-tbl-id', 'textContent': `#${color.id}`}).buildElement()
-      .buildElement()
-      .addTd()
-        .addSpan({'class': 'bm-filter-tbl-prmim', 'textContent': color.premium ? '★' : ''}).buildElement()
-      .buildElement()
-      .addTd()
-        .addSpan({'class': 'bm-filter-tbl-name', 'textContent': color.name}).buildElement()
-      .buildElement()
-      .addTd()
-        .addSpan({'class': 'bm-filter-tbl-crct', 'textContent': middleEllipsis(String(allPixelsCorrect.get(color.id) ?? '0'), 7)}).buildElement()
-      .buildElement()
-      .addTd()
-        .addSpan({'class': 'bm-filter-tbl-totl', 'textContent': middleEllipsis(String(allPixelsColor.get(color.id) ?? '0'), 7)}).buildElement()
-      .buildElement()
-    .buildElement()
+    }
+  }
+
+  function sortColorList(order) {
+    // "order" can be either 'asc' or 'desc'
+
+    const colorList = overlayFilter.querySelector('.bm-filter-flex');
+
+    const colors = Array.from(colorList.children);
+
+    colors.sort((index, nextIndex) => {
+      const indexValue = index.getAttribute('data-value');
+      const nextIndexValue = nextIndex.getAttribute('data-value');
+
+      const indexValueNumber = parseFloat(indexValue);
+      const nextIndexValueNumber = parseFloat(nextIndexValue);
+
+      const indexValueNumberIsNumber = !isNaN(indexValueNumber);
+      const nextIndexValueNumberIsNumber = !isNaN(nextIndexValueNumber);
+
+      // If both index values are numbers...
+      if (indexValueNumberIsNumber && nextIndexValueNumberIsNumber) {
+        // Perform numeric comparison
+        return order === 'asc' ? indexValueNumber - nextIndexValueNumber : nextIndexValueNumber - indexValueNumber;
+      } else {
+        // Otherwise, perform string comparison
+        const indexValueString = indexValue.toLowerCase();
+        const nextIndexValueString = nextIndexValue.toLowerCase();
+        if (indexValueString < nextIndexValueString) return order === 'asc' ? -1 : 1;
+        if (indexValueString > nextIndexValueString) return order === 'asc' ? 1 : -1;
+        return 0;
+      }
+    });
+
+    colors.forEach(color => colorList.appendChild(color));
   }
 
   // Adds the colors to the color container in the filter window
   colorList.buildOverlay(windowContent);
-
-  // Overflow ellipse but the ellipse is in the middle, not end of the string
-  function middleEllipsis(text, maxChars) {
-    if (text.length <= maxChars) return text;
-    const half = Math.floor((maxChars - 3) / 2);
-    return (
-      text.slice(0, half) +
-      "…" +
-      text.slice(text.length - half)
-    );
-  }
 }
 
 function buildOverlayTabTemplate() {
