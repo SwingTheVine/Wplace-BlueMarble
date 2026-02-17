@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.179
+// @version         0.88.207
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -150,7 +150,7 @@
      * This `small` element will have properties shared between all `small` elements in the overlay.
      * You can override the shared properties by using a callback.
      * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `small` that are NOT shared between all overlay `small` elements. These should be camelCase.
-     * @param {function(Overlay, HTMLParagraphElement):void} [callback=()=>{}] - Additional JS modification to the `small`.
+     * @param {function(Overlay, HTMLElement):void} [callback=()=>{}] - Additional JS modification to the `small`.
      * @returns {Overlay} Overlay class instance (this)
      * @since 0.55.8
      * @example
@@ -169,11 +169,34 @@
       callback(this, small);
       return this;
     }
+    /** Adds a `span` to the overlay.
+     * This `span` element will have properties shared between all `span` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `span` that are NOT shared between all overlay `span` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLSpanElement):void} [callback=()=>{}] - Additional JS modification to the `span`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.55.8
+     * @example
+     * // Assume all <span> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addSpan({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <span id="foo" class="bar">Foobar.</span>
+     * </body>
+     */
+    addSpan(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const span = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "span", properties, additionalProperties);
+      callback(this, span);
+      return this;
+    }
     /** Adds a `details` to the overlay.
      * This `details` element will have properties shared between all `details` elements in the overlay.
      * You can override the shared properties by using a callback.
      * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `details` that are NOT shared between all overlay `details` elements. These should be camelCase.
-     * @param {function(Overlay, HTMLParagraphElement):void} [callback=()=>{}] - Additional JS modification to the `details`.
+     * @param {function(Overlay, HTMLDetailsElement):void} [callback=()=>{}] - Additional JS modification to the `details`.
      * @returns {Overlay} Overlay class instance (this)
      * @since 0.88.96
      * @example
@@ -196,7 +219,7 @@
      * This `summary` element will have properties shared between all `summary` elements in the overlay.
      * You can override the shared properties by using a callback.
      * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `summary` that are NOT shared between all overlay `summary` elements. These should be camelCase.
-     * @param {function(Overlay, HTMLParagraphElement):void} [callback=()=>{}] - Additional JS modification to the `summary`.
+     * @param {function(Overlay, HTMLElement):void} [callback=()=>{}] - Additional JS modification to the `summary`.
      * @returns {Overlay} Overlay class instance (this)
      * @since 0.88.96
      * @example
@@ -336,6 +359,282 @@
       label.insertBefore(checkbox, label.firstChild);
       this.buildElement();
       callback(this, label, checkbox);
+      return this;
+    }
+    /** Adds an ordered list to the overlay.
+     * This `ol` element will have properties shared between all `ol` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `ol` that are NOT shared between all overlay `ol` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLOListElement):void} [callback=()=>{}] - Additional JS modification to the `ol`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <ol> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addOl({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <ol id="foo" class="bar">Foobar.</ol>
+     * </body>
+     */
+    addOl(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const ol = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "ol", properties, additionalProperties);
+      callback(this, ol);
+      return this;
+    }
+    /** Adds an unordered list to the overlay.
+     * This `ul` element will have properties shared between all `ul` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `ul` that are NOT shared between all overlay `ul` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLUListElement):void} [callback=()=>{}] - Additional JS modification to the `ul`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <ul> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addUl({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <ul id="foo" class="bar">Foobar.</ul>
+     * </body>
+     */
+    addUl(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const ul = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "ul", properties, additionalProperties);
+      callback(this, ul);
+      return this;
+    }
+    /** Adds a `menu` to the overlay.
+     * This `menu` element will have properties shared between all `menu` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `menu` that are NOT shared between all overlay `menu` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLMenuElement):void} [callback=()=>{}] - Additional JS modification to the `menu`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <menu> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addMenu({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <menu id="foo" class="bar">Foobar.</menu>
+     * </body>
+     */
+    addMenu(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const menu = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "menu", properties, additionalProperties);
+      callback(this, menu);
+      return this;
+    }
+    /** Adds a list item to the overlay.
+     * This `li` element will have properties shared between all `li` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `li` that are NOT shared between all overlay `li` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLLIElement):void} [callback=()=>{}] - Additional JS modification to the `li`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <li> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addLi({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <li id="foo" class="bar">Foobar.</li>
+     * </body>
+     */
+    addLi(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const li = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "li", properties, additionalProperties);
+      callback(this, li);
+      return this;
+    }
+    /** Adds a table to the overlay.
+     * This `table` element will have properties shared between all `table` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `table` that are NOT shared between all overlay `table` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableElement):void} [callback=()=>{}] - Additional JS modification to the `table`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <table> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addTable({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <table id="foo" class="bar">Foobar.</table>
+     * </body>
+     */
+    addTable(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const table = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "table", properties, additionalProperties);
+      callback(this, table);
+      return this;
+    }
+    /** Adds a table caption to the overlay.
+     * This `caption` element will have properties shared between all `caption` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `caption` that are NOT shared between all overlay `caption` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableCaptionElement):void} [callback=()=>{}] - Additional JS modification to the `caption`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <caption> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addCaption({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <caption id="foo" class="bar">Foobar.</caption>
+     * </body>
+     */
+    addCaption(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const caption = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "caption", properties, additionalProperties);
+      callback(this, caption);
+      return this;
+    }
+    /** Adds a table header to the overlay.
+     * This `thead` element will have properties shared between all `thead` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `thead` that are NOT shared between all overlay `thead` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableSectionElement):void} [callback=()=>{}] - Additional JS modification to the `thead`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <thead> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addThead({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <thead id="foo" class="bar">Foobar.</thead>
+     * </body>
+     */
+    addThead(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const thead = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "thead", properties, additionalProperties);
+      callback(this, thead);
+      return this;
+    }
+    /** Adds a table body to the overlay.
+     * This `tbody` element will have properties shared between all `tbody` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `tbody` that are NOT shared between all overlay `tbody` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableSectionElement):void} [callback=()=>{}] - Additional JS modification to the `tbody`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <tbody> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addTbody({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <tbody id="foo" class="bar">Foobar.</tbody>
+     * </body>
+     */
+    addTbody(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const tbody = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "tbody", properties, additionalProperties);
+      callback(this, tbody);
+      return this;
+    }
+    /** Adds a table footer to the overlay.
+     * This `tfoot` element will have properties shared between all `tfoot` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `tfoot` that are NOT shared between all overlay `tfoot` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableSectionElement):void} [callback=()=>{}] - Additional JS modification to the `tfoot`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <tfoot> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addTfoot({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <tfoot id="foo" class="bar">Foobar.</tfoot>
+     * </body>
+     */
+    addTfoot(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const tfoot = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "tfoot", properties, additionalProperties);
+      callback(this, tfoot);
+      return this;
+    }
+    /** Adds a table row to the overlay.
+     * This `tr` element will have properties shared between all `tr` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `tr` that are NOT shared between all overlay `tr` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableRowElement):void} [callback=()=>{}] - Additional JS modification to the `tr`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <tr> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addTr({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <tr id="foo" class="bar">Foobar.</tr>
+     * </body>
+     */
+    addTr(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const tr = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "tr", properties, additionalProperties);
+      callback(this, tr);
+      return this;
+    }
+    /** Adds a table header (label) cell to the overlay.
+     * This `th` element will have properties shared between all `th` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `th` that are NOT shared between all overlay `th` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableCellElement):void} [callback=()=>{}] - Additional JS modification to the `th`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <th> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addTh({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <th id="foo" class="bar">Foobar.</th>
+     * </body>
+     */
+    addTh(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const th = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "th", properties, additionalProperties);
+      callback(this, th);
+      return this;
+    }
+    /** Adds a table data cell to the overlay.
+     * This `td` element will have properties shared between all `td` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `td` that are NOT shared between all overlay `td` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLTableCellElement):void} [callback=()=>{}] - Additional JS modification to the `td`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.180
+     * @example
+     * // Assume all <td> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addTd({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <td id="foo" class="bar">Foobar.</td>
+     * </body>
+     */
+    addTd(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const td = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "td", properties, additionalProperties);
+      callback(this, td);
       return this;
     }
     /** Adds a `button` to the overlay.
@@ -502,7 +801,7 @@
      * This dragbar element will have properties shared between all dragbar elements in the overlay.
      * You can override the shared properties by using a callback.
      * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the dragbar that are NOT shared between all overlay dragbars. These should be camelCase.
-     * @param {function(Overlay, HTMLTextAreaElement):void} [callback=()=>{}] - Additional JS modification to the dragbar.
+     * @param {function(Overlay, HTMLDivElement):void} [callback=()=>{}] - Additional JS modification to the dragbar.
      * @returns {Overlay} Overlay class instance (this)
      * @since 0.88.145
      * @example
@@ -871,6 +1170,13 @@
       array[i] = binary.charCodeAt(i);
     }
     return array;
+  }
+  function calculateRelativeLuminance(array) {
+    const srgb = array.map((channel) => {
+      channel /= 255;
+      return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
   }
   function colorpaletteForBlueMarble(tolerance) {
     const colorpaletteBM = colorpalette;
@@ -1805,7 +2111,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       button.onclick = () => instance.handleMinimization(button);
       button.ontouchend = () => instance.handleMinimization(button);
     }).buildElement().addDiv().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addP({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
-      { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 6"><circle cx="2" cy="2" r="2"></circle><path d="M2 6 L3.7 3 L0.3 3 Z"></path><circle cx="2" cy="2" r="0.7" fill="white"></circle></svg></svg>' },
+      { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg viewBox="0 0 4 6"><path d="M.5,3.4A2,2 0 1 1 3.5,3.4L2,6"/><circle cx="2" cy="2" r=".7" fill="#fff"/></svg>' },
       (instance, button) => {
         button.onclick = () => {
           const coords2 = instance.apiManager?.coordsTilePixel;
@@ -1944,15 +2250,44 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
     }).buildElement().addButton({ "textContent": "Unselect All" }, (instance, button) => {
       button.onclick = () => {
       };
-    }).buildElement().buildElement().addDiv().buildElement().buildElement().buildElement().buildOverlay(document.body);
+    }).buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
     overlayFilter.handleDrag("#bm-window-filter.bm-window", "#bm-window-filter .bm-dragbar");
     const windowContent = document.querySelector("#bm-window-filter .bm-window-content");
     const { palette, LUT: _ } = templateManager.paletteBM;
+    let allPixelsTotal = 0;
+    let allPixelsCorrectTotal = 0;
+    const allPixelsCorrect = /* @__PURE__ */ new Map();
+    const allPixelsColor = /* @__PURE__ */ new Map();
+    for (const template of templateManager.templatesArray) {
+      const total = template.pixelCount?.total ?? 0;
+      const colors = template.pixelCount?.colors ?? /* @__PURE__ */ new Map();
+      const correct = template.pixelCount?.correct ?? /* @__PURE__ */ new Map();
+      allPixelsTotal += total ?? 0;
+      for (const [colorID, correctPixels] of correct) {
+        const _correctPixels = Number(correctPixels) || 0;
+        allPixelsCorrectTotal += _correctPixels;
+        const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0;
+        allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
+      }
+      for (const [colorID, colorPixels] of colors) {
+        const _colorPixels = Number(colorPixels) || 0;
+        const allPixelsColorSoFar = allPixelsColor.get(colorID) ?? 0;
+        allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
+      }
+    }
     const colorList = new Overlay(name, version);
-    colorList.addDiv({ "id": "bm-filter-container-colors", "class": "bm-container" });
+    colorList.addDiv({ "class": "bm-container" }).addTable({ "class": "bm-container" }).addCaption().addHeader(2, { "textContent": "Pixels In Templates By Palette Color" }).buildElement().buildElement().addTfoot().addTr().addTh({ "textContent": "Total Correct", "scope": "row" }).buildElement().addTd({ "textContent": allPixelsCorrectTotal.toString() }).buildElement().buildElement().addTr().addTh({ "textContent": "Total Pixels", "scope": "row" }).buildElement().addTd({ "textContent": allPixelsTotal.toString() }).buildElement().buildElement().buildElement().addThead({ "class": "bm-screenreader" }).addTr().addTh({ "textContent": "Hide Color", "scope": "col" }).buildElement().addTh({ "textContent": "ID", "scope": "col" }).buildElement().addTh({ "textContent": "Is Premium", "scope": "col" }).buildElement().addTh({ "textContent": "Name", "scope": "col" }).buildElement().addTh({ "textContent": "Correct Pixels", "scope": "col" }).buildElement().addTh({ "textContent": "Total Pixels", "scope": "col" }).buildElement().buildElement().buildElement();
     for (const color of palette) {
-      colorList.addDiv({ "class": "bm-container" }).addP({ "textContent": `Color ID: ${color.id?.toString()?.padStart(2, "0")}, Name: ${color.name}` }).buildElement().buildElement();
+      const lumin = calculateRelativeLuminance(color.rgb);
+      const textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
+      const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
+      colorList.addTr().addTd().addDiv({ "class": "bm-filter-tbl-clr", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton({ "class": "bm-button-trans " + bgEffectForButtons, "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>` }).buildElement().buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-id", "textContent": `#${color.id}` }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-prmim", "textContent": color.premium ? "\u2605" : "" }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-name", "textContent": color.name }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-crct", "textContent": middleEllipsis(String(allPixelsCorrect.get(color.id) ?? "???"), 7) }).buildElement().buildElement().addTd().addSpan({ "class": "bm-filter-tbl-totl", "textContent": middleEllipsis(String(allPixelsColor.get(color.id) ?? "0"), 7) }).buildElement().buildElement().buildElement();
     }
     colorList.buildOverlay(windowContent);
+    function middleEllipsis(text, maxChars) {
+      if (text.length <= maxChars) return text;
+      const half = Math.floor((maxChars - 3) / 2);
+      return text.slice(0, half) + "\u2026" + text.slice(text.length - half);
+    }
   }
 })();

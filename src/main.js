@@ -492,7 +492,6 @@ function buildWindowFilter() {
           }
         }).buildElement()
       .buildElement()
-      .addDiv().buildElement()
     .buildElement()
   .buildElement().buildOverlay(document.body);
 
@@ -505,9 +504,67 @@ function buildWindowFilter() {
   // Obtains the palette Blue Marble currently uses
   const { palette: palette, LUT: _ } = templateManager.paletteBM;
 
+  // Pixel totals
+  let allPixelsTotal = 0;
+  let allPixelsCorrectTotal = 0;
+  const allPixelsCorrect = new Map();
+  const allPixelsColor = new Map();
+
+  // Sum the pixel totals across all templates.
+  // If there is no total for a template, it defaults to zero
+  for (const template of templateManager.templatesArray) {
+
+    const total = template.pixelCount?.total ?? 0;
+    const colors = template.pixelCount?.colors ?? new Map();
+    const correct = template.pixelCount?.correct ?? new Map();
+
+    allPixelsTotal += total ?? 0; // Sums the pixels placed as "total" per everything
+
+    // Sums the pixels placed as "correct" per color ID
+    for (const [colorID, correctPixels] of correct) {
+      const _correctPixels = Number(correctPixels) || 0; // Boilerplate
+      allPixelsCorrectTotal += _correctPixels; // Sums the pixels placed as "correct" per everything
+      const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0; // The total correct pixels for this color ID so far, or zero if none counted so far
+      allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
+    }
+
+    // Sums the color pixels placed as "total" per color ID
+    for (const [colorID, colorPixels] of colors) {
+      const _colorPixels = Number(colorPixels) || 0; // Boilerplate
+      const allPixelsColorSoFar = allPixelsColor.get(colorID) ?? 0; // The total color pixels for this color ID so far, or zero if none counted so far
+      allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
+    }
+  }
+
   // Creates the color list container
   const colorList = new Overlay(name, version);
-  colorList.addDiv({'id': 'bm-filter-container-colors', 'class': 'bm-container'})
+  colorList.addDiv({'class': 'bm-container'})
+    .addTable({'class': 'bm-container'})
+      .addCaption()
+        .addHeader(2, {'textContent': 'Pixels In Templates By Palette Color'}).buildElement()
+      .buildElement()
+      .addTfoot()
+        .addTr()
+          .addTh({'textContent': 'Total Correct', 'scope': 'row'}).buildElement()
+          .addTd({'textContent': allPixelsCorrectTotal.toString()}).buildElement()
+        .buildElement()
+        .addTr()
+          .addTh({'textContent': 'Total Pixels', 'scope': 'row'}).buildElement()
+          .addTd({'textContent': allPixelsTotal.toString()}).buildElement()
+        .buildElement()
+      .buildElement()
+      .addThead({'class': 'bm-screenreader'})
+        .addTr()
+          .addTh({'textContent': 'Hide Color', 'scope': 'col'}).buildElement()
+          .addTh({'textContent': 'ID', 'scope': 'col'}).buildElement()
+          .addTh({'textContent': 'Is Premium', 'scope': 'col'}).buildElement()
+          .addTh({'textContent': 'Name', 'scope': 'col'}).buildElement()
+          .addTh({'textContent': 'Correct Pixels', 'scope': 'col'}).buildElement()
+          .addTh({'textContent': 'Total Pixels', 'scope': 'col'}).buildElement()
+        .buildElement()
+      .buildElement()
+    // Notice that there is no buildElement() for the table here?
+    // We leave the table open so we can continue to add children.
 
   // For each color in the palette...
   for (const color of palette) {
@@ -520,19 +577,49 @@ function buildWindowFilter() {
     (((1.05) / (lumin + 0.05)) > ((lumin + 0.05) / 0.05)) 
     ? 'white' : 'black';
 
+    const bgEffectForButtons = (textColorForPaletteColorBackground == 'white') ? 'bm-button-hover-white' : 'bm-button-hover-black';
+
     // <svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>
 
+
     // Construct the DOM tree
-    colorList.addDiv({'class': 'bm-container flex-space-between'})
-      .addDiv({'class': '' + textColorForPaletteColorBackground, 'style': `border: thick double white`})
-        .addButton({'class': 'bm-button-trans', 'innerHTML': `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>`}).buildElement()
+    colorList.addTr()
+      .addTd()
+        .addDiv({'class': 'bm-filter-tbl-clr', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
+          .addButton({'class': 'bm-button-trans ' + bgEffectForButtons, 'aria-label': `Hide the color ${color.name || 'color'} on templates`, 'innerHTML': `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`}).buildElement()
+        .buildElement()
       .buildElement()
-      .addP({'textContent': `Color ID: ${color.id?.toString()?.padStart(2, '0')}, Name: ${color.name}`}).buildElement()
+      .addTd()
+        .addSpan({'class': 'bm-filter-tbl-id', 'textContent': `#${color.id}`}).buildElement()
+      .buildElement()
+      .addTd()
+        .addSpan({'class': 'bm-filter-tbl-prmim', 'textContent': color.premium ? '★' : ''}).buildElement()
+      .buildElement()
+      .addTd()
+        .addSpan({'class': 'bm-filter-tbl-name', 'textContent': color.name}).buildElement()
+      .buildElement()
+      .addTd()
+        .addSpan({'class': 'bm-filter-tbl-crct', 'textContent': middleEllipsis(String(allPixelsCorrect.get(color.id) ?? '0'), 7)}).buildElement()
+      .buildElement()
+      .addTd()
+        .addSpan({'class': 'bm-filter-tbl-totl', 'textContent': middleEllipsis(String(allPixelsColor.get(color.id) ?? '0'), 7)}).buildElement()
+      .buildElement()
     .buildElement()
   }
 
   // Adds the colors to the color container in the filter window
   colorList.buildOverlay(windowContent);
+
+  // Overflow ellipse but the ellipse is in the middle, not end of the string
+  function middleEllipsis(text, maxChars) {
+    if (text.length <= maxChars) return text;
+    const half = Math.floor((maxChars - 3) / 2);
+    return (
+      text.slice(0, half) +
+      "…" +
+      text.slice(text.length - half)
+    );
+  }
 }
 
 function buildOverlayTabTemplate() {

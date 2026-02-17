@@ -71,6 +71,7 @@ export default class TemplateManager {
     // Template
     this.template = null; // The template image.
     this.templateState = ''; // The state of the template ('blob', 'proccessing', 'template', etc.)
+    /** @type {Array<Template>} An Array of Template classes */
     this.templatesArray = []; // All Template instnaces currently loaded (Template)
     this.templatesJSON = null; // All templates currently loaded (JSON)
     this.templatesShouldBeDrawn = true; // Should ALL templates be drawn to the canvas?

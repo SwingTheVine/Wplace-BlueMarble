@@ -1,5 +1,17 @@
 /* @since 0.5.1 */
 
+/* Content with this class is only available to screen readers */
+.bm-screenreader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* The Blue Marble window(s) */
 .bm-window {
@@ -13,6 +25,7 @@
   top: 75px;
   left: 60px;
   width: auto;
+  max-height: calc(100vh - 150px);
   max-width: calc(100% - 135px);
   /* Font stack is as follows:
    * Highest Priority (Roboto Mono)
@@ -152,6 +165,33 @@
   fill: #111;
 }
 
+/* Transparent buttons */
+.bm-window button.bm-button-trans {
+  background-color: unset;
+}
+
+/* Transparent buttons on dark backgrounds when hovered */
+.bm-button-trans.bm-button-hover-white:hover,
+.bm-button-trans.bm-button-hover-white:focus {
+  background-color: rgba(255, 255, 255, 0.17);
+}
+
+/* Transparent buttons on dark backgrounds when pressed */
+.bm-button-trans.bm-button-hover-white:active {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Transparent buttons on light backgrounds when hovered */
+.bm-button-trans.bm-button-hover-black:hover,
+.bm-button-trans.bm-button-hover-black:focus {
+  background-color: rgba(0, 0, 0, 0.17);
+}
+
+/* Transparent buttons on light backgrounds when pressed */
+.bm-button-trans.bm-button-hover-black:active {
+  background-color: rgba(0, 0, 0, 0.22);
+}
+
 /* Tile (x, y) & Pixel (x, y) input fields */
 input[type="number"].bm-input-coords {
   appearance: auto;
@@ -230,4 +270,109 @@ input[type="file"] {
   justify-content: center;
   align-items: center;
   gap: 0.5ch;
+}
+
+/* Filter window table container */
+#bm-window-filter .bm-container:has(table) {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+/* Filter window table */
+#bm-window-filter table {
+  table-layout: fixed;
+  width: 50ch;
+  border-collapse: separate;
+  border-spacing: 0 0.5em;
+}
+
+/* Filter window table row */
+#bm-window-filter tr {
+  padding: 0.5em 0;
+}
+
+/* Filter window table cell for RGB color display */
+.bm-filter-tbl-clr {
+  display: block;
+  border: thick double lightgray;
+  width: fit-content;
+  height: fit-content;
+  padding: 1ch;
+}
+
+/* Filter window hide color button */
+.bm-filter-tbl-clr button {
+  padding: 0.75em 0.5ch;
+}
+
+/* Filter window hide color button SVG */
+.bm-filter-tbl-clr svg {
+  width: 4ch;
+  isolation: isolate;
+}
+
+/* Filter window color ID */
+.bm-filter-tbl-id {
+  position: relative;
+  top: 0.75em;
+  left: 0.5ch;
+}
+
+/* Filter window color premium */
+.bm-filter-tbl-prmim {
+  position: relative;
+  top: 0.75em;
+  left: -3.5ch;
+}
+
+/* Filter window color name */
+.bm-filter-tbl-name {
+  position: relative;
+  top: -0.75em;
+  left: -16ch;
+  text-wrap: nowrap;
+}
+
+/* Filter window color correct pixels */
+.bm-filter-tbl-crct {
+  display: block;
+  width: 100%;
+  position: relative;
+  right: 18ch;
+  top: 0.75em;
+  text-align: right;
+}
+
+/* Filter window color total pixels */
+.bm-filter-tbl-totl {
+  display: block;
+  width: 100%;
+  position: relative;
+  left: -16ch;
+  top: 0.75em;
+  text-align: left;
+}
+
+.bm-filter-tbl-totl::after {
+  content: "/";
+  position: absolute;
+  left: -1.5ch;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Filter window table footer */
+#bm-window-filter tfoot {
+  display: table-header-group;
+}
+
+/* Filter window table footer header */
+#bm-window-filter tfoot th {
+  text-align: left;
+}
+
+/* Filter window table footer data */
+#bm-window-filter tfoot td {
+  text-align: right;
+  padding-left: 1ch;
 }
