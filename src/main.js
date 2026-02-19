@@ -503,6 +503,8 @@ function buildWindowFilter() {
             .addSpan({'id': 'bm-filter-tot-total', 'innerHTML': '<b>Total Pixels:</b> ???'}).buildElement()
             .addBr().buildElement()
             .addSpan({'id': 'bm-filter-tot-remaining', 'innerHTML': '<b>Complete:</b> ??? (???)'}).buildElement()
+            .addBr().buildElement()
+            .addSpan({'id': 'bm-filter-tot-completed', 'innerHTML': '??? ???'}).buildElement()
           .buildElement()
           .addDiv({'class': 'bm-container'})
             .addP({'innerHTML': `Colors with the icon ${eyeOpen.replace('<svg', '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${eyeClosed.replace('<svg', '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how much of the template you have loaded since you opened Wplace.live.`}).buildElement()
@@ -601,10 +603,25 @@ function buildWindowFilter() {
     }
   }
 
+  // Localization string formatting for "Remaining Time" in color filter window
+  // This is more of a hint than anything, as browsers seem to ignore it >:(
+  const localizeDateTimeOptions = {
+    month: 'long', // July
+    day: 'numeric', // 23
+    hour: '2-digit', // 17
+    minute: '2-digit', // 47
+    second: '2-digit' // 00
+  }
+
+  // Calculates the date & time the user will complete the templates
+  const timeRemaining = new Date(((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1000) + Date.now()).toLocaleString(undefined, localizeDateTimeOptions);
+  // "30" is seconds. "1000" converts to milliseconds. "undefined" forces the localization to be the users.
+
   // Displays the total amounts across all colors to the user
   overlayFilter.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${localizeNumber.format(allPixelsCorrectTotal)}`);
   overlayFilter.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${localizeNumber.format(allPixelsTotal)}`);
   overlayFilter.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
+  overlayFilter.updateInnerHTML('#bm-filter-tot-completed', `<b>Completed at:</b> ${timeRemaining}`)
 
   // These run when the user opens the Color Filter window
   buildColorList();
