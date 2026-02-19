@@ -348,7 +348,7 @@ function buildWindowMain() {
           }).buildElement()
           .addButton({'textContent': 'Create'}, (instance, button) => {
             button.onclick = () => {
-              const input = document.querySelector('#bm-window-main button.bm-input-file');
+              const input = document.querySelector('#bm-window-main .bm-input-file');
 
               // Checks to see if the coordinates are valid. Throws an error if they are not
               const coordTlX = document.querySelector('#bm-input-tx');
