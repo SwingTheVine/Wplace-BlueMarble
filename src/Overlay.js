@@ -999,8 +999,7 @@ export default class Overlay {
     const properties = {
       'type': 'file', 
       'tabindex': '-1',
-      'aria-hidden': 'true',
-      'style': 'display: none !important; visibility: hidden !important; position: absolute !important; left: -9999px !important; width: 0 !important; height: 0 !important; opacity: 0 !important;'
+      'aria-hidden': 'true'
     }; // Complete file input hiding to prevent native browser text interference
     const text = additionalProperties['textContent'] ?? ''; // Retrieves the text content
 
@@ -1012,10 +1011,6 @@ export default class Overlay {
     const button = this.#createElement('button', {'textContent': text});
     this.buildElement(); // Signifies that we are done adding children to the button
     this.buildElement(); // Signifies that we are done adding children to the container
-
-    // Prevent file input from being accessible or visible by screen-readers and tabbing
-    //input.setAttribute('tabindex', '-1');
-    //input.setAttribute('aria-hidden', 'true');
     
     button.addEventListener('click', () => {
       input.click(); // Clicks the file input
