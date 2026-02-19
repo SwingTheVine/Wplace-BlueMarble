@@ -410,6 +410,83 @@ export default class Overlay {
     return this;
   }
 
+  /** Adds a `form` to the overlay.
+   * This `form` element will have properties shared between all `form` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `form` that are NOT shared between all overlay `form` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLFormElement):void} [callback=()=>{}] - Additional JS modification to the `form`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.246
+   * @example
+   * // Assume all <form> elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addForm({'id': 'foo'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <form id="foo" class="bar"></form>
+   * </body>
+   */
+  addForm(additionalProperties = {}, callback = () => {}) {
+
+    const properties = {}; // Shared <form> DOM properties
+
+    const form = this.#createElement('form', properties, additionalProperties); // Creates the <form> element
+    callback(this, form); // Runs any script passed in through the callback
+    return this;
+  }
+
+  /** Adds a `fieldset` to the overlay.
+   * This `fieldset` element will have properties shared between all `fieldset` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `fieldset` that are NOT shared between all overlay `fieldset` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLFieldSetElement):void} [callback=()=>{}] - Additional JS modification to the `fieldset`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.246
+   * @example
+   * // Assume all <fieldset> elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addFieldset({'id': 'foo'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <fieldset id="foo" class="bar"></fieldset>
+   * </body>
+   */
+  addFieldset(additionalProperties = {}, callback = () => {}) {
+
+    const properties = {}; // Shared <fieldset> DOM properties
+
+    const fieldset = this.#createElement('fieldset', properties, additionalProperties); // Creates the <fieldset> element
+    callback(this, fieldset); // Runs any script passed in through the callback
+    return this;
+  }
+
+  /** Adds a `legend` to the overlay.
+   * This `legend` element will have properties shared between all `legend` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `legend` that are NOT shared between all overlay `legend` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLLegendElement):void} [callback=()=>{}] - Additional JS modification to the `legend`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.246
+   * @example
+   * // Assume all <legend> elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addLegend({'id': 'foo', textContent: 'Foobar.'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <legend id="foo" class="bar">
+   *     "Foobar."
+   *   </legend>
+   * </body>
+   */
+  addLegend(additionalProperties = {}, callback = () => {}) {
+
+    const properties = {}; // Shared <legend> DOM properties
+
+    const legend = this.#createElement('legend', properties, additionalProperties); // Creates the <legend> element
+    callback(this, legend); // Runs any script passed in through the callback
+    return this;
+  }
+
   /** Adds a checkbox to the overlay.
    * This checkbox element will have properties shared between all checkbox elements in the overlay.
    * You can override the shared properties by using a callback. Note: the checkbox element is inside a label element.
@@ -439,6 +516,63 @@ export default class Overlay {
     label.insertBefore(checkbox, label.firstChild); // Makes the checkbox the first child of the label (before the text content)
     this.buildElement(); // Signifies that we are done adding children to the checkbox
     callback(this, label, checkbox); // Runs any script passed in through the callback
+    return this;
+  }
+
+  /** Adds a label & select element to the overlay.
+   * This select element will have properties shared between all select elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the checkbox that are NOT shared between all overlay select elements. These should be camelCase.
+   * @param {function(Overlay, HTMLLabelElement, HTMLSelectElement):void} [callback=()=>{}] - Additional JS modification to the label/select elements.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.243
+   * @example
+   * // Assume all select elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addSelect({'id': 'foo', 'textContent': 'Foobar: '}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <label for="foo">
+   *     "Foobar: "
+   *   </label>
+   *   <select id="foo" class="bar"></select>
+   * </body>
+   */
+  addSelect(additionalProperties = {}, callback = () => {}) {
+
+    const properties = {}; // Shared select DOM properties
+
+    const label = this.#createElement('label', {'textContent': additionalProperties['textContent'] ?? '', 'for': additionalProperties['id'] ?? ''}); // Creates the label element
+    delete additionalProperties['textContent']; // Deletes 'textContent' DOM property before adding the properties to the select
+    this.buildElement(); // Signifies that we are done adding children to the label
+    
+    const select = this.#createElement('select', properties, additionalProperties); // Creates the select element
+    callback(this, label, select); // Runs any script passed in through the callback
+    return this;
+  }
+
+  /** Adds an option to the overlay.
+   * This `option` element will have properties shared between all `option` elements in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `option` that are NOT shared between all overlay `option` elements. These should be camelCase.
+   * @param {function(Overlay, HTMLOptionElement):void} [callback=()=>{}] - Additional JS modification to the `option`.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.244
+   * @example
+   * // Assume all <option> elements have a shared class (e.g. {'className': 'bar'})
+   * overlay.addOption({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <option id="foo" class="bar">Foobar.</option>
+   * </body>
+   */
+  addOption(additionalProperties = {}, callback = () => {}) {
+
+    const properties = {}; // Shared <option> DOM properties
+
+    const option = this.#createElement('option', properties, additionalProperties); // Creates the <option> element
+    callback(this, option); // Runs any script passed in through the callback
     return this;
   }
 

@@ -122,6 +122,13 @@
   vertical-align: middle;
 }
 
+/* Container with a vertically centered header 1-6 */
+.bm-container.bm-center-vertically:has(>:where(h1, h2, h3, h4, h5, h6)) {
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* Containers for "sections" of elements */
 .bm-container {
   margin: 0.5em 0;
@@ -241,6 +248,26 @@ input[type="file"] {
   pointer-events: none !important;
 }
 
+/* Dropdown selection & dropdown (::picker) menus */
+.bm-window select {
+  color: white;
+  background-color: #144eb9;
+  border-radius: 1em;
+  padding: 0 0.5ch;
+}
+
+/* Checkbox container (the label element) */
+.bm-window label:has(input[type="checkbox"]) {
+  display: flex;
+  width: fit-content;
+  gap: 1ch;
+}
+
+/* Checkbox */
+.bm-window input[type="checkbox"] {
+  width: 1em;
+}
+
 /* Window content container */
 .bm-window-content {
   overflow: hidden;
@@ -280,8 +307,15 @@ input[type="file"] {
   gap: 0.5ch;
 }
 
-/* Filter flex container */
-#bm-window-filter .bm-container:has(> .bm-filter-flex) {
+/* Filter window eye icon inside paragraphs */
+#bm-window-filter p svg {
+  display: inline;
+  height: 1em;
+  fill: white;
+}
+
+/* Filter window scrollable container */
+#bm-window-filter .bm-container.bm-scrollable {
   max-height: calc(80vh - 150px);
   overflow: auto;
 }
@@ -341,4 +375,9 @@ input[type="file"] {
 /* Filter window color flavor text */
 .bm-filter-color small {
   font-size: 0.75em;
+}
+
+/* Filter window hide unused colors */
+#bm-window-filter .bm-filter-color.bm-color-hide {
+  display: none;
 }
