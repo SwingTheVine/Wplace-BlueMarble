@@ -35,7 +35,8 @@ export default class Overlay {
     this.name = name; // Name of userscript
     this.version = version; // Version of userscript
 
-    this.apiManager = null; // The API manager instance. Later populated when setApiManager is called
+    /** The API manager instance. Later populated when setApiManager is called @type {ApiManager} */
+    this.apiManager = null;
     
     this.outputStatusId = 'bm-output-status'; // ID for status element
 
@@ -45,7 +46,7 @@ export default class Overlay {
   }
 
   /** Populates the apiManager variable with the apiManager class.
-   * @param {apiManager} apiManager - The apiManager class instance
+   * @param {ApiManager} apiManager - The apiManager class instance
    * @since 0.41.4
    */
   setApiManager(apiManager) {this.apiManager = apiManager;}
