@@ -275,7 +275,7 @@ function buildWindowMain() {
     .addDragbar()
       .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
-        button.ontouchend = () => instance.handleMinimization(button);
+        button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
       }).buildElement()
       .addDiv().buildElement() // Contains the minimized h1 element
     .buildElement()
@@ -461,26 +461,30 @@ function buildWindowFilter() {
     return;
   }
 
+  // Eye icons
+  const eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
+  const eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
+
   // Creates a new color filter window
   const overlayFilter = new Overlay(name, version);
   overlayFilter.addDiv({'id': 'bm-window-filter', 'class': 'bm-window'})
     .addDragbar()
       .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Color Filter"', 'data-button-status': 'expanded'}, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
-        button.ontouchend = () => instance.handleMinimization(button);
+        button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar
       }).buildElement()
       .addDiv().buildElement() // Contains the minimized h1 element
       .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Color Filter"'}, (instance, button) => {
-        button.onclick = () => {document.querySelector('#bm-window-filter')?.remove();}
-        button.ontouchend = () => {document.querySelector('#bm-window-filter')?.remove();}
+        button.onclick = () => {document.querySelector('#bm-window-filter')?.remove();};
+        button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
       }).buildElement()
     .buildElement()
     .addDiv({'class': 'bm-window-content'})
-      .addDiv({'class': 'bm-container'})
+      .addDiv({'class': 'bm-container bm-center-vertically'})
         .addHeader(1, {'textContent': 'Color Filter'}).buildElement()
       .buildElement()
       .addHr().buildElement()
-      .addDiv({'class': 'bm-container bm-flex-between', 'style': 'width: fit-content;'})
+      .addDiv({'class': 'bm-container bm-flex-between', 'style': 'gap: 1.5ch; width: fit-content; margin-left: auto; margin-right: auto;'})
         .addButton({'textContent': 'Select All'}, (instance, button) => {
           button.onclick = () => {
 
@@ -492,14 +496,62 @@ function buildWindowFilter() {
           }
         }).buildElement()
       .buildElement()
+      .addDiv({'class': 'bm-container bm-scrollable'})
+        .addDiv({'class': 'bm-container', 'style': 'margin-left: 2.5ch; margin-right: 2.5ch;'})
+          .addForm({'class': 'bm-container'})
+            .addFieldset()
+              .addLegend({'textContent': 'Sort Options:'}).buildElement()
+              .addDiv({'class': 'bm-container'})
+                .addSelect({'id': 'bm-filter-sort-primary', 'name': 'sortPrimary', 'textContent': 'I want to view '})
+                  .addOption({'value': 'id', 'textContent': 'color IDs'}).buildElement()
+                  .addOption({'value': 'name', 'textContent': 'color names'}).buildElement()
+                  .addOption({'value': 'premium', 'textContent': 'premium colors'}).buildElement()
+                  .addOption({'value': 'percent', 'textContent': 'percentage'}).buildElement()
+                  .addOption({'value': 'correct', 'textContent': 'correct pixels'}).buildElement()
+                  .addOption({'value': 'incorrect', 'textContent': 'incorrect pixels'}).buildElement()
+                  .addOption({'value': 'total', 'textContent': 'total pixels'}).buildElement()
+                .buildElement()
+                .addSelect({'id': 'bm-filter-sort-secondary', 'name': 'sortSecondary', 'textContent': ' in '})
+                  .addOption({'value': 'ascending', 'textContent': 'ascending'}).buildElement()
+                  .addOption({'value': 'descending', 'textContent': 'descending'}).buildElement()
+                .buildElement()
+                .addSpan({'textContent': ' order.'}).buildElement()
+              .buildElement()
+              .addDiv({'class': 'bm-container'})
+                .addCheckbox({'id': 'bm-filter-show-unused', 'name': 'showUnused', 'textContent': 'Show unused colors'}).buildElement()
+              .buildElement()
+            .buildElement()
+            .addDiv({'class': 'bm-container'})
+              .addButton({'textContent': 'Refresh', 'type': 'submit'}, (instance, button) => {
+                button.onclick = (event) => {
+                  event.preventDefault(); // Stop default form submission
+
+                  // Get the form data
+                  const formData = new FormData(document.querySelector('#bm-window-filter form'));
+                  const formValues = {};
+                  for ([input, value] of formData) {
+                    formValues[input] = value;
+                  }
+                  console.log(`Primary: ${formValues['sortPrimary']}; Secondary: ${formValues['sortSecondary']}; Unused: ${formValues['showUnused'] == 'on'}`);
+                  
+                  // Sort the color list
+                  sortColorList(formValues['sortPrimary'], formValues['sortSecondary'], formValues['showUnused'] == 'on');
+                }
+              }).buildElement()
+            .buildElement()
+          .buildElement()
+          .addP({'innerHTML': `Colors with the icon ${eyeOpen} will be shown on the canvas. Colors with the icon ${eyeClosed} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below.`}).buildElement()
+        .buildElement()
+        // Color list will appear here in the DOM tree
+      .buildElement()
     .buildElement()
   .buildElement().buildOverlay(document.body);
 
   // Creates dragging capability on the drag bar for dragging the window
   overlayFilter.handleDrag('#bm-window-filter.bm-window', '#bm-window-filter .bm-dragbar');
 
-  // Obtains the window content container
-  const windowContent = document.querySelector('#bm-window-filter .bm-window-content');
+  // Obtains the scrollable container to put the color filter in
+  const scrollableContainer = document.querySelector('#bm-window-filter .bm-container.bm-scrollable');
 
   // Obtains the palette Blue Marble currently uses
   const { palette: palette, LUT: _ } = templateManager.paletteBM;
@@ -542,8 +594,7 @@ function buildWindowFilter() {
   function buildColorList() {
 
     const colorList = new Overlay(name, version);
-    colorList.addDiv({'class': 'bm-container'})
-      .addDiv({'class': 'bm-filter-flex'})
+    colorList.addDiv({'class': 'bm-filter-flex'})
     // We leave it open so we can add children to the grid
 
     // For each color in the palette...
@@ -558,19 +609,25 @@ function buildWindowFilter() {
       ? 'white' : 'black';
 
       const bgEffectForButtons = (textColorForPaletteColorBackground == 'white') ? 'bm-button-hover-white' : 'bm-button-hover-black';
-
-      // 
-
-      // Turns "correct" color into a string of a number or "???" if unknown
-      let colorCorrect = allPixelsCorrect.get(color.id) ?? '???';
-      const colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
       
       // Turns "total" color into a string of a number; "0" if unknown
       const colorTotal = allPixelsColor.get(color.id) ?? 0
       const colorTotalLocalized = new Intl.NumberFormat().format(colorTotal);
       
-      // Gets the percentage of completion for this color
-      const colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+      // This will be displayed if the total pixels for this color is zero
+      let colorCorrect = 0;
+      let colorCorrectLocalized = '0';
+      let colorPercent = new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(1);
+
+      // This will be displayed if the total pixels for this color is non-zero
+      if (colorTotal != 0) {
+        colorCorrect = allPixelsCorrect.get(color.id) ?? '???';
+        colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
+        colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+      }
+
+      // Incorrect pixels for this color
+      const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
 
       // Construct the DOM tree
       colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between',
@@ -580,19 +637,18 @@ function buildWindowFilter() {
         'data-correct': !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : '0',
         'data-total': colorTotal,
         'data-percent': (colorPercent.slice(-1) == '%') ? colorPercent.slice(0, -1) : '0',
-        'data-incorrect': (parseInt(colorTotal) - parseInt(colorCorrect)) || 0,
-        'data-unused': +!colorTotal // '0' if total is non-zero, '1' if total is zero
+        'data-incorrect': colorIncorrect || 0
       }).addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
-          .addButton({'class': 'bm-button-trans ' + bgEffectForButtons, 'data-state': 'shown', 'aria-label': `Hide the color ${color.name || 'color'} on templates`, 'innerHTML': `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`},
+          .addButton({'class': 'bm-button-trans ' + bgEffectForButtons, 'data-state': 'shown', 'aria-label': `Hide the color ${color.name || 'color'} on templates`, 'innerHTML': eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`)},
             (instance, button) => {
               button.onclick = () => {
                 button.style.textDecoration = 'none';
                 button.disabled = true;
                 if (button.dataset['state'] == 'shown') {
-                  button.innerHTML = `<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" fill="${textColorForPaletteColorBackground}" mask="url(#a)"/></svg>`;
+                  button.innerHTML = eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
                   button.dataset['state'] = 'hidden';
                 } else {
-                  button.innerHTML = `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`;
+                  button.innerHTML = eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
                   button.dataset['state'] = 'shown';
                 }
                 button.disabled = false;
@@ -607,25 +663,25 @@ function buildWindowFilter() {
             .addSmall({'textContent': `#${color.id}`}).buildElement()
             .addSmall({'textContent': `${colorCorrectLocalized} / ${colorTotalLocalized}`}).buildElement()
           .buildElement()
-          .addP({'textContent': `${(parseInt(colorTotal) - parseInt(colorCorrect)) || '???'} incorrect pixels. Completed: ${colorPercent}`}).buildElement()
+          .addP({'textContent': `${((typeof colorIncorrect == 'number') && !isNaN(colorIncorrect)) ? colorIncorrect : '???'} incorrect pixels. Completed: ${colorPercent}`}).buildElement()
         .buildElement()
       .buildElement()
     }
 
     // Adds the colors to the color container in the filter window
-    colorList.buildOverlay(windowContent);
+    colorList.buildOverlay(scrollableContainer);
   }
 
-  function sortColorList(order) {
-    // "order" can be either 'asc' or 'desc'
+  function sortColorList(sortPrimary, sortSecondary, showUnused) {
+    // "sortSecondary" can be either 'ascending' or 'descending'
 
-    const colorList = overlayFilter.querySelector('.bm-filter-flex');
+    const colorList = document.querySelector('.bm-filter-flex');
 
     const colors = Array.from(colorList.children);
 
     colors.sort((index, nextIndex) => {
-      const indexValue = index.getAttribute('data-value');
-      const nextIndexValue = nextIndex.getAttribute('data-value');
+      const indexValue = index.getAttribute('data-' + sortPrimary);
+      const nextIndexValue = nextIndex.getAttribute('data-' + sortPrimary);
 
       const indexValueNumber = parseFloat(indexValue);
       const nextIndexValueNumber = parseFloat(nextIndexValue);
@@ -633,16 +689,25 @@ function buildWindowFilter() {
       const indexValueNumberIsNumber = !isNaN(indexValueNumber);
       const nextIndexValueNumberIsNumber = !isNaN(nextIndexValueNumber);
 
+      // If the user wants to show unused colors...
+      if (showUnused) {
+        index.classList.remove('bm-color-hide'); // Show the color
+      } else if (!Number(index.getAttribute('data-total'))) {
+        // ...else if the user wants to hide unused colors, and this color is unused...
+        
+        index.classList.add('bm-color-hide'); // Hide the color
+      }
+
       // If both index values are numbers...
       if (indexValueNumberIsNumber && nextIndexValueNumberIsNumber) {
         // Perform numeric comparison
-        return order === 'asc' ? indexValueNumber - nextIndexValueNumber : nextIndexValueNumber - indexValueNumber;
+        return sortSecondary === 'ascending' ? indexValueNumber - nextIndexValueNumber : nextIndexValueNumber - indexValueNumber;
       } else {
         // Otherwise, perform string comparison
         const indexValueString = indexValue.toLowerCase();
         const nextIndexValueString = nextIndexValue.toLowerCase();
-        if (indexValueString < nextIndexValueString) return order === 'asc' ? -1 : 1;
-        if (indexValueString > nextIndexValueString) return order === 'asc' ? 1 : -1;
+        if (indexValueString < nextIndexValueString) return sortSecondary === 'ascending' ? -1 : 1;
+        if (indexValueString > nextIndexValueString) return sortSecondary === 'ascending' ? 1 : -1;
         return 0;
       }
     });

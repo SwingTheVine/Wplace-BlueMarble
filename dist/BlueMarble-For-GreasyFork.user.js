@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.231
+// @version         0.88.261
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -33,7 +33,7 @@
     throw TypeError(msg);
   };
   var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-  var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+  var __privateAdd = (obj, member, value2) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value2);
   var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 
   // src/Overlay.js
@@ -331,6 +331,77 @@
       callback(this, br);
       return this;
     }
+    /** Adds a `form` to the overlay.
+     * This `form` element will have properties shared between all `form` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `form` that are NOT shared between all overlay `form` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLFormElement):void} [callback=()=>{}] - Additional JS modification to the `form`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.246
+     * @example
+     * // Assume all <form> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addForm({'id': 'foo'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <form id="foo" class="bar"></form>
+     * </body>
+     */
+    addForm(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const form = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "form", properties, additionalProperties);
+      callback(this, form);
+      return this;
+    }
+    /** Adds a `fieldset` to the overlay.
+     * This `fieldset` element will have properties shared between all `fieldset` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `fieldset` that are NOT shared between all overlay `fieldset` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLFieldSetElement):void} [callback=()=>{}] - Additional JS modification to the `fieldset`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.246
+     * @example
+     * // Assume all <fieldset> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addFieldset({'id': 'foo'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <fieldset id="foo" class="bar"></fieldset>
+     * </body>
+     */
+    addFieldset(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const fieldset = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "fieldset", properties, additionalProperties);
+      callback(this, fieldset);
+      return this;
+    }
+    /** Adds a `legend` to the overlay.
+     * This `legend` element will have properties shared between all `legend` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `legend` that are NOT shared between all overlay `legend` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLLegendElement):void} [callback=()=>{}] - Additional JS modification to the `legend`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.246
+     * @example
+     * // Assume all <legend> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addLegend({'id': 'foo', textContent: 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <legend id="foo" class="bar">
+     *     "Foobar."
+     *   </legend>
+     * </body>
+     */
+    addLegend(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const legend = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "legend", properties, additionalProperties);
+      callback(this, legend);
+      return this;
+    }
     /** Adds a checkbox to the overlay.
      * This checkbox element will have properties shared between all checkbox elements in the overlay.
      * You can override the shared properties by using a callback. Note: the checkbox element is inside a label element.
@@ -359,6 +430,58 @@
       label.insertBefore(checkbox, label.firstChild);
       this.buildElement();
       callback(this, label, checkbox);
+      return this;
+    }
+    /** Adds a label & select element to the overlay.
+     * This select element will have properties shared between all select elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the checkbox that are NOT shared between all overlay select elements. These should be camelCase.
+     * @param {function(Overlay, HTMLLabelElement, HTMLSelectElement):void} [callback=()=>{}] - Additional JS modification to the label/select elements.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.243
+     * @example
+     * // Assume all select elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addSelect({'id': 'foo', 'textContent': 'Foobar: '}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <label for="foo">
+     *     "Foobar: "
+     *   </label>
+     *   <select id="foo" class="bar"></select>
+     * </body>
+     */
+    addSelect(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const label = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "label", { "textContent": additionalProperties["textContent"] ?? "", "for": additionalProperties["id"] ?? "" });
+      delete additionalProperties["textContent"];
+      this.buildElement();
+      const select = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "select", properties, additionalProperties);
+      callback(this, label, select);
+      return this;
+    }
+    /** Adds an option to the overlay.
+     * This `option` element will have properties shared between all `option` elements in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the `option` that are NOT shared between all overlay `option` elements. These should be camelCase.
+     * @param {function(Overlay, HTMLOptionElement):void} [callback=()=>{}] - Additional JS modification to the `option`.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.244
+     * @example
+     * // Assume all <option> elements have a shared class (e.g. {'className': 'bar'})
+     * overlay.addOption({'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <option id="foo" class="bar">Foobar.</option>
+     * </body>
+     */
+    addOption(additionalProperties = {}, callback = () => {
+    }) {
+      const properties = {};
+      const option = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "option", properties, additionalProperties);
+      callback(this, option);
       return this;
     }
     /** Adds an ordered list to the overlay.
@@ -720,8 +843,8 @@
     addInput(additionalProperties = {}, callback = () => {
     }) {
       const properties = {};
-      const input = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
-      callback(this, input);
+      const input2 = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
+      callback(this, input2);
       return this;
     }
     /** Adds a file input to the overlay with enhanced visibility controls.
@@ -755,23 +878,23 @@
       const text = additionalProperties["textContent"] ?? "";
       delete additionalProperties["textContent"];
       const container = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "div");
-      const input = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
+      const input2 = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
       this.buildElement();
       const button = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "button", { "textContent": text });
       this.buildElement();
       this.buildElement();
       button.addEventListener("click", () => {
-        input.click();
+        input2.click();
       });
-      input.addEventListener("change", () => {
+      input2.addEventListener("change", () => {
         button.style.maxWidth = `${button.offsetWidth}px`;
-        if (input.files.length > 0) {
-          button.textContent = input.files[0].name;
+        if (input2.files.length > 0) {
+          button.textContent = input2.files[0].name;
         } else {
           button.textContent = text;
         }
       });
-      callback(this, container, input, button);
+      callback(this, container, input2, button);
       return this;
     }
     /** Adds a `textarea` to the overlay.
@@ -1043,11 +1166,11 @@
       this.parentStack.push(this.currentParent);
       this.currentParent = element;
     }
-    for (const [property, value] of Object.entries(properties)) {
-      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value);
+    for (const [property, value2] of Object.entries(properties)) {
+      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value2);
     }
-    for (const [property, value] of Object.entries(additionalProperties)) {
-      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value);
+    for (const [property, value2] of Object.entries(additionalProperties)) {
+      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value2);
     }
     return element;
   };
@@ -1057,28 +1180,28 @@
    * @param {String} value - The value of the attribute
    * @since 0.88.136
    */
-  applyAttribute_fn = function(element, property, value) {
+  applyAttribute_fn = function(element, property, value2) {
     if (property == "class") {
-      element.classList.add(...value.split(/\s+/));
+      element.classList.add(...value2.split(/\s+/));
     } else if (property == "for") {
-      element.htmlFor = value;
+      element.htmlFor = value2;
     } else if (property == "tabindex") {
-      element.tabIndex = Number(value);
+      element.tabIndex = Number(value2);
     } else if (property == "readonly") {
-      element.readOnly = value == "true" || value == "1";
+      element.readOnly = value2 == "true" || value2 == "1";
     } else if (property == "maxlength") {
-      element.maxLength = Number(value);
+      element.maxLength = Number(value2);
     } else if (property.startsWith("data")) {
       element.dataset[property.slice(5).split("-").map(
         (part, i) => i == 0 ? part : part[0].toUpperCase() + part.slice(1)
-      ).join("")] = value;
+      ).join("")] = value2;
     } else if (property.startsWith("aria")) {
       const camelCase = property.slice(5).split("-").map(
         (part, i) => i == 0 ? part : part[0].toUpperCase() + part.slice(1)
       ).join("");
-      element["aria" + camelCase[0].toUpperCase() + camelCase.slice(1)] = value;
+      element["aria" + camelCase[0].toUpperCase() + camelCase.slice(1)] = value2;
     } else {
-      element[property] = value;
+      element[property] = value2;
     }
   };
 
@@ -1655,8 +1778,8 @@ There are ${pixelsCorrectTotal} correct pixels.`);
      * @param {boolean} value - The value to set the boolean to
      * @since 0.73.7
      */
-    setTemplatesShouldBeDrawn(value) {
-      this.templatesShouldBeDrawn = value;
+    setTemplatesShouldBeDrawn(value2) {
+      this.templatesShouldBeDrawn = value2;
     }
   };
   _TemplateManager_instances = new WeakSet();
@@ -1683,7 +1806,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
           const displayName = templateValue.name || `Template ${sortID || ""}`;
           const pixelCount = {
             total: templateValue.pixels.total,
-            colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
+            colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value2]) => [Number(key), value2]))
           };
           const tilesbase64 = templateValue.tiles;
           const templateTiles = {};
@@ -2125,8 +2248,8 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
         };
       }
-    ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-      input.addEventListener("paste", (event) => {
+    ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input2) => {
+      input2.addEventListener("paste", (event) => {
         let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter((n) => n).map(Number).filter((n) => !isNaN(n));
         if (splitText.length !== 4) {
           return;
@@ -2155,7 +2278,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       };
     }).buildElement().addButton({ "textContent": "Create" }, (instance, button) => {
       button.onclick = () => {
-        const input = document.querySelector("#bm-window-main button.bm-input-file");
+        const input2 = document.querySelector("#bm-window-main button.bm-input-file");
         const coordTlX = document.querySelector("#bm-input-tx");
         if (!coordTlX.checkValidity()) {
           coordTlX.reportValidity();
@@ -2180,11 +2303,11 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
           return;
         }
-        if (!input?.files[0]) {
+        if (!input2?.files[0]) {
           instance.handleDisplayError(`No file selected!`);
           return;
         }
-        templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ""), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
+        templateManager.createTemplate(input2.files[0], input2.files[0]?.name.replace(/\.[^/.]+$/, ""), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
         instance.handleDisplayStatus(`Drew to canvas!`);
       };
     }).buildElement().addButton({ "textContent": "Filter" }, (instance, button) => {
@@ -2233,26 +2356,41 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
       overlayMain.handleDisplayError("Color Filter window already exists!");
       return;
     }
+    const eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
+    const eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
     const overlayFilter = new Overlay(name, version);
     overlayFilter.addDiv({ "id": "bm-window-filter", "class": "bm-window" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
       button.onclick = () => instance.handleMinimization(button);
-      button.ontouchend = () => instance.handleMinimization(button);
+      button.ontouchend = () => {
+        button.click();
+      };
     }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u{1F7AA}", "aria-label": 'Close window "Color Filter"' }, (instance, button) => {
       button.onclick = () => {
         document.querySelector("#bm-window-filter")?.remove();
       };
       button.ontouchend = () => {
-        document.querySelector("#bm-window-filter")?.remove();
+        button.click();
       };
-    }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "width: fit-content;" }).addButton({ "textContent": "Select All" }, (instance, button) => {
+    }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "gap: 1.5ch; width: fit-content; margin-left: auto; margin-right: auto;" }).addButton({ "textContent": "Select All" }, (instance, button) => {
       button.onclick = () => {
       };
     }).buildElement().addButton({ "textContent": "Unselect All" }, (instance, button) => {
       button.onclick = () => {
       };
-    }).buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
+    }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Refresh", "type": "submit" }, (instance, button) => {
+      button.onclick = (event) => {
+        event.preventDefault();
+        const formData = new FormData(document.querySelector("#bm-window-filter form"));
+        const formValues = {};
+        for ([input, value] of formData) {
+          formValues[input] = value;
+        }
+        console.log(`Primary: ${formValues["sortPrimary"]}; Secondary: ${formValues["sortSecondary"]}; Unused: ${formValues["showUnused"] == "on"}`);
+        sortColorList(formValues["sortPrimary"], formValues["sortSecondary"], formValues["showUnused"] == "on");
+      };
+    }).buildElement().buildElement().buildElement().addP({ "innerHTML": `Colors with the icon ${eyeOpen} will be shown on the canvas. Colors with the icon ${eyeClosed} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below.` }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
     overlayFilter.handleDrag("#bm-window-filter.bm-window", "#bm-window-filter .bm-dragbar");
-    const windowContent = document.querySelector("#bm-window-filter .bm-window-content");
+    const scrollableContainer = document.querySelector("#bm-window-filter .bm-container.bm-scrollable");
     const { palette, LUT: _ } = templateManager.paletteBM;
     let allPixelsTotal = 0;
     let allPixelsCorrectTotal = 0;
@@ -2278,16 +2416,22 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
     buildColorList();
     function buildColorList() {
       const colorList = new Overlay(name, version);
-      colorList.addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-filter-flex" });
+      colorList.addDiv({ "class": "bm-filter-flex" });
       for (const color of palette) {
         const lumin = calculateRelativeLuminance(color.rgb);
         const textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
         const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
-        let colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
-        const colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
         const colorTotal = allPixelsColor.get(color.id) ?? 0;
         const colorTotalLocalized = new Intl.NumberFormat().format(colorTotal);
-        const colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+        let colorCorrect = 0;
+        let colorCorrectLocalized = "0";
+        let colorPercent = new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(1);
+        if (colorTotal != 0) {
+          colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
+          colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
+          colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+        }
+        const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
         colorList.addDiv({
           "class": "bm-container bm-filter-color bm-flex-between",
           "data-id": color.id,
@@ -2296,47 +2440,50 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
           "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
           "data-total": colorTotal,
           "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
-          "data-incorrect": parseInt(colorTotal) - parseInt(colorCorrect) || 0,
-          "data-unused": +!colorTotal
-          // '0' if total is non-zero, '1' if total is zero
+          "data-incorrect": colorIncorrect || 0
         }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
-          { "class": "bm-button-trans " + bgEffectForButtons, "data-state": "shown", "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>` },
+          { "class": "bm-button-trans " + bgEffectForButtons, "data-state": "shown", "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) },
           (instance, button) => {
             button.onclick = () => {
               button.style.textDecoration = "none";
               button.disabled = true;
               if (button.dataset["state"] == "shown") {
-                button.innerHTML = `<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" fill="${textColorForPaletteColorBackground}" mask="url(#a)"/></svg>`;
+                button.innerHTML = eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
                 button.dataset["state"] = "hidden";
               } else {
-                button.innerHTML = `<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2" fill="${textColorForPaletteColorBackground}"/></svg>`;
+                button.innerHTML = eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
                 button.dataset["state"] = "shown";
               }
               button.disabled = false;
               button.style.textDecoration = "";
             };
           }
-        ).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${parseInt(colorTotal) - parseInt(colorCorrect) || "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+        ).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
       }
-      colorList.buildOverlay(windowContent);
+      colorList.buildOverlay(scrollableContainer);
     }
-    function sortColorList(order) {
-      const colorList = overlayFilter.querySelector(".bm-filter-flex");
+    function sortColorList(sortPrimary, sortSecondary, showUnused) {
+      const colorList = document.querySelector(".bm-filter-flex");
       const colors = Array.from(colorList.children);
       colors.sort((index, nextIndex) => {
-        const indexValue = index.getAttribute("data-value");
-        const nextIndexValue = nextIndex.getAttribute("data-value");
+        const indexValue = index.getAttribute("data-" + sortPrimary);
+        const nextIndexValue = nextIndex.getAttribute("data-" + sortPrimary);
         const indexValueNumber = parseFloat(indexValue);
         const nextIndexValueNumber = parseFloat(nextIndexValue);
         const indexValueNumberIsNumber = !isNaN(indexValueNumber);
         const nextIndexValueNumberIsNumber = !isNaN(nextIndexValueNumber);
+        if (showUnused) {
+          index.classList.remove("bm-color-hide");
+        } else if (!Number(index.getAttribute("data-total"))) {
+          index.classList.add("bm-color-hide");
+        }
         if (indexValueNumberIsNumber && nextIndexValueNumberIsNumber) {
-          return order === "asc" ? indexValueNumber - nextIndexValueNumber : nextIndexValueNumber - indexValueNumber;
+          return sortSecondary === "ascending" ? indexValueNumber - nextIndexValueNumber : nextIndexValueNumber - indexValueNumber;
         } else {
           const indexValueString = indexValue.toLowerCase();
           const nextIndexValueString = nextIndexValue.toLowerCase();
-          if (indexValueString < nextIndexValueString) return order === "asc" ? -1 : 1;
-          if (indexValueString > nextIndexValueString) return order === "asc" ? 1 : -1;
+          if (indexValueString < nextIndexValueString) return sortSecondary === "ascending" ? -1 : 1;
+          if (indexValueString > nextIndexValueString) return sortSecondary === "ascending" ? 1 : -1;
           return 0;
         }
       });
