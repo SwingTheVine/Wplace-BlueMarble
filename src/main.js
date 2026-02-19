@@ -465,6 +465,9 @@ function buildWindowFilter() {
   const eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
   const eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
 
+  const localizeNumber = new Intl.NumberFormat();
+  const localizePercent = new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   // Creates a new color filter window
   const overlayFilter = new Overlay(name, version);
   overlayFilter.addDiv({'id': 'bm-window-filter', 'class': 'bm-window'})
@@ -486,21 +489,28 @@ function buildWindowFilter() {
       .addHr().buildElement()
       .addDiv({'class': 'bm-container bm-flex-between', 'style': 'gap: 1.5ch; width: fit-content; margin-left: auto; margin-right: auto;'})
         .addButton({'textContent': 'Select All'}, (instance, button) => {
-          button.onclick = () => {
-
-          }
+          button.onclick = () => selectColorList(false);
         }).buildElement()
         .addButton({'textContent': 'Unselect All'}, (instance, button) => {
-          button.onclick = () => {
-
-          }
+          button.onclick = () => selectColorList(true);
         }).buildElement()
       .buildElement()
       .addDiv({'class': 'bm-container bm-scrollable'})
         .addDiv({'class': 'bm-container', 'style': 'margin-left: 2.5ch; margin-right: 2.5ch;'})
+          .addDiv({'class': 'bm-container'})
+            .addSpan({'id': 'bm-filter-tot-correct', 'innerHTML': '<b>Correct Pixels:</b> ???'}).buildElement()
+            .addBr().buildElement()
+            .addSpan({'id': 'bm-filter-tot-total', 'innerHTML': '<b>Total Pixels:</b> ???'}).buildElement()
+            .addBr().buildElement()
+            .addSpan({'id': 'bm-filter-tot-remaining', 'innerHTML': '<b>Complete:</b> ??? (???)'}).buildElement()
+          .buildElement()
+          .addDiv({'class': 'bm-container'})
+            .addP({'innerHTML': `Colors with the icon ${eyeOpen.replace('<svg', '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${eyeClosed.replace('<svg', '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how much of the template you have loaded since you opened Wplace.live.`}).buildElement()
+          .buildElement()
+          .addHr().buildElement()
           .addForm({'class': 'bm-container'})
             .addFieldset()
-              .addLegend({'textContent': 'Sort Options:'}).buildElement()
+              .addLegend({'textContent': 'Sort Options:', 'style': 'font-weight: 700;'}).buildElement()
               .addDiv({'class': 'bm-container'})
                 .addSelect({'id': 'bm-filter-sort-primary', 'name': 'sortPrimary', 'textContent': 'I want to view '})
                   .addOption({'value': 'id', 'textContent': 'color IDs'}).buildElement()
@@ -522,7 +532,7 @@ function buildWindowFilter() {
               .buildElement()
             .buildElement()
             .addDiv({'class': 'bm-container'})
-              .addButton({'textContent': 'Refresh', 'type': 'submit'}, (instance, button) => {
+              .addButton({'textContent': 'Sort Colors', 'type': 'submit'}, (instance, button) => {
                 button.onclick = (event) => {
                   event.preventDefault(); // Stop default form submission
 
@@ -540,7 +550,6 @@ function buildWindowFilter() {
               }).buildElement()
             .buildElement()
           .buildElement()
-          .addP({'innerHTML': `Colors with the icon ${eyeOpen} will be shown on the canvas. Colors with the icon ${eyeClosed} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below.`}).buildElement()
         .buildElement()
         // Color list will appear here in the DOM tree
       .buildElement()
@@ -567,18 +576,9 @@ function buildWindowFilter() {
   for (const template of templateManager.templatesArray) {
 
     const total = template.pixelCount?.total ?? 0;
-    const colors = template.pixelCount?.colors ?? new Map();
-    const correct = template.pixelCount?.correct ?? new Map();
-
     allPixelsTotal += total ?? 0; // Sums the pixels placed as "total" per everything
 
-    // Sums the pixels placed as "correct" per color ID
-    for (const [colorID, correctPixels] of correct) {
-      const _correctPixels = Number(correctPixels) || 0; // Boilerplate
-      allPixelsCorrectTotal += _correctPixels; // Sums the pixels placed as "correct" per everything
-      const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0; // The total correct pixels for this color ID so far, or zero if none counted so far
-      allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
-    }
+    const colors = template.pixelCount?.colors ?? new Map();
 
     // Sums the color pixels placed as "total" per color ID
     for (const [colorID, colorPixels] of colors) {
@@ -586,9 +586,29 @@ function buildWindowFilter() {
       const allPixelsColorSoFar = allPixelsColor.get(colorID) ?? 0; // The total color pixels for this color ID so far, or zero if none counted so far
       allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
     }
+
+    // Object that contains the tiles which contain Maps as correct pixels per tile as the value in the key-value pair
+    const correctObject = template.pixelCount?.correct ?? {};
+
+    // Sums the pixels placed as "correct" per color ID
+    for (const map of Object.values(correctObject)) { // Per tile per template
+      for (const [colorID, correctPixels] of map) { // Per color per tile per template
+        const _correctPixels = Number(correctPixels) || 0; // Boilerplate
+        allPixelsCorrectTotal += _correctPixels; // Sums the pixels placed as "correct" per everything
+        const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0; // The total correct pixels for this color ID so far, or zero if none counted so far
+        allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
+      }
+    }
   }
 
+  // Displays the total amounts across all colors to the user
+  overlayFilter.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${localizeNumber.format(allPixelsCorrectTotal)}`);
+  overlayFilter.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${localizeNumber.format(allPixelsTotal)}`);
+  overlayFilter.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
+
+  // These run when the user opens the Color Filter window
   buildColorList();
+  sortColorList('id', 'ascending', false);
 
   // Creates the color list container
   function buildColorList() {
@@ -612,18 +632,18 @@ function buildWindowFilter() {
       
       // Turns "total" color into a string of a number; "0" if unknown
       const colorTotal = allPixelsColor.get(color.id) ?? 0
-      const colorTotalLocalized = new Intl.NumberFormat().format(colorTotal);
+      const colorTotalLocalized = localizeNumber.format(colorTotal);
       
       // This will be displayed if the total pixels for this color is zero
       let colorCorrect = 0;
       let colorCorrectLocalized = '0';
-      let colorPercent = new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(1);
+      let colorPercent = localizePercent.format(1);
 
       // This will be displayed if the total pixels for this color is non-zero
       if (colorTotal != 0) {
         colorCorrect = allPixelsCorrect.get(color.id) ?? '???';
-        colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
-        colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+        colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : localizeNumber.format(colorCorrect);
+        colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : localizePercent.format(colorCorrect / colorTotal);
       }
 
       // Incorrect pixels for this color
@@ -672,6 +692,7 @@ function buildWindowFilter() {
     colorList.buildOverlay(scrollableContainer);
   }
 
+  // Sorts the color list & hides unused colors
   function sortColorList(sortPrimary, sortSecondary, showUnused) {
     // "sortSecondary" can be either 'ascending' or 'descending'
 
@@ -714,28 +735,28 @@ function buildWindowFilter() {
 
     colors.forEach(color => colorList.appendChild(color));
   }
-}
 
-function buildOverlayTabTemplate() {
-  overlayTabTemplate.addDiv({'id': 'bm-tab-template', 'style': 'top: 20%; left: 10%;'})
-      .addDiv()
-        .addDiv({'className': 'bm-dragbar'}).buildElement()
-        .addButton({'className': 'bm-button-minimize', 'textContent': '↑'},
-          (instance, button) => {
-            button.onclick = () => {
-              let isMinimized = false;
-              if (button.textContent == '↑') {
-                button.textContent = '↓';
-              } else {
-                button.textContent = '↑';
-                isMinimized = true;
-              }
+  // (Un)selects all colors in the color list that are visible to the user
+  function selectColorList(userWantsUnselect) {
 
-              
-            }
-          }
-        ).buildElement()
-      .buildElement()
-    .buildElement()
-  .buildOverlay();
+    // Gets the colors
+    const colorList = document.querySelector('.bm-filter-flex');
+    const colors = Array.from(colorList.children);
+
+    // For each color...
+    for (const color of colors) {
+
+      // Skip this color if it is hidden
+      if (color.classList?.contains('bm-color-hide')) {continue;}
+
+      // Gets the button to click
+      const button = color.querySelector('.bm-filter-container-rgb button');
+      
+      // Exits early if the button is in its proper state
+      if ((button.dataset['state'] == 'hidden') && !userWantsUnselect) {continue;} // If the button is selected, and the user wants to select all buttons, then skip this one
+      if ((button.dataset['state'] == 'shown') && userWantsUnselect) {continue;} // If the button is not selected, and the user wants to unselect all buttons, then skip this one
+      
+      button.click(); // If the button is not in its proper state, then we click it
+    }
+  }
 }

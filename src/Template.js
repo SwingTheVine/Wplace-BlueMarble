@@ -41,7 +41,7 @@ export default class Template {
     this.chunked = chunked;
     this.chunked32 = chunked32;
     this.tileSize = tileSize;
-    /** Total pixel count in template @type {{total: number, colors: Map<number, number>, correct?: Map<number, number>}} */
+    /** Total pixel count in template @type {{total: number, colors: Map<number, number>, correct?: { [key: string]: Map<number, number> }}} */
     this.pixelCount = { total: 0, colors: new Map() };
   }
 

@@ -310,15 +310,22 @@ export default class TemplateManager {
       let pixelsCorrectTotal = 0;
       const transparentColorID = 0;
 
+      // For each color with correct pixels placed for this template...
       for (const [color, total] of pixelsCorrect) {
 
         if (color == transparentColorID) {continue;} // Skip Transparent color
 
-        pixelsCorrectTotal += total;
+        pixelsCorrectTotal += total; // Add the current total for this color to the summed total of all correct
       }
       console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
 
-      template.instance.pixelCount['correct'] = pixelsCorrect; // Adds the correct pixel Map to the template instance
+      // If "correct" does not exist as a key of the object "pixelCount", we create it
+      if (typeof template.instance.pixelCount['correct'] == 'undefined') {
+        template.instance.pixelCount['correct'] = {};
+      }
+
+      // Adds the correct pixel Map to the template instance
+      template.instance.pixelCount['correct'][tileCoords] = pixelsCorrect;
     }
 
     return await canvas.convertToBlob({ type: 'image/png' });

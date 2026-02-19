@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.261
+// @version         0.88.293
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -1760,7 +1760,10 @@ Version: ${this.version}`);
         }
         console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
 There are ${pixelsCorrectTotal} correct pixels.`);
-        template.instance.pixelCount["correct"] = pixelsCorrect;
+        if (typeof template.instance.pixelCount["correct"] == "undefined") {
+          template.instance.pixelCount["correct"] = {};
+        }
+        template.instance.pixelCount["correct"][tileCoords] = pixelsCorrect;
       }
       return await canvas.convertToBlob({ type: "image/png" });
     }
@@ -2232,7 +2235,9 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
   function buildWindowMain() {
     overlayMain.addDiv({ "id": "bm-window-main", "class": "bm-window", "style": "top: 10px; left: unset; right: 75px;" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
       button.onclick = () => instance.handleMinimization(button);
-      button.ontouchend = () => instance.handleMinimization(button);
+      button.ontouchend = () => {
+        button.click();
+      };
     }).buildElement().addDiv().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addP({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
       { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg viewBox="0 0 4 6"><path d="M.5,3.4A2,2 0 1 1 3.5,3.4L2,6"/><circle cx="2" cy="2" r=".7" fill="#fff"/></svg>' },
       (instance, button) => {
@@ -2358,6 +2363,8 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
     }
     const eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
     const eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
+    const localizeNumber = new Intl.NumberFormat();
+    const localizePercent = new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const overlayFilter = new Overlay(name, version);
     overlayFilter.addDiv({ "id": "bm-window-filter", "class": "bm-window" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
       button.onclick = () => instance.handleMinimization(button);
@@ -2372,12 +2379,10 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
         button.click();
       };
     }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "gap: 1.5ch; width: fit-content; margin-left: auto; margin-right: auto;" }).addButton({ "textContent": "Select All" }, (instance, button) => {
-      button.onclick = () => {
-      };
+      button.onclick = () => selectColorList(false);
     }).buildElement().addButton({ "textContent": "Unselect All" }, (instance, button) => {
-      button.onclick = () => {
-      };
-    }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Refresh", "type": "submit" }, (instance, button) => {
+      button.onclick = () => selectColorList(true);
+    }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-filter-tot-correct", "innerHTML": "<b>Correct Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-total", "innerHTML": "<b>Total Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-remaining", "innerHTML": "<b>Complete:</b> ??? (???)" }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addP({ "innerHTML": `Colors with the icon ${eyeOpen.replace("<svg", '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${eyeClosed.replace("<svg", '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how much of the template you have loaded since you opened Wplace.live.` }).buildElement().buildElement().addHr().buildElement().addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Sort Colors", "type": "submit" }, (instance, button) => {
       button.onclick = (event) => {
         event.preventDefault();
         const formData = new FormData(document.querySelector("#bm-window-filter form"));
@@ -2388,7 +2393,7 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
         console.log(`Primary: ${formValues["sortPrimary"]}; Secondary: ${formValues["sortSecondary"]}; Unused: ${formValues["showUnused"] == "on"}`);
         sortColorList(formValues["sortPrimary"], formValues["sortSecondary"], formValues["showUnused"] == "on");
       };
-    }).buildElement().buildElement().buildElement().addP({ "innerHTML": `Colors with the icon ${eyeOpen} will be shown on the canvas. Colors with the icon ${eyeClosed} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below.` }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
+    }).buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(document.body);
     overlayFilter.handleDrag("#bm-window-filter.bm-window", "#bm-window-filter .bm-dragbar");
     const scrollableContainer = document.querySelector("#bm-window-filter .bm-container.bm-scrollable");
     const { palette, LUT: _ } = templateManager.paletteBM;
@@ -2398,22 +2403,28 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
     const allPixelsColor = /* @__PURE__ */ new Map();
     for (const template of templateManager.templatesArray) {
       const total = template.pixelCount?.total ?? 0;
-      const colors = template.pixelCount?.colors ?? /* @__PURE__ */ new Map();
-      const correct = template.pixelCount?.correct ?? /* @__PURE__ */ new Map();
       allPixelsTotal += total ?? 0;
-      for (const [colorID, correctPixels] of correct) {
-        const _correctPixels = Number(correctPixels) || 0;
-        allPixelsCorrectTotal += _correctPixels;
-        const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0;
-        allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
-      }
+      const colors = template.pixelCount?.colors ?? /* @__PURE__ */ new Map();
       for (const [colorID, colorPixels] of colors) {
         const _colorPixels = Number(colorPixels) || 0;
         const allPixelsColorSoFar = allPixelsColor.get(colorID) ?? 0;
         allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
       }
+      const correctObject = template.pixelCount?.correct ?? {};
+      for (const map of Object.values(correctObject)) {
+        for (const [colorID, correctPixels] of map) {
+          const _correctPixels = Number(correctPixels) || 0;
+          allPixelsCorrectTotal += _correctPixels;
+          const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0;
+          allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
+        }
+      }
     }
+    overlayFilter.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber.format(allPixelsCorrectTotal)}`);
+    overlayFilter.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber.format(allPixelsTotal)}`);
+    overlayFilter.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
     buildColorList();
+    sortColorList("id", "ascending", false);
     function buildColorList() {
       const colorList = new Overlay(name, version);
       colorList.addDiv({ "class": "bm-filter-flex" });
@@ -2422,14 +2433,14 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
         const textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
         const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
         const colorTotal = allPixelsColor.get(color.id) ?? 0;
-        const colorTotalLocalized = new Intl.NumberFormat().format(colorTotal);
+        const colorTotalLocalized = localizeNumber.format(colorTotal);
         let colorCorrect = 0;
         let colorCorrectLocalized = "0";
-        let colorPercent = new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(1);
+        let colorPercent = localizePercent.format(1);
         if (colorTotal != 0) {
           colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
-          colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : new Intl.NumberFormat().format(colorCorrect);
-          colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(colorCorrect / colorTotal);
+          colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : localizeNumber.format(colorCorrect);
+          colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent.format(colorCorrect / colorTotal);
         }
         const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
         colorList.addDiv({
@@ -2488,6 +2499,23 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
         }
       });
       colors.forEach((color) => colorList.appendChild(color));
+    }
+    function selectColorList(userWantsUnselect) {
+      const colorList = document.querySelector(".bm-filter-flex");
+      const colors = Array.from(colorList.children);
+      for (const color of colors) {
+        if (color.classList?.contains("bm-color-hide")) {
+          continue;
+        }
+        const button = color.querySelector(".bm-filter-container-rgb button");
+        if (button.dataset["state"] == "hidden" && !userWantsUnselect) {
+          continue;
+        }
+        if (button.dataset["state"] == "shown" && userWantsUnselect) {
+          continue;
+        }
+        button.click();
+      }
     }
   }
 })();
