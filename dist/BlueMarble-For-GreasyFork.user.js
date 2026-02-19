@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.293
+// @version         0.88.305
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -56,7 +56,7 @@
       this.parentStack = [];
     }
     /** Populates the apiManager variable with the apiManager class.
-     * @param {apiManager} apiManager - The apiManager class instance
+     * @param {ApiManager} apiManager - The apiManager class instance
      * @since 0.41.4
      */
     setApiManager(apiManager2) {
@@ -1572,7 +1572,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
   };
 
   // src/templateManager.js
-  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_fn;
+  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_And_FilterTile_fn;
   var TemplateManager = class {
     /** The constructor for the {@link TemplateManager} class.
      * @since 0.55.8
@@ -1595,6 +1595,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.templatesJSON = null;
       this.templatesShouldBeDrawn = true;
       this.templatePixelsCorrect = null;
+      this.shouldFilterColor = /* @__PURE__ */ new Map();
     }
     /** Creates the JSON object to store templates in
      * @returns {{ whoami: string, scriptVersion: string, schemaVersion: string, templates: Object }} The JSON object
@@ -1743,13 +1744,22 @@ Version: ${this.version}`);
         let templateBeforeFilter32 = template.chunked32;
         const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
         const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
-        context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
+        if (this.shouldFilterColor.size == 0) {
+          context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
+        }
         if (!templateBeforeFilter32) {
           const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
           templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
         }
         const timer = Date.now();
-        const pixelsCorrect = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_fn).call(this, tileBeforeTemplates32, templateBeforeFilter32, [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]);
+        const {
+          correctPixels: pixelsCorrect,
+          filteredTemplate: templateAfterFilter
+        } = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_And_FilterTile_fn).call(this, {
+          tile: tileBeforeTemplates32,
+          template: templateBeforeFilter32,
+          templateInfo: [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]
+        });
         let pixelsCorrectTotal = 0;
         const transparentColorID = 0;
         for (const [color, total] of pixelsCorrect) {
@@ -1758,7 +1768,11 @@ Version: ${this.version}`);
           }
           pixelsCorrectTotal += total;
         }
-        console.log(`Finished calculating correct pixels for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
+        if (this.shouldFilterColor.size != 0) {
+          console.log("Colors to filter: ", this.shouldFilterColor);
+          context.putImageData(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height), coordXtoDrawAt, coordYtoDrawAt);
+        }
+        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
 There are ${pixelsCorrectTotal} correct pixels.`);
         if (typeof template.instance.pixelCount["correct"] == "undefined") {
           template.instance.pixelCount["correct"] = {};
@@ -1851,12 +1865,17 @@ There are ${pixelsCorrectTotal} correct pixels.`);
   parseOSU_fn = function() {
   };
   /** Calculates the correct pixels on this tile.
-   * @param {Uint32Array} tile32 - The tile without templates as a Uint32Array
-   * @param {Uint32Array} template32 - The template without filtering as a Uint32Array
-   * @param {Array<Number, Number, Number, Number>} templateInformation - Information about template location and size
-   * @returns {Map} - A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
+   * @param {Object} params - Object containing all parameters
+   * @param {Uint32Array} params.tile - The tile without templates as a Uint32Array
+   * @param {Uint32Array} params.template - The template without filtering as a Uint32Array
+   * @param {Array<Number, Number, Number, Number>} params.templateInfo - Information about template location and size
+   * @returns {{correctPixels: Map<number, number>, filteredTemplate: Uint32Array}} A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
    */
-  calculateCorrectPixelsOnTile_fn = function(tile32, template32, templateInformation) {
+  calculateCorrectPixelsOnTile_And_FilterTile_fn = function({
+    tile: tile32,
+    template: template32,
+    templateInfo: templateInformation
+  }) {
     const pixelSize = this.drawMult;
     const tileWidth = this.tileSize * pixelSize;
     const tileHeight = tileWidth;
@@ -1877,11 +1896,14 @@ There are ${pixelsCorrectTotal} correct pixels.`);
         const templatePixel = template32[templateRow * templateWidth + templateColumn];
         const templatePixelAlpha = templatePixel >>> 24 & 255;
         const tilePixelAlpha = tilePixelAbove >>> 24 & 255;
+        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
+        if (this.shouldFilterColor.get(bestTemplateColorID)) {
+          template32[templateRow * templateWidth + templateColumn] = tilePixelAbove;
+        }
         if (templatePixelAlpha <= tolerance || tilePixelAlpha <= tolerance) {
           continue;
         }
         const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
-        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
         if (bestTileColorID != bestTemplateColorID) {
           continue;
         }
@@ -1891,7 +1913,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     }
     console.log(`List of template pixels that match the tile:`);
     console.log(_colorpalette);
-    return _colorpalette;
+    return { correctPixels: _colorpalette, filteredTemplate: template32 };
   };
 
   // src/apiManager.js
@@ -2443,6 +2465,7 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
           colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent.format(colorCorrect / colorTotal);
         }
         const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
+        const isColorHidden = !!(templateManager.shouldFilterColor.get(color.id) || false);
         colorList.addDiv({
           "class": "bm-container bm-filter-color bm-flex-between",
           "data-id": color.id,
@@ -2453,7 +2476,12 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
           "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
           "data-incorrect": colorIncorrect || 0
         }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
-          { "class": "bm-button-trans " + bgEffectForButtons, "data-state": "shown", "aria-label": `Hide the color ${color.name || "color"} on templates`, "innerHTML": eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) },
+          {
+            "class": "bm-button-trans " + bgEffectForButtons,
+            "data-state": isColorHidden ? "hidden" : "shown",
+            "aria-label": isColorHidden ? `Show the color ${color.name || ""} on templates.` : `Hide the color ${color.name || ""} on templates.`,
+            "innerHTML": isColorHidden ? eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) : eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`)
+          },
           (instance, button) => {
             button.onclick = () => {
               button.style.textDecoration = "none";
@@ -2461,9 +2489,13 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
               if (button.dataset["state"] == "shown") {
                 button.innerHTML = eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
                 button.dataset["state"] = "hidden";
+                button.ariaLabel = `Show the color ${color.name || ""} on templates.`;
+                templateManager.shouldFilterColor.set(color.id, true);
               } else {
                 button.innerHTML = eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
                 button.dataset["state"] = "shown";
+                button.ariaLabel = `Hide the color ${color.name || ""} on templates.`;
+                templateManager.shouldFilterColor.delete(color.id);
               }
               button.disabled = false;
               button.style.textDecoration = "";

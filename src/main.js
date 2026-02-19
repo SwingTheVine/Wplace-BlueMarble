@@ -649,7 +649,9 @@ function buildWindowFilter() {
       // Incorrect pixels for this color
       const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
 
-      // Construct the DOM tree
+      const isColorHidden = !!(templateManager.shouldFilterColor.get(color.id) || false);
+
+      // Construct the DOM tree for color in color list
       colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between',
         'data-id': color.id,
         'data-name': color.name,
@@ -659,7 +661,11 @@ function buildWindowFilter() {
         'data-percent': (colorPercent.slice(-1) == '%') ? colorPercent.slice(0, -1) : '0',
         'data-incorrect': colorIncorrect || 0
       }).addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
-          .addButton({'class': 'bm-button-trans ' + bgEffectForButtons, 'data-state': 'shown', 'aria-label': `Hide the color ${color.name || 'color'} on templates`, 'innerHTML': eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`)},
+          .addButton({
+            'class': 'bm-button-trans ' + bgEffectForButtons,
+            'data-state': isColorHidden ? 'hidden' : 'shown',
+            'aria-label': isColorHidden ? `Show the color ${color.name || ''} on templates.` : `Hide the color ${color.name || ''} on templates.`,
+            'innerHTML': isColorHidden ? eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`) : eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`)},
             (instance, button) => {
               button.onclick = () => {
                 button.style.textDecoration = 'none';
@@ -667,9 +673,13 @@ function buildWindowFilter() {
                 if (button.dataset['state'] == 'shown') {
                   button.innerHTML = eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
                   button.dataset['state'] = 'hidden';
+                  button.ariaLabel = `Show the color ${color.name || ''} on templates.`;
+                  templateManager.shouldFilterColor.set(color.id, true);
                 } else {
                   button.innerHTML = eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
                   button.dataset['state'] = 'shown';
+                  button.ariaLabel = `Hide the color ${color.name || ''} on templates.`;
+                  templateManager.shouldFilterColor.delete(color.id);
                 }
                 button.disabled = false;
                 button.style.textDecoration = '';
