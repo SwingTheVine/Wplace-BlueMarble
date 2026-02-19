@@ -285,7 +285,8 @@ export default class TemplateManager {
       console.log(template);
 
       // Obtains the template (for only this tile) as a Uint32Array
-      let templateBeforeFilter32 = template.chunked32;
+      let templateBeforeFilter32 = template.chunked32.slice();
+      // Remove the `.slice()` and colors, once disabled, can never be re-enabled
 
       const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
       const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
