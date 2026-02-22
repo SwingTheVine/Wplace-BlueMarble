@@ -1083,6 +1083,77 @@ export default class Overlay {
     return this;
   }
 
+  /** Adds a timer `time` element to the overlay.
+   * This timer will countdown until it reaches the end date that was passed in.
+   * Additionally, you can update the end date by changing the endDate dataset attribute on the element.
+   * This timer will have properties shared between all timers in the overlay.
+   * You can override the shared properties by using a callback.
+   * @param {Date} [endDate=Date.now()] - The time to count down to.
+   * @param {number} [updateInterval=500] - The time in milliseconds to update the display of the timer. Default is 500 milliseconds.
+   * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the timer that are NOT shared between all overlay timers. These should be camelCase.
+   * @param {function(Overlay, HTMLTimeElement):void} [callback=()=>{}] - Additional JS modification to the timer.
+   * @returns {Overlay} Overlay class instance (this)
+   * @since 0.88.313
+   * @example
+   * // Assume all timers have a shared class (e.g. {'className': 'bar'})
+   * overlay.addTimer(Date.now() + 2211632704000, 500, {'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+   * // Output:
+   * // (Assume <body> already exists in the webpage)
+   * <body>
+   *   <time id="bm-timer-dh8fhw80" class="bar" datetime="PT27H34M56S" data-end-date="1771749296000">27:34:56</div>
+   * </body>
+   */
+  addTimer(endDate = Date.now(), updateInterval = 500, additionalProperties = {}, callback = () => {}) {
+
+    const timerClass = 'bm-timer';
+
+    // Use the provided ID attribute. Otherwise, generate a random one.
+    // "Random" ID is 8 pseudo-random hexdecimal characters from a UUIDv4 string
+    // The ID has a prefix that is equal to the bm-timer class, then a dash, then the random hexdecimal digits
+    const timerID = additionalProperties?.['id'] || (timerClass + '-' + crypto.randomUUID().slice(0, 8));
+
+    // Shared timer DOM properties
+    const properties = {
+      'class': timerClass
+    }
+
+    const timer = this.#createElement('time', properties, additionalProperties); // Creates the timer element
+    timer.id = timerID; // Adds the ID to the timer
+    timer.dataset['endDate'] = endDate; // Adds the end date to the timer
+
+    // Creates the logic that keeps updating the timer
+    setInterval(() => {
+
+      // Kills the timer logic if the timer element does not exist in the main DOM tree
+      if (!timer.isConnected) {/*clearInterval(timer);*/ return;}
+
+      // Returns time remaining in seconds, or 0 seconds if timer has reached end time.
+      // "Total" indicates it is the total time for that unit. E.g. 62 minutes is "62" minutes.
+      const timeRemainingTotalMs = Math.max(timer.dataset['endDate'] - Date.now(), 0);
+      const timeRemainingTotalSec = Math.floor(timeRemainingTotalMs / 1000);
+      const timeRemainingTotalHr = Math.floor(timeRemainingTotalSec / 3600);
+      
+      // Remaining time in certain units.
+      // "Only" indicates it is formatted in that unit. E.g. 62 minutes is "2" minutes.
+      const timeRemainingOnlySec = Math.floor(timeRemainingTotalSec % 60);
+      const timeRemainingOnlyMin = Math.floor((timeRemainingTotalSec % 3600) / 60);
+
+      // Date-time string that is compliant with the HTML Standard for durations
+      timer.setAttribute('datetime', `PT${timeRemainingTotalHr}H${timeRemainingOnlyMin}M${timeRemainingOnlySec}S`);
+      // https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-duration-string
+
+      // Formats the timer as HH:MM:SS and displays it to the user
+      timer.textContent = 
+        String(timeRemainingTotalHr).padStart(2, '0') + ':' +
+        String(timeRemainingOnlyMin).padStart(2, '0') + ':' +
+        String(timeRemainingOnlySec).padStart(2, '0')
+      ;
+    }, updateInterval);
+
+    callback(this, timer); // Runs any script passed in through the callback
+    return this;
+  }
+
   /** Updates the inner HTML of the element.
    * The element is discovered by it's id.
    * If the element is an `input`, it will modify the value attribute instead.

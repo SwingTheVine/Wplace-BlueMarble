@@ -199,8 +199,11 @@ console.log(storageTemplates);
 templateManager.importJSON(storageTemplates); // Loads the templates
 
 const userSettings = JSON.parse(GM_getValue('bmUserSettings', '{}')); // Loads the user settings
+
 console.log(userSettings);
 console.log(Object.keys(userSettings).length);
+
+// If the user does not have a UUID yet, make a new one.
 if (Object.keys(userSettings).length == 0) {
   const uuid = crypto.randomUUID(); // Generates a random UUID
   console.log(uuid);
@@ -208,9 +211,12 @@ if (Object.keys(userSettings).length == 0) {
     'uuid': uuid
   }));
 }
+
 setInterval(() => apiManager.sendHeartbeat(version), 1000 * 60 * 30); // Sends a heartbeat every 30 minutes
 
 console.log(`Telemetry is ${!(userSettings?.telemetry == undefined)}`);
+
+// If the user has not agreed to the current data collection terms, we need to show the Telemetry window.
 if ((userSettings?.telemetry == undefined) || (userSettings?.telemetry > 1)) { // Increment 1 to retrigger telemetry notice
   const telemetryOverlay = new Overlay(name, version);
   telemetryOverlay.setApiManager(apiManager); // Sets the API manager for the telemetry overlay
@@ -286,8 +292,15 @@ function buildWindowMain() {
       .buildElement()
       .addHr().buildElement()
       .addDiv({'class': 'bm-container'})
-        .addP({'id': 'bm-user-droplets', 'textContent': 'Droplets:'}).buildElement()
-        .addP({'id': 'bm-user-nextlevel', 'textContent': 'Next level in...'}).buildElement()
+        .addSpan({'id': 'bm-user-droplets', 'textContent': 'Droplets:'}).buildElement()
+        .addBr().buildElement()
+        .addSpan({'id': 'bm-user-nextlevel', 'textContent': 'Next level in...'}).buildElement()
+        .addBr().buildElement()
+        .addSpan({'textContent': 'Charges: '})
+          .addTimer(Date.now(), 1000, {'style': 'font-weight: 700;'}, (instance, timer) => {
+            apiManager.chargeRefillTimerID = timer.id; // Store the timer ID in apiManager so we can update the timer automatically
+          }).buildElement()
+        .buildElement()
       .buildElement()
       .addHr().buildElement()
       .addDiv({'class': 'bm-container'})
@@ -614,14 +627,15 @@ function buildWindowFilter() {
   }
 
   // Calculates the date & time the user will complete the templates
-  const timeRemaining = new Date(((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1000) + Date.now()).toLocaleString(undefined, localizeDateTimeOptions);
+  const timeRemaining = new Date(((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1000) + Date.now());
+  const timeRemainingLocalized = timeRemaining.toLocaleString(undefined, localizeDateTimeOptions);
   // "30" is seconds. "1000" converts to milliseconds. "undefined" forces the localization to be the users.
 
   // Displays the total amounts across all colors to the user
   overlayFilter.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${localizeNumber.format(allPixelsCorrectTotal)}`);
   overlayFilter.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${localizeNumber.format(allPixelsTotal)}`);
   overlayFilter.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
-  overlayFilter.updateInnerHTML('#bm-filter-tot-completed', `<b>Completed at:</b> ${timeRemaining}`)
+  overlayFilter.updateInnerHTML('#bm-filter-tot-completed', `<b>Completed at:</b> <time datetime="${timeRemaining.toISOString().replace(/\.\d{3}Z$/, 'Z')}">${timeRemainingLocalized}</time>`);
 
   // These run when the user opens the Color Filter window
   buildColorList();
