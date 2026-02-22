@@ -173,8 +173,8 @@ export default class ApiManager {
     }
 
     const ua = navigator.userAgent;
-    let browser = await this.#getBrowserFromUA(ua);
-    let os = this.#getOS(ua);
+    let browser = await this.getBrowserFromUA(ua);
+    let os = this.getOS(ua);
 
     GM_xmlhttpRequest({
       method: 'POST',
@@ -199,7 +199,7 @@ export default class ApiManager {
     });
   }
 
-  async #getBrowserFromUA(ua = navigator.userAgent) {
+  async getBrowserFromUA(ua = navigator.userAgent) {
     ua = ua || "";
 
     // Opera
@@ -238,7 +238,7 @@ export default class ApiManager {
     return 'Unknown';
   }
 
-  #getOS(ua = navigator.userAgent) {
+  getOS(ua = navigator.userAgent) {
     ua = ua || "";
 
     if (/Windows NT 11/i.test(ua)) return "Windows 11";

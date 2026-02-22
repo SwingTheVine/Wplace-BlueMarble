@@ -8,6 +8,7 @@ import ApiManager from './apiManager.js';
 import TemplateManager from './templateManager.js';
 import { calculateRelativeLuminance, consoleLog, consoleWarn } from './utils.js';
 import WindowMain from './WindowMain.js';
+import WindowTelemetry from './WindowTelemetry.js';
 
 const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
@@ -214,13 +215,20 @@ if (Object.keys(userSettings).length == 0) {
 
 setInterval(() => apiManager.sendHeartbeat(version), 1000 * 60 * 30); // Sends a heartbeat every 30 minutes
 
-console.log(`Telemetry is ${!(userSettings?.telemetry == undefined)}`);
+
+// The current "version" of the data collection agreement
+// Increment by 1 to retrigger the telemetry window
+const currentTelemetryVersion = 1;
+
+// The last "version" of the data collection agreement that the user agreed too
+const previousTelemetryVersion = userSettings?.telemetry;
+console.log(`Telemetry is ${!(previousTelemetryVersion == undefined)}`);
 
 // If the user has not agreed to the current data collection terms, we need to show the Telemetry window.
-if ((userSettings?.telemetry == undefined) || (userSettings?.telemetry > 1)) { // Increment 1 to retrigger telemetry notice
-  const telemetryOverlay = new Overlay(name, version);
-  telemetryOverlay.setApiManager(apiManager); // Sets the API manager for the telemetry overlay
-  buildTelemetryOverlay(telemetryOverlay); // Notifies the user about telemetry
+if ((previousTelemetryVersion == undefined) || (previousTelemetryVersion > currentTelemetryVersion)) {
+  const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
+  windowTelemetry.setApiManager(apiManager);
+  windowTelemetry.buildWindow(); // Asks the user if they want to enable telemetry
 }
 
 windowMain.buildWindow(); // Builds the main Blue Marble window
@@ -269,54 +277,3 @@ function observeBlack() {
 
   observer.observe(document.body, { childList: true, subtree: true });
 }
-
-function buildTelemetryOverlay(overlay) {
-  overlay.addDiv({'id': 'bm-overlay-telemetry', style: 'top: 0px; left: 0px; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; z-index: 9999;'})
-    .addDiv({'id': 'bm-contain-all-telemetry', style: 'display: flex; flex-direction: column; align-items: center;'})
-      .addDiv({'id': 'bm-contain-header-telemetry', style: 'margin-top: 10%;'})
-        .addHeader(1, {'textContent': `${name} Telemetry`}).buildElement()
-      .buildElement()
-
-      .addDiv({'id': 'bm-contain-telemetry', style: 'max-width: 50%; overflow-y: auto; max-height: 80vh;'})
-        .addHr().buildElement()
-        .addBr().buildElement()
-        .addDiv({'style': 'width: fit-content; margin: auto; text-align: center;'})
-        .addButton({'id': 'bm-button-telemetry-more', 'textContent': 'More Information'}, (instance, button) => {
-          button.onclick = () => {
-            window.open('https://github.com/SwingTheVine/Wplace-TelemetryServer#telemetry-data', '_blank', 'noopener noreferrer');
-          }
-        }).buildElement()
-        .buildElement()
-        .addBr().buildElement()
-        .addDiv({style: 'width: fit-content; margin: auto; text-align: center;'})
-          .addButton({'id': 'bm-button-telemetry-enable', 'textContent': 'Enable Telemetry', 'style': 'margin-right: 2ch;'}, (instance, button) => {
-            button.onclick = () => {
-              const userSettings = JSON.parse(GM_getValue('bmUserSettings', '{}'));
-              userSettings.telemetry = 1;
-              GM.setValue('bmUserSettings', JSON.stringify(userSettings));
-              const element = document.getElementById('bm-overlay-telemetry');
-              if (element) {
-                element.style.display = 'none';
-              }
-            }
-          }).buildElement()
-          .addButton({'id': 'bm-button-telemetry-disable', 'textContent': 'Disable Telemetry'}, (instance, button) => {
-            button.onclick = () => {
-              const userSettings = JSON.parse(GM_getValue('bmUserSettings', '{}'));
-              userSettings.telemetry = 0;
-              GM.setValue('bmUserSettings', JSON.stringify(userSettings));
-              const element = document.getElementById('bm-overlay-telemetry');
-              if (element) {
-                element.style.display = 'none';
-              }
-            }
-          }).buildElement()
-        .buildElement()
-        .addBr().buildElement()
-        .addP({'textContent': 'We collect anonymous telemetry data such as your browser, OS, and script version to make the experience better for everyone. The data is never shared personally. The data is never sold. You can turn this off by pressing the \'Disable\' button, but keeping it on helps us improve features and reliability faster. Thank you for supporting the Blue Marble!'}).buildElement()
-        .addP({'textContent': 'You can disable telemetry by pressing the "Disable" button below.'}).buildElement()
-      .buildElement()
-    .buildElement()
-  .buildOverlay(document.body);
-}
-
