@@ -16,6 +16,7 @@ export default class ApiManager {
   constructor(templateManager) {
     this.templateManager = templateManager;
     this.disableAll = false; // Should the entire userscript be disabled?
+    this.chargeRefillTimerID = ''; // Contains the Charge refill timer element ID attribute so we can update the timer.
     this.coordsTilePixel = []; // Contains the last detected tile/pixel coordinate pair requested
     this.templateCoordsTilePixel = []; // Contains the last "enabled" template coords
   }
@@ -72,7 +73,23 @@ export default class ApiManager {
             ));
           }
           this.templateManager.userID = dataJSON['id'];
-          
+
+          // Obtains the refill timer for charges
+          if (this.chargeRefillTimerID.length != 0) {
+            const chargeRefillTimer = document.querySelector('#' + this.chargeRefillTimerID);
+            
+            // If the refill timer exists...
+            if (chargeRefillTimer) {
+              
+              /** Obtains the information about the user's charges @type {{cooldownMs: number, count: number, max: number}} */
+              const chargeData = dataJSON['charges'];
+  
+              // Date that the user's charges will be refilled
+              chargeRefillTimer.dataset['endDate'] = Date.now() + ((chargeData['max'] - chargeData['count']) * chargeData['cooldownMs']);
+            }
+          }
+
+          // Updates displayed droplet information
           overlay.updateInnerHTML('bm-user-droplets', `Droplets: <b>${new Intl.NumberFormat().format(dataJSON['droplets'])}</b>`); // Updates the text content of the droplets field
           overlay.updateInnerHTML('bm-user-nextlevel', `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? '' : 's'}`); // Updates the text content of the next level field
           break;

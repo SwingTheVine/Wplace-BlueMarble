@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.310
+// @version         0.88.325
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -942,6 +942,51 @@
       };
       const dragbar = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "div", properties, additionalProperties);
       callback(this, dragbar);
+      return this;
+    }
+    /** Adds a timer `time` element to the overlay.
+     * This timer will countdown until it reaches the end date that was passed in.
+     * Additionally, you can update the end date by changing the endDate dataset attribute on the element.
+     * This timer will have properties shared between all timers in the overlay.
+     * You can override the shared properties by using a callback.
+     * @param {Date} [endDate=Date.now()] - The time to count down to.
+     * @param {number} [updateInterval=500] - The time in milliseconds to update the display of the timer. Default is 500 milliseconds.
+     * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the timer that are NOT shared between all overlay timers. These should be camelCase.
+     * @param {function(Overlay, HTMLTimeElement):void} [callback=()=>{}] - Additional JS modification to the timer.
+     * @returns {Overlay} Overlay class instance (this)
+     * @since 0.88.313
+     * @example
+     * // Assume all timers have a shared class (e.g. {'className': 'bar'})
+     * overlay.addTimer(Date.now() + 2211632704000, 500, {'id': 'foo', 'textContent': 'Foobar.'}).buildOverlay(document.body);
+     * // Output:
+     * // (Assume <body> already exists in the webpage)
+     * <body>
+     *   <time id="bm-timer-dh8fhw80" class="bar" datetime="PT27H34M56S" data-end-date="1771749296000">27:34:56</div>
+     * </body>
+     */
+    addTimer(endDate = Date.now(), updateInterval = 500, additionalProperties = {}, callback = () => {
+    }) {
+      const timerClass = "bm-timer";
+      const timerID = additionalProperties?.["id"] || timerClass + "-" + crypto.randomUUID().slice(0, 8);
+      const properties = {
+        "class": timerClass
+      };
+      const timer = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "time", properties, additionalProperties);
+      timer.id = timerID;
+      timer.dataset["endDate"] = endDate;
+      setInterval(() => {
+        if (!timer.isConnected) {
+          return;
+        }
+        const timeRemainingTotalMs = Math.max(timer.dataset["endDate"] - Date.now(), 0);
+        const timeRemainingTotalSec = Math.floor(timeRemainingTotalMs / 1e3);
+        const timeRemainingTotalHr = Math.floor(timeRemainingTotalSec / 3600);
+        const timeRemainingOnlySec = Math.floor(timeRemainingTotalSec % 60);
+        const timeRemainingOnlyMin = Math.floor(timeRemainingTotalSec % 3600 / 60);
+        timer.setAttribute("datetime", `PT${timeRemainingTotalHr}H${timeRemainingOnlyMin}M${timeRemainingOnlySec}S`);
+        timer.textContent = String(timeRemainingTotalHr).padStart(2, "0") + ":" + String(timeRemainingOnlyMin).padStart(2, "0") + ":" + String(timeRemainingOnlySec).padStart(2, "0");
+      }, updateInterval);
+      callback(this, timer);
       return this;
     }
     /** Updates the inner HTML of the element.
@@ -1926,6 +1971,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
       __privateAdd(this, _ApiManager_instances);
       this.templateManager = templateManager2;
       this.disableAll = false;
+      this.chargeRefillTimerID = "";
       this.coordsTilePixel = [];
       this.templateCoordsTilePixel = [];
     }
@@ -1964,6 +2010,13 @@ Could not fetch userdata.`);
               ));
             }
             this.templateManager.userID = dataJSON["id"];
+            if (this.chargeRefillTimerID.length != 0) {
+              const chargeRefillTimer = document.querySelector("#" + this.chargeRefillTimerID);
+              if (chargeRefillTimer) {
+                const chargeData = dataJSON["charges"];
+                chargeRefillTimer.dataset["endDate"] = Date.now() + (chargeData["max"] - chargeData["count"]) * chargeData["cooldownMs"];
+              }
+            }
             overlay.updateInnerHTML("bm-user-droplets", `Droplets: <b>${new Intl.NumberFormat().format(dataJSON["droplets"])}</b>`);
             overlay.updateInnerHTML("bm-user-nextlevel", `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? "" : "s"}`);
             break;
@@ -2259,7 +2312,9 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       button.ontouchend = () => {
         button.click();
       };
-    }).buildElement().addDiv().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addP({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
+    }).buildElement().addDiv().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().addBr().buildElement().addSpan({ "textContent": "Charges: " }).addTimer(Date.now(), 1e3, { "style": "font-weight: 700;" }, (instance, timer) => {
+      apiManager.chargeRefillTimerID = timer.id;
+    }).buildElement().buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
       { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg viewBox="0 0 4 6"><path d="M.5,3.4A2,2 0 1 1 3.5,3.4L2,6"/><circle cx="2" cy="2" r=".7" fill="#fff"/></svg>' },
       (instance, button) => {
         button.onclick = () => {
@@ -2453,11 +2508,12 @@ Version: ${version}`, "readOnly": true }).buildElement().buildElement().addDiv({
       second: "2-digit"
       // 00
     };
-    const timeRemaining = new Date((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1e3 + Date.now()).toLocaleString(void 0, localizeDateTimeOptions);
+    const timeRemaining = new Date((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
+    const timeRemainingLocalized = timeRemaining.toLocaleString(void 0, localizeDateTimeOptions);
     overlayFilter.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber.format(allPixelsCorrectTotal)}`);
     overlayFilter.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber.format(allPixelsTotal)}`);
     overlayFilter.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
-    overlayFilter.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> ${timeRemaining}`);
+    overlayFilter.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${timeRemainingLocalized}</time>`);
     buildColorList();
     sortColorList("id", "ascending", false);
     function buildColorList() {
