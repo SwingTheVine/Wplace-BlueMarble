@@ -2,7 +2,7 @@ import Overlay from "./Overlay";
 import { calculateRelativeLuminance } from "./utils";
 
 /** The overlay builder for the color filter Blue Marble window.
- * @description This class handles the overlay UI for the coolor filter window of the Blue Marble userscript.
+ * @description This class handles the overlay UI for the color filter window of the Blue Marble userscript.
  * @class WindowFilter
  * @since 0.88.329
  * @see {@link Overlay} for examples
@@ -76,7 +76,7 @@ export default class WindowFilter extends Overlay {
           .addHeader(1, {'textContent': 'Color Filter'}).buildElement()
         .buildElement()
         .addHr().buildElement()
-        .addDiv({'class': 'bm-container bm-flex-between', 'style': 'gap: 1.5ch; width: fit-content; margin-left: auto; margin-right: auto;'})
+        .addDiv({'class': 'bm-container bm-flex-between bm-center-vertically', 'style': 'gap: 1.5ch;'})
           .addButton({'textContent': 'Select All'}, (instance, button) => {
             button.onclick = () => this.#selectColorList(false);
           }).buildElement()

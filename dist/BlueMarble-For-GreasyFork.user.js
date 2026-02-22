@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.338
+// @version         0.88.355
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -1301,6 +1301,11 @@
   };
 
   // src/utils.js
+  function escapeHTML(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
   function serverTPtoDisplayTP(tile, pixel) {
     return [parseInt(tile[0]) % 4 * 1e3 + parseInt(pixel[0]), parseInt(tile[1]) % 4 * 1e3 + parseInt(pixel[1])];
   }
@@ -1961,14 +1966,12 @@ There are ${pixelsCorrectTotal} correct pixels.`);
   };
 
   // src/apiManager.js
-  var _ApiManager_instances, getBrowserFromUA_fn, getOS_fn;
   var ApiManager = class {
     /** Constructor for ApiManager class
      * @param {TemplateManager} templateManager 
      * @since 0.11.34
      */
     constructor(templateManager2) {
-      __privateAdd(this, _ApiManager_instances);
       this.templateManager = templateManager2;
       this.disableAll = false;
       this.chargeRefillTimerID = "";
@@ -2079,8 +2082,8 @@ Did you try clicking the canvas first?`);
         return;
       }
       const ua = navigator.userAgent;
-      let browser = await __privateMethod(this, _ApiManager_instances, getBrowserFromUA_fn).call(this, ua);
-      let os = __privateMethod(this, _ApiManager_instances, getOS_fn).call(this, ua);
+      let browser = await this.getBrowserFromUA(ua);
+      let os = this.getOS(ua);
       GM_xmlhttpRequest({
         method: "POST",
         url: "https://telemetry.thebluecorner.net/heartbeat",
@@ -2103,44 +2106,43 @@ Did you try clicking the canvas first?`);
         }
       });
     }
-  };
-  _ApiManager_instances = new WeakSet();
-  getBrowserFromUA_fn = async function(ua = navigator.userAgent) {
-    ua = ua || "";
-    if (ua.includes("OPR/") || ua.includes("Opera")) return "Opera";
-    if (ua.includes("Edg/")) return "Edge";
-    if (ua.includes("Vivaldi")) return "Vivaldi";
-    if (ua.includes("YaBrowser")) return "Yandex";
-    if (ua.includes("Kiwi")) return "Kiwi";
-    if (ua.includes("Brave")) return "Brave";
-    if (ua.includes("Firefox/")) return "Firefox";
-    if (ua.includes("Chrome/")) return "Chrome";
-    if (ua.includes("Safari/")) return "Safari";
-    if (navigator.brave && typeof navigator.brave.isBrave === "function") {
-      if (await navigator.brave.isBrave()) return "Brave";
+    async getBrowserFromUA(ua = navigator.userAgent) {
+      ua = ua || "";
+      if (ua.includes("OPR/") || ua.includes("Opera")) return "Opera";
+      if (ua.includes("Edg/")) return "Edge";
+      if (ua.includes("Vivaldi")) return "Vivaldi";
+      if (ua.includes("YaBrowser")) return "Yandex";
+      if (ua.includes("Kiwi")) return "Kiwi";
+      if (ua.includes("Brave")) return "Brave";
+      if (ua.includes("Firefox/")) return "Firefox";
+      if (ua.includes("Chrome/")) return "Chrome";
+      if (ua.includes("Safari/")) return "Safari";
+      if (navigator.brave && typeof navigator.brave.isBrave === "function") {
+        if (await navigator.brave.isBrave()) return "Brave";
+      }
+      return "Unknown";
     }
-    return "Unknown";
-  };
-  getOS_fn = function(ua = navigator.userAgent) {
-    ua = ua || "";
-    if (/Windows NT 11/i.test(ua)) return "Windows 11";
-    if (/Windows NT 10/i.test(ua)) return "Windows 10";
-    if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
-    if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
-    if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
-    if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
-    if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
-    if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
-    if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
-    if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
-    if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
-    if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
-    if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
-    if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
-    if (/Android/i.test(ua)) return "Android";
-    if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
-    if (/Linux/i.test(ua)) return "Linux";
-    return "Unknown";
+    getOS(ua = navigator.userAgent) {
+      ua = ua || "";
+      if (/Windows NT 11/i.test(ua)) return "Windows 11";
+      if (/Windows NT 10/i.test(ua)) return "Windows 10";
+      if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
+      if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
+      if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
+      if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
+      if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
+      if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
+      if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
+      if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
+      if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
+      if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
+      if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
+      if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
+      if (/Android/i.test(ua)) return "Android";
+      if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
+      if (/Linux/i.test(ua)) return "Linux";
+      return "Unknown";
+    }
   };
 
   // src/WindowFilter.js
@@ -2199,7 +2201,7 @@ Did you try clicking the canvas first?`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "gap: 1.5ch; width: fit-content; margin-left: auto; margin-right: auto;" }).addButton({ "textContent": "Select All" }, (instance, button) => {
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "Select All" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
       }).buildElement().addButton({ "textContent": "Unselect All" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
@@ -2496,11 +2498,77 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
   };
   _WindowMain_instances = new WeakSet();
   /** Displays a new color filter window.
+   * This is a helper function that creates a new class instance.
+   * This might cause a memory leak. I pray that this is not the case...
    * @since 0.88.330
    */
   buildWindowFilter_fn = function() {
     const windowFilter = new WindowFilter(this);
     windowFilter.buildWindow();
+  };
+
+  // src/WindowTelemetry.js
+  var _WindowTelemetry_instances, setTelemetryValue_fn;
+  var WindowTelemetry = class extends Overlay {
+    /** Constructor for the telemetry window
+     * @param {string} name - The name of the userscript
+     * @param {string} version - The version of the userscript
+     * @param {number} currentTelemetryVersion - The current "version" of the data collection agreement
+     * @param {string} uuid - The UUID of the user
+     * @since 0.88.339
+     * @see {@link Overlay#constructor}
+     */
+    constructor(name2, version2, currentTelemetryVersion2, uuid) {
+      super(name2, version2);
+      __privateAdd(this, _WindowTelemetry_instances);
+      this.window = null;
+      this.windowID = "bm-window-telemetry";
+      this.windowParent = document.body;
+      this.currentTelemetryVersion = currentTelemetryVersion2;
+      this.uuid = uuid;
+    }
+    /** Spawns a telemetry window.
+     * If another telemetry window already exists, we DON'T spawn another!
+     * Parent/child relationships in the DOM structure below are indicated by indentation.
+     * @since 0.88.339
+     */
+    async buildWindow() {
+      if (document.querySelector(`#${this.windowID}`)) {
+        this.handleDisplayError("Telemetry window already exists!");
+        return;
+      }
+      const browser = await this.apiManager.getBrowserFromUA(navigator.userAgent);
+      const os = this.apiManager.getOS(navigator.userAgent);
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": "height: 80vh; z-index: 9998;" }).addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": `${this.name} Telemetry` }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-center", "style": "gap: 1.5ch; flex-wrap: wrap;" }).addButton({ "textContent": "Enable Telemetry" }, (instance, button) => {
+        button.onclick = () => {
+          __privateMethod(this, _WindowTelemetry_instances, setTelemetryValue_fn).call(this, this.currentTelemetryVersion);
+          const element = document.getElementById(this.windowID);
+          element?.remove();
+        };
+      }).buildElement().addButton({ "textContent": "Disable Telemetry" }, (instance, button) => {
+        button.onclick = () => {
+          __privateMethod(this, _WindowTelemetry_instances, setTelemetryValue_fn).call(this, 0);
+          const element = document.getElementById(this.windowID);
+          element?.remove();
+        };
+      }).buildElement().addButton({ "textContent": "More Information" }, (instance, button) => {
+        button.onclick = () => {
+          window.open("https://github.com/SwingTheVine/Wplace-TelemetryServer#telemetry-data", "_blank", "noopener noreferrer");
+        };
+      }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Legal" }).buildElement().addP({ "textContent": `We collect anonymous telemetry data such as your browser, OS, and script version to make the experience better for everyone. The data is never shared personally. The data is never sold. You can turn this off by pressing the "Disable" button, but keeping it on helps us improve features and reliability faster. Thank you for supporting ${this.name}!` }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Non-Legal Summary" }).buildElement().addP({ "innerHTML": `You can disable telemetry by pressing the "Disable" button. If you would like to read more about what information we collect, press the "More Information" button.<br>This is the data <em>stored</em> on our servers:` }).buildElement().addUl().addLi({ "innerHTML": `A unique identifier (UUIDv4) generated by Blue Marble. This enables our telemetry to function without tracking your actual user ID.<br>Your UUID is: <b>${escapeHTML(this.uuid)}</b>` }).buildElement().addLi({ "innerHTML": `The version of Blue Marble you are using.<br>Your version is: <b>${escapeHTML(this.version)}</b>` }).buildElement().addLi({ "innerHTML": `Your browser type, which is used to determine Blue Marble outages and browser popularity.<br>Your browser type is: <b>${escapeHTML(browser)}</b>` }).buildElement().addLi({ "innerHTML": `Your OS type, which is used to determine Blue Marble outages and OS popularity.<br>Your OS type is: <b>${escapeHTML(os)}</b>` }).buildElement().addLi({ "innerHTML": `The date and time that Blue Marble sent the telemetry information.` }).buildElement().buildElement().addP({ "innerHTML": `All of the data mentioned above is <b>aggregated every hour</b>. This means every hour, anything that could even remotly be considered "personal data" is deleted from our server. Here, "aggregated" data means things like "42 people used Blue Marble on Google Chrome this hour", which can't be used to identify anyone in particular.` }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+    }
+  };
+  _WindowTelemetry_instances = new WeakSet();
+  /** Enables or disables telemetry based on the value passed in.
+   * A value of zero will always disable telemetry.
+   * A numeric, non-zero value will enable telemetry until the telemetry agreement is changed.
+   * @param {number} value - The value to set the telemetry to
+   * @since 0.88.339
+   */
+  setTelemetryValue_fn = function(value2) {
+    const userSettings2 = JSON.parse(GM_getValue("bmUserSettings", "{}"));
+    userSettings2.telemetry = value2;
+    GM.setValue("bmUserSettings", JSON.stringify(userSettings2));
   };
 
   // src/main.js
@@ -2627,11 +2695,13 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     }));
   }
   setInterval(() => apiManager.sendHeartbeat(version), 1e3 * 60 * 30);
-  console.log(`Telemetry is ${!(userSettings?.telemetry == void 0)}`);
-  if (userSettings?.telemetry == void 0 || userSettings?.telemetry > 1) {
-    const telemetryOverlay = new Overlay(name, version);
-    telemetryOverlay.setApiManager(apiManager);
-    buildTelemetryOverlay(telemetryOverlay);
+  var currentTelemetryVersion = 1;
+  var previousTelemetryVersion = userSettings?.telemetry;
+  console.log(`Telemetry is ${!(previousTelemetryVersion == void 0)}`);
+  if (previousTelemetryVersion == void 0 || previousTelemetryVersion > currentTelemetryVersion) {
+    const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
+    windowTelemetry.setApiManager(apiManager);
+    windowTelemetry.buildWindow();
   }
   windowMain.buildWindow();
   apiManager.spontaneousResponseListener(windowMain);
@@ -2664,32 +2734,5 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
-  }
-  function buildTelemetryOverlay(overlay) {
-    overlay.addDiv({ "id": "bm-overlay-telemetry", style: "top: 0px; left: 0px; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; z-index: 9999;" }).addDiv({ "id": "bm-contain-all-telemetry", style: "display: flex; flex-direction: column; align-items: center;" }).addDiv({ "id": "bm-contain-header-telemetry", style: "margin-top: 10%;" }).addHeader(1, { "textContent": `${name} Telemetry` }).buildElement().buildElement().addDiv({ "id": "bm-contain-telemetry", style: "max-width: 50%; overflow-y: auto; max-height: 80vh;" }).addHr().buildElement().addBr().buildElement().addDiv({ "style": "width: fit-content; margin: auto; text-align: center;" }).addButton({ "id": "bm-button-telemetry-more", "textContent": "More Information" }, (instance, button) => {
-      button.onclick = () => {
-        window.open("https://github.com/SwingTheVine/Wplace-TelemetryServer#telemetry-data", "_blank", "noopener noreferrer");
-      };
-    }).buildElement().buildElement().addBr().buildElement().addDiv({ style: "width: fit-content; margin: auto; text-align: center;" }).addButton({ "id": "bm-button-telemetry-enable", "textContent": "Enable Telemetry", "style": "margin-right: 2ch;" }, (instance, button) => {
-      button.onclick = () => {
-        const userSettings2 = JSON.parse(GM_getValue("bmUserSettings", "{}"));
-        userSettings2.telemetry = 1;
-        GM.setValue("bmUserSettings", JSON.stringify(userSettings2));
-        const element = document.getElementById("bm-overlay-telemetry");
-        if (element) {
-          element.style.display = "none";
-        }
-      };
-    }).buildElement().addButton({ "id": "bm-button-telemetry-disable", "textContent": "Disable Telemetry" }, (instance, button) => {
-      button.onclick = () => {
-        const userSettings2 = JSON.parse(GM_getValue("bmUserSettings", "{}"));
-        userSettings2.telemetry = 0;
-        GM.setValue("bmUserSettings", JSON.stringify(userSettings2));
-        const element = document.getElementById("bm-overlay-telemetry");
-        if (element) {
-          element.style.display = "none";
-        }
-      };
-    }).buildElement().buildElement().addBr().buildElement().addP({ "textContent": "We collect anonymous telemetry data such as your browser, OS, and script version to make the experience better for everyone. The data is never shared personally. The data is never sold. You can turn this off by pressing the 'Disable' button, but keeping it on helps us improve features and reliability faster. Thank you for supporting the Blue Marble!" }).buildElement().addP({ "textContent": 'You can disable telemetry by pressing the "Disable" button below.' }).buildElement().buildElement().buildElement().buildOverlay(document.body);
   }
 })();

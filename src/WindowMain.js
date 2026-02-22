@@ -170,6 +170,8 @@ export default class WindowMain extends Overlay {
   }
 
   /** Displays a new color filter window.
+   * This is a helper function that creates a new class instance.
+   * This might cause a memory leak. I pray that this is not the case...
    * @since 0.88.330
    */
   #buildWindowFilter() {

@@ -25,7 +25,7 @@
   top: 75px;
   left: 60px;
   width: auto;
-  max-height: calc(100vh - 150px);
+  max-height: fit-content;
   max-width: calc(100% - 135px);
   /* Font stack is as follows:
    * Highest Priority (Roboto Mono)
@@ -123,7 +123,7 @@
 }
 
 /* Container with a vertically centered header 1-6 */
-.bm-container.bm-center-vertically:has(>:where(h1, h2, h3, h4, h5, h6)) {
+.bm-container.bm-center-vertically {
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
@@ -289,6 +289,18 @@ input[type="file"] {
   color: lightgray;
 }
 
+/* List items of unordered lists */
+.bm-window ul li {
+  list-style: disc;
+  margin-left: 5ch;
+}
+
+/* Scrollable container */
+.bm-window .bm-container.bm-scrollable {
+  max-height: calc(80vh - 150px);
+  overflow: auto;
+}
+
 /* Flex children space between */
 .bm-flex-between {
   display: flex;
@@ -312,12 +324,6 @@ input[type="file"] {
   display: inline;
   height: 1em;
   fill: white;
-}
-
-/* Filter window scrollable container */
-#bm-window-filter .bm-container.bm-scrollable {
-  max-height: calc(80vh - 150px);
-  overflow: auto;
 }
 
 /* Filter flex */
