@@ -1,0 +1,34 @@
+/* @since 0.88.356 */
+
+/* Confetti shard container */
+div:has(> confetti-piece) {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Confetti shards */
+confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: var(--size);
+  height: var(--size);
+  background: currentColor;
+  transform:
+    translate3d(var(--x), -10vh, 0)
+    rotate(var(--rot));
+  animation:
+    fall var(--duration) linear var(--delay);
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* Makes confetti shards fall */
+@keyframes fall {
+  to {
+    transform:
+      translate3d(var(--x), 110vh, 0)
+      rotate(calc(var(--rot) + 720deg));
+  }
+}

@@ -2,11 +2,10 @@
  * @since 0.0.0
  */
 
-import Overlay from './Overlay.js';
 import Observers from './observers.js';
 import ApiManager from './apiManager.js';
 import TemplateManager from './templateManager.js';
-import { calculateRelativeLuminance, consoleLog, consoleWarn } from './utils.js';
+import { consoleLog, consoleWarn } from './utils.js';
 import WindowMain from './WindowMain.js';
 import WindowTelemetry from './WindowTelemetry.js';
 
@@ -214,7 +213,6 @@ if (Object.keys(userSettings).length == 0) {
 }
 
 setInterval(() => apiManager.sendHeartbeat(version), 1000 * 60 * 30); // Sends a heartbeat every 30 minutes
-
 
 // The current "version" of the data collection agreement
 // Increment by 1 to retrigger the telemetry window
