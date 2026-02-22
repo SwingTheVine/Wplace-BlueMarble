@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.385
+// @version         0.88.397
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -931,6 +931,45 @@ Did you try clicking the canvas first?`);
       return "Unknown";
     }
   };
+
+  // src/confetttiManager.js
+  var ConfettiManager = class {
+    /** The constructor for the confetti manager.
+     * @since 0.88.356
+     */
+    constructor() {
+      this.confettiCount = Math.ceil(80 / 1300 * window.innerWidth);
+      this.colorPalette = colorpalette.slice(1);
+    }
+    /** Immedently creates confetti inside the parent element.
+     * @param {HTMLElement} parentElement - The parent element to create confetti inside of
+     * @since 0.88.356
+     */
+    createConfetti(parentElement) {
+      const confettiContainer = document.createElement("div");
+      for (let currentCount = 0; currentCount < this.confettiCount; currentCount++) {
+        const confettiShard = document.createElement("confetti-piece");
+        confettiShard.style.setProperty("--x", `${Math.random() * 100}vw`);
+        confettiShard.style.setProperty("--delay", `${Math.random() * 2}s`);
+        confettiShard.style.setProperty("--duration", `${3 + Math.random() * 3}s`);
+        confettiShard.style.setProperty("--rot", `${Math.random() * 360}deg`);
+        confettiShard.style.setProperty("--size", `${6 + Math.random() * 6}px`);
+        confettiShard.style.backgroundColor = `rgb(${this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)].rgb.join(",")})`;
+        confettiShard.onanimationend = () => {
+          if (confettiShard.parentNode.childElementCount <= 1) {
+            confettiShard.parentNode.remove();
+          } else {
+            confettiShard.remove();
+          }
+        };
+        confettiContainer.appendChild(confettiShard);
+      }
+      parentElement.appendChild(confettiContainer);
+    }
+  };
+  var BlueMarbleConfettiPiece = class extends HTMLElement {
+  };
+  customElements.define("confetti-piece", BlueMarbleConfettiPiece);
 
   // src/Overlay.js
   var _Overlay_instances, createElement_fn, applyAttribute_fn;
@@ -2145,45 +2184,6 @@ Did you try clicking the canvas first?`);
     }
   };
 
-  // src/confetttiManager.js
-  var ConfettiManager = class {
-    /** The constructor for the confetti manager.
-     * @since 0.88.356
-     */
-    constructor() {
-      this.confettiCount = Math.ceil(80 / 1300 * window.innerWidth);
-      this.colorPalette = colorpalette.slice(1);
-    }
-    /** Immedently creates confetti inside the parent element.
-     * @param {HTMLElement} parentElement - The parent element to create confetti inside of
-     * @since 0.88.356
-     */
-    createConfetti(parentElement) {
-      const confettiContainer = document.createElement("div");
-      for (let currentCount = 0; currentCount < this.confettiCount; currentCount++) {
-        const confettiShard = document.createElement("confetti-piece");
-        confettiShard.style.setProperty("--x", `${Math.random() * 100}vw`);
-        confettiShard.style.setProperty("--delay", `${Math.random() * 2}s`);
-        confettiShard.style.setProperty("--duration", `${3 + Math.random() * 3}s`);
-        confettiShard.style.setProperty("--rot", `${Math.random() * 360}deg`);
-        confettiShard.style.setProperty("--size", `${6 + Math.random() * 6}px`);
-        confettiShard.style.backgroundColor = `rgb(${this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)].rgb.join(",")})`;
-        confettiShard.onanimationend = () => {
-          if (confettiShard.parentNode.childElementCount <= 1) {
-            confettiShard.parentNode.remove();
-          } else {
-            confettiShard.remove();
-          }
-        };
-        confettiContainer.appendChild(confettiShard);
-      }
-      parentElement.appendChild(confettiContainer);
-    }
-  };
-  var BlueMarbleConfettiPiece = class extends HTMLElement {
-  };
-  customElements.define("confetti-piece", BlueMarbleConfettiPiece);
-
   // src/WindowFilter.js
   var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn;
   var WindowFilter = class extends Overlay {
@@ -2445,7 +2445,18 @@ Did you try clicking the canvas first?`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }).buildElement().addHeader(1, { "textContent": this.name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().addBr().buildElement().addSpan({ "textContent": "Charges: " }).addTimer(Date.now(), 1e3, { "style": "font-weight: 700;" }, (instance, timer) => {
+      }).buildElement().addDiv().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }, (instance, img) => {
+        const date = /* @__PURE__ */ new Date();
+        const dayOfTheYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 1)) / (1e3 * 60 * 60 * 24)) + 1;
+        if (dayOfTheYear == 53) {
+          img.parentNode.style.position = "relative";
+          img.parentNode.innerHTML = img.parentNode.innerHTML + `<svg viewBox="0 0 9 7" width="2em" height="2em" style="position: absolute; top: -.75em; left: 3.25ch;"><path d="M0,3L9,0L2,7" fill="#0af"/><path d="M0,3A.4,.4 0 1 1 1,5" fill="#a00"/><path d="M1.5,6A1,1 0 0 1 3,6L2,7" fill="#a0f"/><path d="M4,5A.6,.6 0 1 1 5,4" fill="#0a0"/><path d="M6,3A.8,.8 0 1 1 7,2" fill="#fa0"/><path d="M4.5,1.5A1,1 0 0 1 3,2" fill="#aa0"/></svg>`;
+          img.onload = () => {
+            const confettiManager = new ConfettiManager();
+            confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
+          };
+        }
+      }).buildElement().addHeader(1, { "textContent": this.name }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-user-droplets", "textContent": "Droplets:" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-user-nextlevel", "textContent": "Next level in..." }).buildElement().addBr().buildElement().addSpan({ "textContent": "Charges: " }).addTimer(Date.now(), 1e3, { "style": "font-weight: 700;" }, (instance, timer) => {
         instance.apiManager.chargeRefillTimerID = timer.id;
       }).buildElement().buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container" }).addButton(
         { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg viewBox="0 0 4 6"><path d="M.5,3.4A2,2 0 1 1 3.5,3.4L2,6"/><circle cx="2" cy="2" r=".7" fill="#fff"/></svg>' },
