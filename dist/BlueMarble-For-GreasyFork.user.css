@@ -1,3 +1,27 @@
+/* src/confettiManager.css */
+div:has(> confetti-piece) {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: var(--size);
+  height: var(--size);
+  background: currentColor;
+  transform: translate3d(var(--x), -10vh, 0) rotate(var(--rot));
+  animation: fall var(--duration) linear var(--delay);
+  will-change: transform;
+  pointer-events: none;
+}
+@keyframes fall {
+  to {
+    transform: translate3d(var(--x), 110vh, 0) rotate(calc(var(--rot) + 720deg));
+  }
+}
+
 /* src/overlay.css */
 .bm-screenreader {
   position: absolute;
@@ -21,7 +45,7 @@
   top: 75px;
   left: 60px;
   width: auto;
-  max-height: calc(100vh - 150px);
+  max-height: fit-content;
   max-width: calc(100% - 135px);
   font-family:
     "Roboto Mono",
@@ -308,3 +332,5 @@ input[type=file] {
 #bm-window-filter .bm-filter-color.bm-color-hide {
   display: none;
 }
+
+/* src/main.css */

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.355
+// @version         0.88.385
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -33,8 +33,904 @@
     throw TypeError(msg);
   };
   var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-  var __privateAdd = (obj, member, value2) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value2);
+  var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
   var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+
+  // src/observers.js
+  var Observers = class {
+    /** The constructor for the observer class
+     * @since 0.43.2
+     */
+    constructor() {
+      this.observerBody = null;
+      this.observerBodyTarget = null;
+      this.targetDisplayCoords = "#bm-display-coords";
+    }
+    /** Creates the MutationObserver for document.body
+     * @param {HTMLElement} target - Targeted element to watch
+     * @returns {Observers} this (Observers class)
+     * @since 0.43.2
+     */
+    createObserverBody(target) {
+      this.observerBodyTarget = target;
+      this.observerBody = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (!(node instanceof HTMLElement)) {
+              continue;
+            }
+            if (node.matches?.(this.targetDisplayCoords)) {
+            }
+          }
+        }
+      });
+      return this;
+    }
+    /** Retrieves the MutationObserver that watches document.body
+     * @returns {MutationObserver}
+     * @since 0.43.2
+     */
+    getObserverBody() {
+      return this.observerBody;
+    }
+    /** Observe a MutationObserver
+     * @param {MutationObserver} observer - The MutationObserver
+     * @param {boolean} watchChildList - (Optional) Should childList be watched? False by default
+     * @param {boolean} watchSubtree - (Optional) Should childList be watched? False by default
+     * @since 0.43.2
+     */
+    observe(observer, watchChildList = false, watchSubtree = false) {
+      observer.observe(this.observerBodyTarget, {
+        childList: watchChildList,
+        subtree: watchSubtree
+      });
+    }
+  };
+
+  // src/utils.js
+  function escapeHTML(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  function serverTPtoDisplayTP(tile, pixel) {
+    return [parseInt(tile[0]) % 4 * 1e3 + parseInt(pixel[0]), parseInt(tile[1]) % 4 * 1e3 + parseInt(pixel[1])];
+  }
+  function consoleLog(...args) {
+    ((consoleLog2) => consoleLog2(...args))(console.log);
+  }
+  function consoleError(...args) {
+    ((consoleError2) => consoleError2(...args))(console.error);
+  }
+  function consoleWarn(...args) {
+    ((consoleWarn2) => consoleWarn2(...args))(console.warn);
+  }
+  function numberToEncoded(number, encoding) {
+    if (number === 0) return encoding[0];
+    let result = "";
+    const base = encoding.length;
+    while (number > 0) {
+      result = encoding[number % base] + result;
+      number = Math.floor(number / base);
+    }
+    return result;
+  }
+  function uint8ToBase64(uint8) {
+    let binary = "";
+    for (let i = 0; i < uint8.length; i++) {
+      binary += String.fromCharCode(uint8[i]);
+    }
+    return btoa(binary);
+  }
+  function base64ToUint8(base64) {
+    const binary = atob(base64);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      array[i] = binary.charCodeAt(i);
+    }
+    return array;
+  }
+  function calculateRelativeLuminance(array) {
+    const srgb = array.map((channel) => {
+      channel /= 255;
+      return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  }
+  function colorpaletteForBlueMarble(tolerance) {
+    const colorpaletteBM = colorpalette;
+    colorpaletteBM.unshift({ "id": -1, "premium": false, "name": "Erased", "rgb": [222, 250, 206] });
+    colorpaletteBM.unshift({ "id": -2, "premium": false, "name": "Other", "rgb": [0, 0, 0] });
+    const lookupTable = /* @__PURE__ */ new Map();
+    for (const color of colorpaletteBM) {
+      if (color.id == 0 || color.id == -2) continue;
+      const targetRed = color.rgb[0];
+      const targetGreen = color.rgb[1];
+      const targetBlue = color.rgb[2];
+      for (let deltaRedRange = -tolerance; deltaRedRange <= tolerance; deltaRedRange++) {
+        for (let deltaGreenRange = -tolerance; deltaGreenRange <= tolerance; deltaGreenRange++) {
+          for (let deltaBlueRange = -tolerance; deltaBlueRange <= tolerance; deltaBlueRange++) {
+            const derivativeRed = targetRed + deltaRedRange;
+            const derivativeGreen = targetGreen + deltaGreenRange;
+            const derivativeBlue = targetBlue + deltaBlueRange;
+            if (derivativeRed < 0 || derivativeRed > 255 || derivativeGreen < 0 || derivativeGreen > 255 || derivativeBlue < 0 || derivativeBlue > 255) continue;
+            const derivativeColor32 = (255 << 24 | derivativeBlue << 16 | derivativeGreen << 8 | derivativeRed) >>> 0;
+            if (!lookupTable.has(derivativeColor32)) {
+              lookupTable.set(derivativeColor32, color.id);
+            }
+          }
+        }
+      }
+    }
+    return { palette: colorpaletteBM, LUT: lookupTable };
+  }
+  var colorpalette = [
+    { "id": 0, "premium": false, "name": "Transparent", "rgb": [0, 0, 0] },
+    { "id": 1, "premium": false, "name": "Black", "rgb": [0, 0, 0] },
+    { "id": 2, "premium": false, "name": "Dark Gray", "rgb": [60, 60, 60] },
+    { "id": 3, "premium": false, "name": "Gray", "rgb": [120, 120, 120] },
+    { "id": 4, "premium": false, "name": "Light Gray", "rgb": [210, 210, 210] },
+    { "id": 5, "premium": false, "name": "White", "rgb": [255, 255, 255] },
+    { "id": 6, "premium": false, "name": "Deep Red", "rgb": [96, 0, 24] },
+    { "id": 7, "premium": false, "name": "Red", "rgb": [237, 28, 36] },
+    { "id": 8, "premium": false, "name": "Orange", "rgb": [255, 127, 39] },
+    { "id": 9, "premium": false, "name": "Gold", "rgb": [246, 170, 9] },
+    { "id": 10, "premium": false, "name": "Yellow", "rgb": [249, 221, 59] },
+    { "id": 11, "premium": false, "name": "Light Yellow", "rgb": [255, 250, 188] },
+    { "id": 12, "premium": false, "name": "Dark Green", "rgb": [14, 185, 104] },
+    { "id": 13, "premium": false, "name": "Green", "rgb": [19, 230, 123] },
+    { "id": 14, "premium": false, "name": "Light Green", "rgb": [135, 255, 94] },
+    { "id": 15, "premium": false, "name": "Dark Teal", "rgb": [12, 129, 110] },
+    { "id": 16, "premium": false, "name": "Teal", "rgb": [16, 174, 166] },
+    { "id": 17, "premium": false, "name": "Light Teal", "rgb": [19, 225, 190] },
+    { "id": 18, "premium": false, "name": "Dark Blue", "rgb": [40, 80, 158] },
+    { "id": 19, "premium": false, "name": "Blue", "rgb": [64, 147, 228] },
+    { "id": 20, "premium": false, "name": "Cyan", "rgb": [96, 247, 242] },
+    { "id": 21, "premium": false, "name": "Indigo", "rgb": [107, 80, 246] },
+    { "id": 22, "premium": false, "name": "Light Indigo", "rgb": [153, 177, 251] },
+    { "id": 23, "premium": false, "name": "Dark Purple", "rgb": [120, 12, 153] },
+    { "id": 24, "premium": false, "name": "Purple", "rgb": [170, 56, 185] },
+    { "id": 25, "premium": false, "name": "Light Purple", "rgb": [224, 159, 249] },
+    { "id": 26, "premium": false, "name": "Dark Pink", "rgb": [203, 0, 122] },
+    { "id": 27, "premium": false, "name": "Pink", "rgb": [236, 31, 128] },
+    { "id": 28, "premium": false, "name": "Light Pink", "rgb": [243, 141, 169] },
+    { "id": 29, "premium": false, "name": "Dark Brown", "rgb": [104, 70, 52] },
+    { "id": 30, "premium": false, "name": "Brown", "rgb": [149, 104, 42] },
+    { "id": 31, "premium": false, "name": "Beige", "rgb": [248, 178, 119] },
+    { "id": 32, "premium": true, "name": "Medium Gray", "rgb": [170, 170, 170] },
+    { "id": 33, "premium": true, "name": "Dark Red", "rgb": [165, 14, 30] },
+    { "id": 34, "premium": true, "name": "Light Red", "rgb": [250, 128, 114] },
+    { "id": 35, "premium": true, "name": "Dark Orange", "rgb": [228, 92, 26] },
+    { "id": 36, "premium": true, "name": "Light Tan", "rgb": [214, 181, 148] },
+    { "id": 37, "premium": true, "name": "Dark Goldenrod", "rgb": [156, 132, 49] },
+    { "id": 38, "premium": true, "name": "Goldenrod", "rgb": [197, 173, 49] },
+    { "id": 39, "premium": true, "name": "Light Goldenrod", "rgb": [232, 212, 95] },
+    { "id": 40, "premium": true, "name": "Dark Olive", "rgb": [74, 107, 58] },
+    { "id": 41, "premium": true, "name": "Olive", "rgb": [90, 148, 74] },
+    { "id": 42, "premium": true, "name": "Light Olive", "rgb": [132, 197, 115] },
+    { "id": 43, "premium": true, "name": "Dark Cyan", "rgb": [15, 121, 159] },
+    { "id": 44, "premium": true, "name": "Light Cyan", "rgb": [187, 250, 242] },
+    { "id": 45, "premium": true, "name": "Light Blue", "rgb": [125, 199, 255] },
+    { "id": 46, "premium": true, "name": "Dark Indigo", "rgb": [77, 49, 184] },
+    { "id": 47, "premium": true, "name": "Dark Slate Blue", "rgb": [74, 66, 132] },
+    { "id": 48, "premium": true, "name": "Slate Blue", "rgb": [122, 113, 196] },
+    { "id": 49, "premium": true, "name": "Light Slate Blue", "rgb": [181, 174, 241] },
+    { "id": 50, "premium": true, "name": "Light Brown", "rgb": [219, 164, 99] },
+    { "id": 51, "premium": true, "name": "Dark Beige", "rgb": [209, 128, 81] },
+    { "id": 52, "premium": true, "name": "Light Beige", "rgb": [255, 197, 165] },
+    { "id": 53, "premium": true, "name": "Dark Peach", "rgb": [155, 82, 73] },
+    { "id": 54, "premium": true, "name": "Peach", "rgb": [209, 128, 120] },
+    { "id": 55, "premium": true, "name": "Light Peach", "rgb": [250, 182, 164] },
+    { "id": 56, "premium": true, "name": "Dark Tan", "rgb": [123, 99, 82] },
+    { "id": 57, "premium": true, "name": "Tan", "rgb": [156, 132, 107] },
+    { "id": 58, "premium": true, "name": "Dark Slate", "rgb": [51, 57, 65] },
+    { "id": 59, "premium": true, "name": "Slate", "rgb": [109, 117, 141] },
+    { "id": 60, "premium": true, "name": "Light Slate", "rgb": [179, 185, 209] },
+    { "id": 61, "premium": true, "name": "Dark Stone", "rgb": [109, 100, 63] },
+    { "id": 62, "premium": true, "name": "Stone", "rgb": [148, 140, 107] },
+    { "id": 63, "premium": true, "name": "Light Stone", "rgb": [205, 197, 158] }
+  ];
+
+  // src/Template.js
+  var _Template_instances, calculateTotalPixelsFromImageData_fn;
+  var Template = class {
+    /** The constructor for the {@link Template} class with enhanced pixel tracking.
+     * @param {Object} [params={}] - Object containing all optional parameters
+     * @param {string} [params.displayName='My template'] - The display name of the template
+     * @param {number} [params.sortID=0] - The sort number of the template for rendering priority
+     * @param {string} [params.authorID=''] - The user ID of the person who exported the template (prevents sort ID collisions)
+     * @param {string} [params.url=''] - The URL to the source image
+     * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
+     * @param {Array<number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
+     * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
+     * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
+     * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
+     * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
+     * @since 0.65.2
+     */
+    constructor({
+      displayName = "My template",
+      sortID = 0,
+      authorID = "",
+      url = "",
+      file = null,
+      coords: coords2 = null,
+      chunked = null,
+      chunked32 = {},
+      tileSize = 1e3
+    } = {}) {
+      __privateAdd(this, _Template_instances);
+      this.displayName = displayName;
+      this.sortID = sortID;
+      this.authorID = authorID;
+      this.url = url;
+      this.file = file;
+      this.coords = coords2;
+      this.chunked = chunked;
+      this.chunked32 = chunked32;
+      this.tileSize = tileSize;
+      this.pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() };
+    }
+    /** Creates chunks of the template for each tile.
+     * @param {Number} tileSize - Size of the tile as determined by templateManager
+     * @param {Object} paletteBM - An collection of Uint32Arrays containing the palette BM uses
+     * @returns {Object} Collection of template bitmaps & buffers organized by tile coordinates
+     * @since 0.65.4
+     */
+    async createTemplateTiles(tileSize, paletteBM) {
+      console.log("Template coordinates:", this.coords);
+      const shreadSize = 3;
+      const bitmap = await createImageBitmap(this.file);
+      const imageWidth = bitmap.width;
+      const imageHeight = bitmap.height;
+      this.tileSize = tileSize;
+      const templateTiles = {};
+      const templateTilesBuffers = {};
+      const canvas = new OffscreenCanvas(this.tileSize, this.tileSize);
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      canvas.width = imageWidth;
+      canvas.height = imageHeight;
+      context.imageSmoothingEnabled = false;
+      context.drawImage(bitmap, 0, 0);
+      let timer = Date.now();
+      const totalPixelMap = __privateMethod(this, _Template_instances, calculateTotalPixelsFromImageData_fn).call(this, context.getImageData(0, 0, imageWidth, imageHeight), paletteBM);
+      console.log(`Calculating total pixels took ${(Date.now() - timer) / 1e3} seconds`);
+      let totalPixels = 0;
+      const transparentColorID = 0;
+      for (const [color, total] of totalPixelMap) {
+        if (color == transparentColorID) {
+          continue;
+        }
+        totalPixels += total;
+      }
+      this.pixelCount = { total: totalPixels, colors: totalPixelMap };
+      timer = Date.now();
+      const canvasMask = new OffscreenCanvas(3, 3);
+      const contextMask = canvasMask.getContext("2d");
+      contextMask.clearRect(0, 0, 3, 3);
+      contextMask.fillStyle = "white";
+      contextMask.fillRect(1, 1, 1, 1);
+      for (let pixelY = this.coords[3]; pixelY < imageHeight + this.coords[3]; ) {
+        const drawSizeY = Math.min(this.tileSize - pixelY % this.tileSize, imageHeight - (pixelY - this.coords[3]));
+        console.log(`Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`);
+        for (let pixelX = this.coords[2]; pixelX < imageWidth + this.coords[2]; ) {
+          console.log(`Pixel X: ${pixelX}
+Pixel Y: ${pixelY}`);
+          const drawSizeX = Math.min(this.tileSize - pixelX % this.tileSize, imageWidth - (pixelX - this.coords[2]));
+          console.log(`Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`);
+          console.log(`Draw Size X: ${drawSizeX}
+Draw Size Y: ${drawSizeY}`);
+          const canvasWidth = drawSizeX * shreadSize;
+          const canvasHeight = drawSizeY * shreadSize;
+          canvas.width = canvasWidth;
+          canvas.height = canvasHeight;
+          console.log(`Draw X: ${drawSizeX}
+Draw Y: ${drawSizeY}
+Canvas Width: ${canvasWidth}
+Canvas Height: ${canvasHeight}`);
+          context.imageSmoothingEnabled = false;
+          console.log(`Getting X ${pixelX}-${pixelX + drawSizeX}
+Getting Y ${pixelY}-${pixelY + drawSizeY}`);
+          context.clearRect(0, 0, canvasWidth, canvasHeight);
+          context.drawImage(
+            bitmap,
+            // Bitmap image to draw
+            pixelX - this.coords[2],
+            // Coordinate X to draw from
+            pixelY - this.coords[3],
+            // Coordinate Y to draw from
+            drawSizeX,
+            // X width to draw from
+            drawSizeY,
+            // Y height to draw from
+            0,
+            // Coordinate X to draw at
+            0,
+            // Coordinate Y to draw at
+            drawSizeX * shreadSize,
+            // X width to draw at
+            drawSizeY * shreadSize
+            // Y height to draw at
+          );
+          context.save();
+          context.globalCompositeOperation = "destination-in";
+          context.fillStyle = context.createPattern(canvasMask, "repeat");
+          context.fillRect(0, 0, canvasWidth, canvasHeight);
+          context.restore();
+          const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
+          console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
+          context.putImageData(imageData, 0, 0);
+          const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
+          this.chunked32[templateTileName] = new Uint32Array(context.getImageData(0, 0, canvasWidth, canvasHeight));
+          templateTiles[templateTileName] = await createImageBitmap(canvas);
+          const canvasBlob = await canvas.convertToBlob();
+          const canvasBuffer = await canvasBlob.arrayBuffer();
+          const canvasBufferBytes = Array.from(new Uint8Array(canvasBuffer));
+          templateTilesBuffers[templateTileName] = uint8ToBase64(canvasBufferBytes);
+          console.log(templateTiles);
+          pixelX += drawSizeX;
+        }
+        pixelY += drawSizeY;
+      }
+      console.log(`Parsing template took ${(Date.now() - timer) / 1e3} seconds`);
+      console.log("Template Tiles: ", templateTiles);
+      console.log("Template Tiles Buffers: ", templateTilesBuffers);
+      console.log("Template Tiles Uint32Array: ", this.chunked32);
+      return { templateTiles, templateTilesBuffers };
+    }
+  };
+  _Template_instances = new WeakSet();
+  /** Calculates the total pixels for each color for the image.
+   * 
+   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
+   * @param {Object} paletteBM - The palette Blue Marble uses for colors
+   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
+   * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
+   * @since 0.88.6
+   */
+  calculateTotalPixelsFromImageData_fn = function(imageData, paletteBM) {
+    const buffer32Arr = new Uint32Array(imageData.data.buffer);
+    const { palette: _, LUT: lookupTable } = paletteBM;
+    const _colorpalette = /* @__PURE__ */ new Map();
+    for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
+      const pixel = buffer32Arr[pixelIndex];
+      let bestColorID = -2;
+      if (pixel >>> 24 == 0) {
+        bestColorID = 0;
+      } else {
+        bestColorID = lookupTable.get(pixel) ?? -2;
+      }
+      const colorIDcount = _colorpalette.get(bestColorID);
+      _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
+    }
+    console.log(_colorpalette);
+    return _colorpalette;
+  };
+
+  // src/templateManager.js
+  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_And_FilterTile_fn;
+  var TemplateManager = class {
+    /** The constructor for the {@link TemplateManager} class.
+     * @since 0.55.8
+     */
+    constructor(name2, version2, overlay) {
+      __privateAdd(this, _TemplateManager_instances);
+      this.name = name2;
+      this.version = version2;
+      this.overlay = overlay;
+      this.templatesVersion = "1.0.0";
+      this.userID = null;
+      this.encodingBase = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      this.tileSize = 1e3;
+      this.drawMult = 3;
+      this.paletteTolerance = 3;
+      this.paletteBM = colorpaletteForBlueMarble(this.paletteTolerance);
+      this.template = null;
+      this.templateState = "";
+      this.templatesArray = [];
+      this.templatesJSON = null;
+      this.templatesShouldBeDrawn = true;
+      this.templatePixelsCorrect = null;
+      this.shouldFilterColor = /* @__PURE__ */ new Map();
+    }
+    /** Creates the JSON object to store templates in
+     * @returns {{ whoami: string, scriptVersion: string, schemaVersion: string, templates: Object }} The JSON object
+     * @since 0.65.4
+     */
+    async createJSON() {
+      return {
+        "whoami": this.name.replace(" ", ""),
+        // Name of userscript without spaces
+        "scriptVersion": this.version,
+        // Version of userscript
+        "schemaVersion": this.templatesVersion,
+        // Version of JSON schema
+        "templates": {}
+        // The templates
+      };
+    }
+    /** Creates the template from the inputed file blob
+     * @param {File} blob - The file blob to create a template from
+     * @param {string} name - The display name of the template
+     * @param {Array<number, number, number, number>} coords - The coordinates of the top left corner of the template
+     * @since 0.65.77
+     */
+    async createTemplate(blob, name2, coords2) {
+      if (!this.templatesJSON) {
+        this.templatesJSON = await this.createJSON();
+        console.log(`Creating JSON...`);
+      }
+      this.overlay.handleDisplayStatus(`Creating template at ${coords2.join(", ")}...`);
+      const template = new Template({
+        displayName: name2,
+        sortID: 0,
+        // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
+        authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+        file: blob,
+        coords: coords2
+      });
+      const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize, this.paletteBM);
+      template.chunked = templateTiles;
+      const _pixels = { "total": template.pixelCount.total, "colors": Object.fromEntries(template.pixelCount.colors) };
+      this.templatesJSON.templates[`${template.sortID} ${template.authorID}`] = {
+        "name": template.displayName,
+        // Display name of template
+        "coords": coords2.join(", "),
+        // The coords of the template
+        "enabled": true,
+        "pixels": _pixels,
+        // The total pixels in the template
+        "tiles": templateTilesBuffers
+        // Stores the chunked tile buffers
+      };
+      this.templatesArray = [];
+      this.templatesArray.push(template);
+      this.overlay.handleDisplayStatus(`Template created at ${coords2.join(", ")}!`);
+      console.log(Object.keys(this.templatesJSON.templates).length);
+      console.log(this.templatesJSON);
+      console.log(this.templatesArray);
+      console.log(JSON.stringify(this.templatesJSON));
+      await __privateMethod(this, _TemplateManager_instances, storeTemplates_fn).call(this);
+    }
+    /** Deletes a template from the JSON object.
+     * Also delete's the corrosponding {@link Template} class instance
+     */
+    deleteTemplate() {
+    }
+    /** Disables the template from view
+     */
+    async disableTemplate() {
+      if (!this.templatesJSON) {
+        this.templatesJSON = await this.createJSON();
+        console.log(`Creating JSON...`);
+      }
+    }
+    /** Draws all templates on the specified tile.
+     * This method handles the rendering of template overlays on individual tiles.
+     * @param {File} tileBlob - The pixels that are placed on a tile
+     * @param {Array<number>} tileCoords - The tile coordinates [x, y]
+     * @since 0.65.77
+     */
+    async drawTemplateOnTile(tileBlob, tileCoords) {
+      if (!this.templatesShouldBeDrawn) {
+        return tileBlob;
+      }
+      const drawSize = this.tileSize * this.drawMult;
+      tileCoords = tileCoords[0].toString().padStart(4, "0") + "," + tileCoords[1].toString().padStart(4, "0");
+      console.log(`Searching for templates in tile: "${tileCoords}"`);
+      const templateArray = this.templatesArray;
+      console.log(templateArray);
+      templateArray.sort((a, b) => {
+        return a.sortID - b.sortID;
+      });
+      console.log(templateArray);
+      const templatesToDraw = templateArray.map((template) => {
+        const matchingTiles = Object.keys(template.chunked).filter(
+          (tile) => tile.startsWith(tileCoords)
+        );
+        if (matchingTiles.length === 0) {
+          return null;
+        }
+        const matchingTileBlobs = matchingTiles.map((tile) => {
+          const coords2 = tile.split(",");
+          return {
+            instance: template,
+            bitmap: template.chunked[tile],
+            chunked32: template.chunked32?.[tile],
+            tileCoords: [coords2[0], coords2[1]],
+            pixelCoords: [coords2[2], coords2[3]]
+          };
+        });
+        return matchingTileBlobs?.[0];
+      }).filter(Boolean);
+      console.log(templatesToDraw);
+      const templateCount = templatesToDraw?.length || 0;
+      console.log(`templateCount = ${templateCount}`);
+      if (templateCount > 0) {
+        const totalPixels = templateArray.filter((template) => {
+          const matchingTiles = Object.keys(template.chunked).filter(
+            (tile) => tile.startsWith(tileCoords)
+          );
+          return matchingTiles.length > 0;
+        }).reduce((sum, template) => sum + (template.pixelCount.total || 0), 0);
+        const pixelCountFormatted = new Intl.NumberFormat().format(totalPixels);
+        this.overlay.handleDisplayStatus(
+          `Displaying ${templateCount} template${templateCount == 1 ? "" : "s"}.
+Total pixels: ${pixelCountFormatted}`
+        );
+      } else {
+        this.overlay.handleDisplayStatus(`Sleeping
+Version: ${this.version}`);
+        return tileBlob;
+      }
+      const tileBitmap = await createImageBitmap(tileBlob);
+      const canvas = new OffscreenCanvas(drawSize, drawSize);
+      const context = canvas.getContext("2d");
+      context.imageSmoothingEnabled = false;
+      context.beginPath();
+      context.rect(0, 0, drawSize, drawSize);
+      context.clip();
+      context.clearRect(0, 0, drawSize, drawSize);
+      context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
+      const tileBeforeTemplates = context.getImageData(0, 0, drawSize, drawSize);
+      const tileBeforeTemplates32 = new Uint32Array(tileBeforeTemplates.data.buffer);
+      for (const template of templatesToDraw) {
+        console.log(`Template:`);
+        console.log(template);
+        let templateBeforeFilter32 = template.chunked32.slice();
+        const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
+        const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
+        if (this.shouldFilterColor.size == 0) {
+          context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
+        }
+        if (!templateBeforeFilter32) {
+          const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
+          templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+        }
+        const timer = Date.now();
+        const {
+          correctPixels: pixelsCorrect,
+          filteredTemplate: templateAfterFilter
+        } = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_And_FilterTile_fn).call(this, {
+          tile: tileBeforeTemplates32,
+          template: templateBeforeFilter32,
+          templateInfo: [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]
+        });
+        let pixelsCorrectTotal = 0;
+        const transparentColorID = 0;
+        for (const [color, total] of pixelsCorrect) {
+          if (color == transparentColorID) {
+            continue;
+          }
+          pixelsCorrectTotal += total;
+        }
+        if (this.shouldFilterColor.size != 0) {
+          console.log("Colors to filter: ", this.shouldFilterColor);
+          context.putImageData(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height), coordXtoDrawAt, coordYtoDrawAt);
+        }
+        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
+There are ${pixelsCorrectTotal} correct pixels.`);
+        if (typeof template.instance.pixelCount["correct"] == "undefined") {
+          template.instance.pixelCount["correct"] = {};
+        }
+        template.instance.pixelCount["correct"][tileCoords] = pixelsCorrect;
+      }
+      return await canvas.convertToBlob({ type: "image/png" });
+    }
+    /** Imports the JSON object, and appends it to any JSON object already loaded
+     * @param {string} json - The JSON string to parse
+     */
+    importJSON(json) {
+      console.log(`Importing JSON...`);
+      console.log(json);
+      if (json?.whoami == "BlueMarble") {
+        __privateMethod(this, _TemplateManager_instances, parseBlueMarble_fn).call(this, json);
+      }
+    }
+    /** Sets the `templatesShouldBeDrawn` boolean to a value.
+     * @param {boolean} value - The value to set the boolean to
+     * @since 0.73.7
+     */
+    setTemplatesShouldBeDrawn(value) {
+      this.templatesShouldBeDrawn = value;
+    }
+  };
+  _TemplateManager_instances = new WeakSet();
+  /** Generates a {@link Template} class instance from the JSON object template
+   */
+  loadTemplate_fn = function() {
+  };
+  storeTemplates_fn = async function() {
+    GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
+  };
+  parseBlueMarble_fn = async function(json) {
+    console.log(`Parsing BlueMarble...`);
+    const templates = json.templates;
+    console.log(`BlueMarble length: ${Object.keys(templates).length}`);
+    if (Object.keys(templates).length > 0) {
+      for (const template in templates) {
+        const templateKey = template;
+        const templateValue = templates[template];
+        console.log(`Template Key: ${templateKey}`);
+        if (templates.hasOwnProperty(template)) {
+          const templateKeyArray = templateKey.split(" ");
+          const sortID = Number(templateKeyArray?.[0]);
+          const authorID = templateKeyArray?.[1] || "0";
+          const displayName = templateValue.name || `Template ${sortID || ""}`;
+          const pixelCount = {
+            total: templateValue.pixels.total,
+            colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
+          };
+          const tilesbase64 = templateValue.tiles;
+          const templateTiles = {};
+          const templateTiles32 = {};
+          const actualTileSize = this.tileSize * this.drawMult;
+          for (const tile in tilesbase64) {
+            console.log(tile);
+            if (tilesbase64.hasOwnProperty(tile)) {
+              const encodedTemplateBase64 = tilesbase64[tile];
+              const templateUint8Array = base64ToUint8(encodedTemplateBase64);
+              const templateBlob = new Blob([templateUint8Array], { type: "image/png" });
+              const templateBitmap = await createImageBitmap(templateBlob);
+              templateTiles[tile] = templateBitmap;
+              const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
+              const context = canvas.getContext("2d");
+              context.drawImage(templateBitmap, 0, 0);
+              const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
+              templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
+            }
+          }
+          const template2 = new Template({
+            displayName,
+            sortID: sortID || this.templatesArray?.length || 0,
+            authorID: authorID || ""
+            //coords: coords,
+          });
+          template2.pixelCount = pixelCount;
+          template2.chunked = templateTiles;
+          template2.chunked32 = templateTiles32;
+          this.templatesArray.push(template2);
+          console.log(this.templatesArray);
+          console.log(`^^^ This ^^^`);
+        }
+      }
+    }
+  };
+  /** Parses the OSU! Place JSON object
+   */
+  parseOSU_fn = function() {
+  };
+  /** Calculates the correct pixels on this tile.
+   * @param {Object} params - Object containing all parameters
+   * @param {Uint32Array} params.tile - The tile without templates as a Uint32Array
+   * @param {Uint32Array} params.template - The template without filtering as a Uint32Array
+   * @param {Array<Number, Number, Number, Number>} params.templateInfo - Information about template location and size
+   * @returns {{correctPixels: Map<number, number>, filteredTemplate: Uint32Array}} A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
+   */
+  calculateCorrectPixelsOnTile_And_FilterTile_fn = function({
+    tile: tile32,
+    template: template32,
+    templateInfo: templateInformation
+  }) {
+    const pixelSize = this.drawMult;
+    const tileWidth = this.tileSize * pixelSize;
+    const tileHeight = tileWidth;
+    const tilePixelOffsetY = -1;
+    const tilePixelOffsetX = 0;
+    const templateCoordX = templateInformation[0];
+    const templateCoordY = templateInformation[1];
+    const templateWidth = templateInformation[2];
+    const templateHeight = templateInformation[3];
+    const tolerance = this.paletteTolerance;
+    const { palette: _, LUT: lookupTable } = this.paletteBM;
+    const _colorpalette = /* @__PURE__ */ new Map();
+    for (let templateRow = 1; templateRow < templateHeight; templateRow += pixelSize) {
+      for (let templateColumn = 1; templateColumn < templateWidth; templateColumn += pixelSize) {
+        const tileRow = templateCoordY + templateRow + tilePixelOffsetY;
+        const tileColumn = templateCoordX + templateColumn + tilePixelOffsetX;
+        const tilePixelAbove = tile32[tileRow * tileWidth + tileColumn];
+        const templatePixel = template32[templateRow * templateWidth + templateColumn];
+        const templatePixelAlpha = templatePixel >>> 24 & 255;
+        const tilePixelAlpha = tilePixelAbove >>> 24 & 255;
+        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
+        if (this.shouldFilterColor.get(bestTemplateColorID)) {
+          template32[templateRow * templateWidth + templateColumn] = tilePixelAbove;
+        }
+        if (templatePixelAlpha <= tolerance || tilePixelAlpha <= tolerance) {
+          continue;
+        }
+        const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
+        if (bestTileColorID != bestTemplateColorID) {
+          continue;
+        }
+        const colorIDcount = _colorpalette.get(bestTemplateColorID);
+        _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
+      }
+    }
+    console.log(`List of template pixels that match the tile:`);
+    console.log(_colorpalette);
+    return { correctPixels: _colorpalette, filteredTemplate: template32 };
+  };
+
+  // src/apiManager.js
+  var ApiManager = class {
+    /** Constructor for ApiManager class
+     * @param {TemplateManager} templateManager 
+     * @since 0.11.34
+     */
+    constructor(templateManager2) {
+      this.templateManager = templateManager2;
+      this.disableAll = false;
+      this.chargeRefillTimerID = "";
+      this.coordsTilePixel = [];
+      this.templateCoordsTilePixel = [];
+    }
+    /** Determines if the spontaneously received response is something we want.
+     * Otherwise, we can ignore it.
+     * Note: Due to aggressive compression, make your calls like `data['jsonData']['name']` instead of `data.jsonData.name`
+     * 
+     * @param {Overlay} overlay - The Overlay class instance
+     * @since 0.11.1
+    */
+    spontaneousResponseListener(overlay) {
+      window.addEventListener("message", async (event) => {
+        const data = event.data;
+        const dataJSON = data["jsonData"];
+        if (!(data && data["source"] === "blue-marble")) {
+          return;
+        }
+        if (!data["endpoint"]) {
+          return;
+        }
+        const endpointText = data["endpoint"]?.split("?")[0].split("/").filter((s) => s && isNaN(Number(s))).filter((s) => s && !s.includes(".")).pop();
+        console.log(`%cBlue Marble%c: Recieved message about "%s"`, "color: cornflowerblue;", "", endpointText);
+        switch (endpointText) {
+          case "me":
+            if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
+              overlay.handleDisplayError(`You are not logged in!
+Could not fetch userdata.`);
+              return;
+            }
+            const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON["level"]) * Math.pow(30, 0.65), 1 / 0.65) - dataJSON["pixelsPainted"]);
+            console.log(dataJSON["id"]);
+            if (!!dataJSON["id"] || dataJSON["id"] === 0) {
+              console.log(numberToEncoded(
+                dataJSON["id"],
+                "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              ));
+            }
+            this.templateManager.userID = dataJSON["id"];
+            if (this.chargeRefillTimerID.length != 0) {
+              const chargeRefillTimer = document.querySelector("#" + this.chargeRefillTimerID);
+              if (chargeRefillTimer) {
+                const chargeData = dataJSON["charges"];
+                chargeRefillTimer.dataset["endDate"] = Date.now() + (chargeData["max"] - chargeData["count"]) * chargeData["cooldownMs"];
+              }
+            }
+            overlay.updateInnerHTML("bm-user-droplets", `Droplets: <b>${new Intl.NumberFormat().format(dataJSON["droplets"])}</b>`);
+            overlay.updateInnerHTML("bm-user-nextlevel", `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? "" : "s"}`);
+            break;
+          case "pixel":
+            const coordsTile = data["endpoint"].split("?")[0].split("/").filter((s) => s && !isNaN(Number(s)));
+            const payloadExtractor = new URLSearchParams(data["endpoint"].split("?")[1]);
+            const coordsPixel = [payloadExtractor.get("x"), payloadExtractor.get("y")];
+            if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
+              overlay.handleDisplayError(`Coordinates are malformed!
+Did you try clicking the canvas first?`);
+              return;
+            }
+            this.coordsTilePixel = [...coordsTile, ...coordsPixel];
+            const displayTP = serverTPtoDisplayTP(coordsTile, coordsPixel);
+            const spanElements = document.querySelectorAll("span");
+            for (const element of spanElements) {
+              if (element.textContent.trim().includes(`${displayTP[0]}, ${displayTP[1]}`)) {
+                let displayCoords = document.querySelector("#bm-display-coords");
+                const text = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
+                if (!displayCoords) {
+                  displayCoords = document.createElement("span");
+                  displayCoords.id = "bm-display-coords";
+                  displayCoords.textContent = text;
+                  displayCoords.style = "margin-left: calc(var(--spacing)*3); font-size: small;";
+                  element.parentNode.parentNode.insertAdjacentElement("afterend", displayCoords);
+                } else {
+                  displayCoords.textContent = text;
+                }
+              }
+            }
+            break;
+          case "tiles":
+            let tileCoordsTile = data["endpoint"].split("/");
+            tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace(".png", ""))];
+            const blobUUID = data["blobID"];
+            const blobData = data["blobData"];
+            const timer = Date.now();
+            const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
+            console.log(`Finished loading the tile in ${(Date.now() - timer) / 1e3} seconds!`);
+            window.postMessage({
+              source: "blue-marble",
+              blobID: blobUUID,
+              blobData: templateBlob,
+              blink: data["blink"]
+            });
+            break;
+          case "robots":
+            this.disableAll = dataJSON["userscript"]?.toString().toLowerCase() == "false";
+            break;
+        }
+      });
+    }
+    // Sends a heartbeat to the telemetry server
+    async sendHeartbeat(version2) {
+      console.log("Sending heartbeat to telemetry server...");
+      let userSettings2 = GM_getValue("bmUserSettings", "{}");
+      userSettings2 = JSON.parse(userSettings2);
+      if (!userSettings2 || !userSettings2.telemetry || !userSettings2.uuid) {
+        console.log("Telemetry is disabled, not sending heartbeat.");
+        return;
+      }
+      const ua = navigator.userAgent;
+      let browser = await this.getBrowserFromUA(ua);
+      let os = this.getOS(ua);
+      GM_xmlhttpRequest({
+        method: "POST",
+        url: "https://telemetry.thebluecorner.net/heartbeat",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        data: JSON.stringify({
+          uuid: userSettings2.uuid,
+          version: version2,
+          browser,
+          os
+        }),
+        onload: (response) => {
+          if (response.status !== 200) {
+            consoleError("Failed to send heartbeat:", response.statusText);
+          }
+        },
+        onerror: (error) => {
+          consoleError("Error sending heartbeat:", error);
+        }
+      });
+    }
+    async getBrowserFromUA(ua = navigator.userAgent) {
+      ua = ua || "";
+      if (ua.includes("OPR/") || ua.includes("Opera")) return "Opera";
+      if (ua.includes("Edg/")) return "Edge";
+      if (ua.includes("Vivaldi")) return "Vivaldi";
+      if (ua.includes("YaBrowser")) return "Yandex";
+      if (ua.includes("Kiwi")) return "Kiwi";
+      if (ua.includes("Brave")) return "Brave";
+      if (ua.includes("Firefox/")) return "Firefox";
+      if (ua.includes("Chrome/")) return "Chrome";
+      if (ua.includes("Safari/")) return "Safari";
+      if (navigator.brave && typeof navigator.brave.isBrave === "function") {
+        if (await navigator.brave.isBrave()) return "Brave";
+      }
+      return "Unknown";
+    }
+    getOS(ua = navigator.userAgent) {
+      ua = ua || "";
+      if (/Windows NT 11/i.test(ua)) return "Windows 11";
+      if (/Windows NT 10/i.test(ua)) return "Windows 10";
+      if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
+      if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
+      if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
+      if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
+      if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
+      if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
+      if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
+      if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
+      if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
+      if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
+      if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
+      if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
+      if (/Android/i.test(ua)) return "Android";
+      if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
+      if (/Linux/i.test(ua)) return "Linux";
+      return "Unknown";
+    }
+  };
 
   // src/Overlay.js
   var _Overlay_instances, createElement_fn, applyAttribute_fn;
@@ -843,8 +1739,8 @@
     addInput(additionalProperties = {}, callback = () => {
     }) {
       const properties = {};
-      const input2 = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
-      callback(this, input2);
+      const input = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
+      callback(this, input);
       return this;
     }
     /** Adds a file input to the overlay with enhanced visibility controls.
@@ -877,23 +1773,23 @@
       const text = additionalProperties["textContent"] ?? "";
       delete additionalProperties["textContent"];
       const container = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "div");
-      const input2 = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
+      const input = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
       this.buildElement();
       const button = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "button", { "textContent": text });
       this.buildElement();
       this.buildElement();
       button.addEventListener("click", () => {
-        input2.click();
+        input.click();
       });
-      input2.addEventListener("change", () => {
+      input.addEventListener("change", () => {
         button.style.maxWidth = `${button.offsetWidth}px`;
-        if (input2.files.length > 0) {
-          button.textContent = input2.files[0].name;
+        if (input.files.length > 0) {
+          button.textContent = input.files[0].name;
         } else {
           button.textContent = text;
         }
       });
-      callback(this, container, input2, button);
+      callback(this, container, input, button);
       return this;
     }
     /** Adds a `textarea` to the overlay.
@@ -1210,11 +2106,11 @@
       this.parentStack.push(this.currentParent);
       this.currentParent = element;
     }
-    for (const [property, value2] of Object.entries(properties)) {
-      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value2);
+    for (const [property, value] of Object.entries(properties)) {
+      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value);
     }
-    for (const [property, value2] of Object.entries(additionalProperties)) {
-      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value2);
+    for (const [property, value] of Object.entries(additionalProperties)) {
+      __privateMethod(this, _Overlay_instances, applyAttribute_fn).call(this, element, property, value);
     }
     return element;
   };
@@ -1224,926 +2120,69 @@
    * @param {String} value - The value of the attribute
    * @since 0.88.136
    */
-  applyAttribute_fn = function(element, property, value2) {
+  applyAttribute_fn = function(element, property, value) {
     if (property == "class") {
-      element.classList.add(...value2.split(/\s+/));
+      element.classList.add(...value.split(/\s+/));
     } else if (property == "for") {
-      element.htmlFor = value2;
+      element.htmlFor = value;
     } else if (property == "tabindex") {
-      element.tabIndex = Number(value2);
+      element.tabIndex = Number(value);
     } else if (property == "readonly") {
-      element.readOnly = value2 == "true" || value2 == "1";
+      element.readOnly = value == "true" || value == "1";
     } else if (property == "maxlength") {
-      element.maxLength = Number(value2);
+      element.maxLength = Number(value);
     } else if (property.startsWith("data")) {
       element.dataset[property.slice(5).split("-").map(
         (part, i) => i == 0 ? part : part[0].toUpperCase() + part.slice(1)
-      ).join("")] = value2;
+      ).join("")] = value;
     } else if (property.startsWith("aria")) {
       const camelCase = property.slice(5).split("-").map(
         (part, i) => i == 0 ? part : part[0].toUpperCase() + part.slice(1)
       ).join("");
-      element["aria" + camelCase[0].toUpperCase() + camelCase.slice(1)] = value2;
+      element["aria" + camelCase[0].toUpperCase() + camelCase.slice(1)] = value;
     } else {
-      element[property] = value2;
+      element[property] = value;
     }
   };
 
-  // src/observers.js
-  var Observers = class {
-    /** The constructor for the observer class
-     * @since 0.43.2
+  // src/confetttiManager.js
+  var ConfettiManager = class {
+    /** The constructor for the confetti manager.
+     * @since 0.88.356
      */
     constructor() {
-      this.observerBody = null;
-      this.observerBodyTarget = null;
-      this.targetDisplayCoords = "#bm-display-coords";
+      this.confettiCount = Math.ceil(80 / 1300 * window.innerWidth);
+      this.colorPalette = colorpalette.slice(1);
     }
-    /** Creates the MutationObserver for document.body
-     * @param {HTMLElement} target - Targeted element to watch
-     * @returns {Observers} this (Observers class)
-     * @since 0.43.2
+    /** Immedently creates confetti inside the parent element.
+     * @param {HTMLElement} parentElement - The parent element to create confetti inside of
+     * @since 0.88.356
      */
-    createObserverBody(target) {
-      this.observerBodyTarget = target;
-      this.observerBody = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          for (const node of mutation.addedNodes) {
-            if (!(node instanceof HTMLElement)) {
-              continue;
-            }
-            if (node.matches?.(this.targetDisplayCoords)) {
-            }
+    createConfetti(parentElement) {
+      const confettiContainer = document.createElement("div");
+      for (let currentCount = 0; currentCount < this.confettiCount; currentCount++) {
+        const confettiShard = document.createElement("confetti-piece");
+        confettiShard.style.setProperty("--x", `${Math.random() * 100}vw`);
+        confettiShard.style.setProperty("--delay", `${Math.random() * 2}s`);
+        confettiShard.style.setProperty("--duration", `${3 + Math.random() * 3}s`);
+        confettiShard.style.setProperty("--rot", `${Math.random() * 360}deg`);
+        confettiShard.style.setProperty("--size", `${6 + Math.random() * 6}px`);
+        confettiShard.style.backgroundColor = `rgb(${this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)].rgb.join(",")})`;
+        confettiShard.onanimationend = () => {
+          if (confettiShard.parentNode.childElementCount <= 1) {
+            confettiShard.parentNode.remove();
+          } else {
+            confettiShard.remove();
           }
-        }
-      });
-      return this;
-    }
-    /** Retrieves the MutationObserver that watches document.body
-     * @returns {MutationObserver}
-     * @since 0.43.2
-     */
-    getObserverBody() {
-      return this.observerBody;
-    }
-    /** Observe a MutationObserver
-     * @param {MutationObserver} observer - The MutationObserver
-     * @param {boolean} watchChildList - (Optional) Should childList be watched? False by default
-     * @param {boolean} watchSubtree - (Optional) Should childList be watched? False by default
-     * @since 0.43.2
-     */
-    observe(observer, watchChildList = false, watchSubtree = false) {
-      observer.observe(this.observerBodyTarget, {
-        childList: watchChildList,
-        subtree: watchSubtree
-      });
+        };
+        confettiContainer.appendChild(confettiShard);
+      }
+      parentElement.appendChild(confettiContainer);
     }
   };
-
-  // src/utils.js
-  function escapeHTML(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-  }
-  function serverTPtoDisplayTP(tile, pixel) {
-    return [parseInt(tile[0]) % 4 * 1e3 + parseInt(pixel[0]), parseInt(tile[1]) % 4 * 1e3 + parseInt(pixel[1])];
-  }
-  function consoleLog(...args) {
-    ((consoleLog2) => consoleLog2(...args))(console.log);
-  }
-  function consoleError(...args) {
-    ((consoleError2) => consoleError2(...args))(console.error);
-  }
-  function consoleWarn(...args) {
-    ((consoleWarn2) => consoleWarn2(...args))(console.warn);
-  }
-  function numberToEncoded(number, encoding) {
-    if (number === 0) return encoding[0];
-    let result = "";
-    const base = encoding.length;
-    while (number > 0) {
-      result = encoding[number % base] + result;
-      number = Math.floor(number / base);
-    }
-    return result;
-  }
-  function uint8ToBase64(uint8) {
-    let binary = "";
-    for (let i = 0; i < uint8.length; i++) {
-      binary += String.fromCharCode(uint8[i]);
-    }
-    return btoa(binary);
-  }
-  function base64ToUint8(base64) {
-    const binary = atob(base64);
-    const array = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      array[i] = binary.charCodeAt(i);
-    }
-    return array;
-  }
-  function calculateRelativeLuminance(array) {
-    const srgb = array.map((channel) => {
-      channel /= 255;
-      return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
-  }
-  function colorpaletteForBlueMarble(tolerance) {
-    const colorpaletteBM = colorpalette;
-    colorpaletteBM.unshift({ "id": -1, "premium": false, "name": "Erased", "rgb": [222, 250, 206] });
-    colorpaletteBM.unshift({ "id": -2, "premium": false, "name": "Other", "rgb": [0, 0, 0] });
-    const lookupTable = /* @__PURE__ */ new Map();
-    for (const color of colorpaletteBM) {
-      if (color.id == 0 || color.id == -2) continue;
-      const targetRed = color.rgb[0];
-      const targetGreen = color.rgb[1];
-      const targetBlue = color.rgb[2];
-      for (let deltaRedRange = -tolerance; deltaRedRange <= tolerance; deltaRedRange++) {
-        for (let deltaGreenRange = -tolerance; deltaGreenRange <= tolerance; deltaGreenRange++) {
-          for (let deltaBlueRange = -tolerance; deltaBlueRange <= tolerance; deltaBlueRange++) {
-            const derivativeRed = targetRed + deltaRedRange;
-            const derivativeGreen = targetGreen + deltaGreenRange;
-            const derivativeBlue = targetBlue + deltaBlueRange;
-            if (derivativeRed < 0 || derivativeRed > 255 || derivativeGreen < 0 || derivativeGreen > 255 || derivativeBlue < 0 || derivativeBlue > 255) continue;
-            const derivativeColor32 = (255 << 24 | derivativeBlue << 16 | derivativeGreen << 8 | derivativeRed) >>> 0;
-            if (!lookupTable.has(derivativeColor32)) {
-              lookupTable.set(derivativeColor32, color.id);
-            }
-          }
-        }
-      }
-    }
-    return { palette: colorpaletteBM, LUT: lookupTable };
-  }
-  var colorpalette = [
-    { "id": 0, "premium": false, "name": "Transparent", "rgb": [0, 0, 0] },
-    { "id": 1, "premium": false, "name": "Black", "rgb": [0, 0, 0] },
-    { "id": 2, "premium": false, "name": "Dark Gray", "rgb": [60, 60, 60] },
-    { "id": 3, "premium": false, "name": "Gray", "rgb": [120, 120, 120] },
-    { "id": 4, "premium": false, "name": "Light Gray", "rgb": [210, 210, 210] },
-    { "id": 5, "premium": false, "name": "White", "rgb": [255, 255, 255] },
-    { "id": 6, "premium": false, "name": "Deep Red", "rgb": [96, 0, 24] },
-    { "id": 7, "premium": false, "name": "Red", "rgb": [237, 28, 36] },
-    { "id": 8, "premium": false, "name": "Orange", "rgb": [255, 127, 39] },
-    { "id": 9, "premium": false, "name": "Gold", "rgb": [246, 170, 9] },
-    { "id": 10, "premium": false, "name": "Yellow", "rgb": [249, 221, 59] },
-    { "id": 11, "premium": false, "name": "Light Yellow", "rgb": [255, 250, 188] },
-    { "id": 12, "premium": false, "name": "Dark Green", "rgb": [14, 185, 104] },
-    { "id": 13, "premium": false, "name": "Green", "rgb": [19, 230, 123] },
-    { "id": 14, "premium": false, "name": "Light Green", "rgb": [135, 255, 94] },
-    { "id": 15, "premium": false, "name": "Dark Teal", "rgb": [12, 129, 110] },
-    { "id": 16, "premium": false, "name": "Teal", "rgb": [16, 174, 166] },
-    { "id": 17, "premium": false, "name": "Light Teal", "rgb": [19, 225, 190] },
-    { "id": 18, "premium": false, "name": "Dark Blue", "rgb": [40, 80, 158] },
-    { "id": 19, "premium": false, "name": "Blue", "rgb": [64, 147, 228] },
-    { "id": 20, "premium": false, "name": "Cyan", "rgb": [96, 247, 242] },
-    { "id": 21, "premium": false, "name": "Indigo", "rgb": [107, 80, 246] },
-    { "id": 22, "premium": false, "name": "Light Indigo", "rgb": [153, 177, 251] },
-    { "id": 23, "premium": false, "name": "Dark Purple", "rgb": [120, 12, 153] },
-    { "id": 24, "premium": false, "name": "Purple", "rgb": [170, 56, 185] },
-    { "id": 25, "premium": false, "name": "Light Purple", "rgb": [224, 159, 249] },
-    { "id": 26, "premium": false, "name": "Dark Pink", "rgb": [203, 0, 122] },
-    { "id": 27, "premium": false, "name": "Pink", "rgb": [236, 31, 128] },
-    { "id": 28, "premium": false, "name": "Light Pink", "rgb": [243, 141, 169] },
-    { "id": 29, "premium": false, "name": "Dark Brown", "rgb": [104, 70, 52] },
-    { "id": 30, "premium": false, "name": "Brown", "rgb": [149, 104, 42] },
-    { "id": 31, "premium": false, "name": "Beige", "rgb": [248, 178, 119] },
-    { "id": 32, "premium": true, "name": "Medium Gray", "rgb": [170, 170, 170] },
-    { "id": 33, "premium": true, "name": "Dark Red", "rgb": [165, 14, 30] },
-    { "id": 34, "premium": true, "name": "Light Red", "rgb": [250, 128, 114] },
-    { "id": 35, "premium": true, "name": "Dark Orange", "rgb": [228, 92, 26] },
-    { "id": 36, "premium": true, "name": "Light Tan", "rgb": [214, 181, 148] },
-    { "id": 37, "premium": true, "name": "Dark Goldenrod", "rgb": [156, 132, 49] },
-    { "id": 38, "premium": true, "name": "Goldenrod", "rgb": [197, 173, 49] },
-    { "id": 39, "premium": true, "name": "Light Goldenrod", "rgb": [232, 212, 95] },
-    { "id": 40, "premium": true, "name": "Dark Olive", "rgb": [74, 107, 58] },
-    { "id": 41, "premium": true, "name": "Olive", "rgb": [90, 148, 74] },
-    { "id": 42, "premium": true, "name": "Light Olive", "rgb": [132, 197, 115] },
-    { "id": 43, "premium": true, "name": "Dark Cyan", "rgb": [15, 121, 159] },
-    { "id": 44, "premium": true, "name": "Light Cyan", "rgb": [187, 250, 242] },
-    { "id": 45, "premium": true, "name": "Light Blue", "rgb": [125, 199, 255] },
-    { "id": 46, "premium": true, "name": "Dark Indigo", "rgb": [77, 49, 184] },
-    { "id": 47, "premium": true, "name": "Dark Slate Blue", "rgb": [74, 66, 132] },
-    { "id": 48, "premium": true, "name": "Slate Blue", "rgb": [122, 113, 196] },
-    { "id": 49, "premium": true, "name": "Light Slate Blue", "rgb": [181, 174, 241] },
-    { "id": 50, "premium": true, "name": "Light Brown", "rgb": [219, 164, 99] },
-    { "id": 51, "premium": true, "name": "Dark Beige", "rgb": [209, 128, 81] },
-    { "id": 52, "premium": true, "name": "Light Beige", "rgb": [255, 197, 165] },
-    { "id": 53, "premium": true, "name": "Dark Peach", "rgb": [155, 82, 73] },
-    { "id": 54, "premium": true, "name": "Peach", "rgb": [209, 128, 120] },
-    { "id": 55, "premium": true, "name": "Light Peach", "rgb": [250, 182, 164] },
-    { "id": 56, "premium": true, "name": "Dark Tan", "rgb": [123, 99, 82] },
-    { "id": 57, "premium": true, "name": "Tan", "rgb": [156, 132, 107] },
-    { "id": 58, "premium": true, "name": "Dark Slate", "rgb": [51, 57, 65] },
-    { "id": 59, "premium": true, "name": "Slate", "rgb": [109, 117, 141] },
-    { "id": 60, "premium": true, "name": "Light Slate", "rgb": [179, 185, 209] },
-    { "id": 61, "premium": true, "name": "Dark Stone", "rgb": [109, 100, 63] },
-    { "id": 62, "premium": true, "name": "Stone", "rgb": [148, 140, 107] },
-    { "id": 63, "premium": true, "name": "Light Stone", "rgb": [205, 197, 158] }
-  ];
-
-  // src/Template.js
-  var _Template_instances, calculateTotalPixelsFromImageData_fn;
-  var Template = class {
-    /** The constructor for the {@link Template} class with enhanced pixel tracking.
-     * @param {Object} [params={}] - Object containing all optional parameters
-     * @param {string} [params.displayName='My template'] - The display name of the template
-     * @param {number} [params.sortID=0] - The sort number of the template for rendering priority
-     * @param {string} [params.authorID=''] - The user ID of the person who exported the template (prevents sort ID collisions)
-     * @param {string} [params.url=''] - The URL to the source image
-     * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
-     * @param {Array<number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
-     * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
-     * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
-     * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
-     * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
-     * @since 0.65.2
-     */
-    constructor({
-      displayName = "My template",
-      sortID = 0,
-      authorID = "",
-      url = "",
-      file = null,
-      coords: coords2 = null,
-      chunked = null,
-      chunked32 = {},
-      tileSize = 1e3
-    } = {}) {
-      __privateAdd(this, _Template_instances);
-      this.displayName = displayName;
-      this.sortID = sortID;
-      this.authorID = authorID;
-      this.url = url;
-      this.file = file;
-      this.coords = coords2;
-      this.chunked = chunked;
-      this.chunked32 = chunked32;
-      this.tileSize = tileSize;
-      this.pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() };
-    }
-    /** Creates chunks of the template for each tile.
-     * @param {Number} tileSize - Size of the tile as determined by templateManager
-     * @param {Object} paletteBM - An collection of Uint32Arrays containing the palette BM uses
-     * @returns {Object} Collection of template bitmaps & buffers organized by tile coordinates
-     * @since 0.65.4
-     */
-    async createTemplateTiles(tileSize, paletteBM) {
-      console.log("Template coordinates:", this.coords);
-      const shreadSize = 3;
-      const bitmap = await createImageBitmap(this.file);
-      const imageWidth = bitmap.width;
-      const imageHeight = bitmap.height;
-      this.tileSize = tileSize;
-      const templateTiles = {};
-      const templateTilesBuffers = {};
-      const canvas = new OffscreenCanvas(this.tileSize, this.tileSize);
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-      canvas.width = imageWidth;
-      canvas.height = imageHeight;
-      context.imageSmoothingEnabled = false;
-      context.drawImage(bitmap, 0, 0);
-      let timer = Date.now();
-      const totalPixelMap = __privateMethod(this, _Template_instances, calculateTotalPixelsFromImageData_fn).call(this, context.getImageData(0, 0, imageWidth, imageHeight), paletteBM);
-      console.log(`Calculating total pixels took ${(Date.now() - timer) / 1e3} seconds`);
-      let totalPixels = 0;
-      const transparentColorID = 0;
-      for (const [color, total] of totalPixelMap) {
-        if (color == transparentColorID) {
-          continue;
-        }
-        totalPixels += total;
-      }
-      this.pixelCount = { total: totalPixels, colors: totalPixelMap };
-      timer = Date.now();
-      const canvasMask = new OffscreenCanvas(3, 3);
-      const contextMask = canvasMask.getContext("2d");
-      contextMask.clearRect(0, 0, 3, 3);
-      contextMask.fillStyle = "white";
-      contextMask.fillRect(1, 1, 1, 1);
-      for (let pixelY = this.coords[3]; pixelY < imageHeight + this.coords[3]; ) {
-        const drawSizeY = Math.min(this.tileSize - pixelY % this.tileSize, imageHeight - (pixelY - this.coords[3]));
-        console.log(`Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`);
-        for (let pixelX = this.coords[2]; pixelX < imageWidth + this.coords[2]; ) {
-          console.log(`Pixel X: ${pixelX}
-Pixel Y: ${pixelY}`);
-          const drawSizeX = Math.min(this.tileSize - pixelX % this.tileSize, imageWidth - (pixelX - this.coords[2]));
-          console.log(`Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`);
-          console.log(`Draw Size X: ${drawSizeX}
-Draw Size Y: ${drawSizeY}`);
-          const canvasWidth = drawSizeX * shreadSize;
-          const canvasHeight = drawSizeY * shreadSize;
-          canvas.width = canvasWidth;
-          canvas.height = canvasHeight;
-          console.log(`Draw X: ${drawSizeX}
-Draw Y: ${drawSizeY}
-Canvas Width: ${canvasWidth}
-Canvas Height: ${canvasHeight}`);
-          context.imageSmoothingEnabled = false;
-          console.log(`Getting X ${pixelX}-${pixelX + drawSizeX}
-Getting Y ${pixelY}-${pixelY + drawSizeY}`);
-          context.clearRect(0, 0, canvasWidth, canvasHeight);
-          context.drawImage(
-            bitmap,
-            // Bitmap image to draw
-            pixelX - this.coords[2],
-            // Coordinate X to draw from
-            pixelY - this.coords[3],
-            // Coordinate Y to draw from
-            drawSizeX,
-            // X width to draw from
-            drawSizeY,
-            // Y height to draw from
-            0,
-            // Coordinate X to draw at
-            0,
-            // Coordinate Y to draw at
-            drawSizeX * shreadSize,
-            // X width to draw at
-            drawSizeY * shreadSize
-            // Y height to draw at
-          );
-          context.save();
-          context.globalCompositeOperation = "destination-in";
-          context.fillStyle = context.createPattern(canvasMask, "repeat");
-          context.fillRect(0, 0, canvasWidth, canvasHeight);
-          context.restore();
-          const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
-          console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
-          context.putImageData(imageData, 0, 0);
-          const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
-          this.chunked32[templateTileName] = new Uint32Array(context.getImageData(0, 0, canvasWidth, canvasHeight));
-          templateTiles[templateTileName] = await createImageBitmap(canvas);
-          const canvasBlob = await canvas.convertToBlob();
-          const canvasBuffer = await canvasBlob.arrayBuffer();
-          const canvasBufferBytes = Array.from(new Uint8Array(canvasBuffer));
-          templateTilesBuffers[templateTileName] = uint8ToBase64(canvasBufferBytes);
-          console.log(templateTiles);
-          pixelX += drawSizeX;
-        }
-        pixelY += drawSizeY;
-      }
-      console.log(`Parsing template took ${(Date.now() - timer) / 1e3} seconds`);
-      console.log("Template Tiles: ", templateTiles);
-      console.log("Template Tiles Buffers: ", templateTilesBuffers);
-      console.log("Template Tiles Uint32Array: ", this.chunked32);
-      return { templateTiles, templateTilesBuffers };
-    }
+  var BlueMarbleConfettiPiece = class extends HTMLElement {
   };
-  _Template_instances = new WeakSet();
-  /** Calculates the total pixels for each color for the image.
-   * 
-   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
-   * @param {Object} paletteBM - The palette Blue Marble uses for colors
-   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
-   * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
-   * @since 0.88.6
-   */
-  calculateTotalPixelsFromImageData_fn = function(imageData, paletteBM) {
-    const buffer32Arr = new Uint32Array(imageData.data.buffer);
-    const { palette: _, LUT: lookupTable } = paletteBM;
-    const _colorpalette = /* @__PURE__ */ new Map();
-    for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
-      const pixel = buffer32Arr[pixelIndex];
-      let bestColorID = -2;
-      if (pixel >>> 24 == 0) {
-        bestColorID = 0;
-      } else {
-        bestColorID = lookupTable.get(pixel) ?? -2;
-      }
-      const colorIDcount = _colorpalette.get(bestColorID);
-      _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
-    }
-    console.log(_colorpalette);
-    return _colorpalette;
-  };
-
-  // src/templateManager.js
-  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_And_FilterTile_fn;
-  var TemplateManager = class {
-    /** The constructor for the {@link TemplateManager} class.
-     * @since 0.55.8
-     */
-    constructor(name2, version2, overlay) {
-      __privateAdd(this, _TemplateManager_instances);
-      this.name = name2;
-      this.version = version2;
-      this.overlay = overlay;
-      this.templatesVersion = "1.0.0";
-      this.userID = null;
-      this.encodingBase = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-      this.tileSize = 1e3;
-      this.drawMult = 3;
-      this.paletteTolerance = 3;
-      this.paletteBM = colorpaletteForBlueMarble(this.paletteTolerance);
-      this.template = null;
-      this.templateState = "";
-      this.templatesArray = [];
-      this.templatesJSON = null;
-      this.templatesShouldBeDrawn = true;
-      this.templatePixelsCorrect = null;
-      this.shouldFilterColor = /* @__PURE__ */ new Map();
-    }
-    /** Creates the JSON object to store templates in
-     * @returns {{ whoami: string, scriptVersion: string, schemaVersion: string, templates: Object }} The JSON object
-     * @since 0.65.4
-     */
-    async createJSON() {
-      return {
-        "whoami": this.name.replace(" ", ""),
-        // Name of userscript without spaces
-        "scriptVersion": this.version,
-        // Version of userscript
-        "schemaVersion": this.templatesVersion,
-        // Version of JSON schema
-        "templates": {}
-        // The templates
-      };
-    }
-    /** Creates the template from the inputed file blob
-     * @param {File} blob - The file blob to create a template from
-     * @param {string} name - The display name of the template
-     * @param {Array<number, number, number, number>} coords - The coordinates of the top left corner of the template
-     * @since 0.65.77
-     */
-    async createTemplate(blob, name2, coords2) {
-      if (!this.templatesJSON) {
-        this.templatesJSON = await this.createJSON();
-        console.log(`Creating JSON...`);
-      }
-      this.overlay.handleDisplayStatus(`Creating template at ${coords2.join(", ")}...`);
-      const template = new Template({
-        displayName: name2,
-        sortID: 0,
-        // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
-        authorID: numberToEncoded(this.userID || 0, this.encodingBase),
-        file: blob,
-        coords: coords2
-      });
-      const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize, this.paletteBM);
-      template.chunked = templateTiles;
-      const _pixels = { "total": template.pixelCount.total, "colors": Object.fromEntries(template.pixelCount.colors) };
-      this.templatesJSON.templates[`${template.sortID} ${template.authorID}`] = {
-        "name": template.displayName,
-        // Display name of template
-        "coords": coords2.join(", "),
-        // The coords of the template
-        "enabled": true,
-        "pixels": _pixels,
-        // The total pixels in the template
-        "tiles": templateTilesBuffers
-        // Stores the chunked tile buffers
-      };
-      this.templatesArray = [];
-      this.templatesArray.push(template);
-      this.overlay.handleDisplayStatus(`Template created at ${coords2.join(", ")}!`);
-      console.log(Object.keys(this.templatesJSON.templates).length);
-      console.log(this.templatesJSON);
-      console.log(this.templatesArray);
-      console.log(JSON.stringify(this.templatesJSON));
-      await __privateMethod(this, _TemplateManager_instances, storeTemplates_fn).call(this);
-    }
-    /** Deletes a template from the JSON object.
-     * Also delete's the corrosponding {@link Template} class instance
-     */
-    deleteTemplate() {
-    }
-    /** Disables the template from view
-     */
-    async disableTemplate() {
-      if (!this.templatesJSON) {
-        this.templatesJSON = await this.createJSON();
-        console.log(`Creating JSON...`);
-      }
-    }
-    /** Draws all templates on the specified tile.
-     * This method handles the rendering of template overlays on individual tiles.
-     * @param {File} tileBlob - The pixels that are placed on a tile
-     * @param {Array<number>} tileCoords - The tile coordinates [x, y]
-     * @since 0.65.77
-     */
-    async drawTemplateOnTile(tileBlob, tileCoords) {
-      if (!this.templatesShouldBeDrawn) {
-        return tileBlob;
-      }
-      const drawSize = this.tileSize * this.drawMult;
-      tileCoords = tileCoords[0].toString().padStart(4, "0") + "," + tileCoords[1].toString().padStart(4, "0");
-      console.log(`Searching for templates in tile: "${tileCoords}"`);
-      const templateArray = this.templatesArray;
-      console.log(templateArray);
-      templateArray.sort((a, b) => {
-        return a.sortID - b.sortID;
-      });
-      console.log(templateArray);
-      const templatesToDraw = templateArray.map((template) => {
-        const matchingTiles = Object.keys(template.chunked).filter(
-          (tile) => tile.startsWith(tileCoords)
-        );
-        if (matchingTiles.length === 0) {
-          return null;
-        }
-        const matchingTileBlobs = matchingTiles.map((tile) => {
-          const coords2 = tile.split(",");
-          return {
-            instance: template,
-            bitmap: template.chunked[tile],
-            chunked32: template.chunked32?.[tile],
-            tileCoords: [coords2[0], coords2[1]],
-            pixelCoords: [coords2[2], coords2[3]]
-          };
-        });
-        return matchingTileBlobs?.[0];
-      }).filter(Boolean);
-      console.log(templatesToDraw);
-      const templateCount = templatesToDraw?.length || 0;
-      console.log(`templateCount = ${templateCount}`);
-      if (templateCount > 0) {
-        const totalPixels = templateArray.filter((template) => {
-          const matchingTiles = Object.keys(template.chunked).filter(
-            (tile) => tile.startsWith(tileCoords)
-          );
-          return matchingTiles.length > 0;
-        }).reduce((sum, template) => sum + (template.pixelCount.total || 0), 0);
-        const pixelCountFormatted = new Intl.NumberFormat().format(totalPixels);
-        this.overlay.handleDisplayStatus(
-          `Displaying ${templateCount} template${templateCount == 1 ? "" : "s"}.
-Total pixels: ${pixelCountFormatted}`
-        );
-      } else {
-        this.overlay.handleDisplayStatus(`Sleeping
-Version: ${this.version}`);
-        return tileBlob;
-      }
-      const tileBitmap = await createImageBitmap(tileBlob);
-      const canvas = new OffscreenCanvas(drawSize, drawSize);
-      const context = canvas.getContext("2d");
-      context.imageSmoothingEnabled = false;
-      context.beginPath();
-      context.rect(0, 0, drawSize, drawSize);
-      context.clip();
-      context.clearRect(0, 0, drawSize, drawSize);
-      context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
-      const tileBeforeTemplates = context.getImageData(0, 0, drawSize, drawSize);
-      const tileBeforeTemplates32 = new Uint32Array(tileBeforeTemplates.data.buffer);
-      for (const template of templatesToDraw) {
-        console.log(`Template:`);
-        console.log(template);
-        let templateBeforeFilter32 = template.chunked32.slice();
-        const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
-        const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
-        if (this.shouldFilterColor.size == 0) {
-          context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
-        }
-        if (!templateBeforeFilter32) {
-          const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
-          templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
-        }
-        const timer = Date.now();
-        const {
-          correctPixels: pixelsCorrect,
-          filteredTemplate: templateAfterFilter
-        } = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_And_FilterTile_fn).call(this, {
-          tile: tileBeforeTemplates32,
-          template: templateBeforeFilter32,
-          templateInfo: [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]
-        });
-        let pixelsCorrectTotal = 0;
-        const transparentColorID = 0;
-        for (const [color, total] of pixelsCorrect) {
-          if (color == transparentColorID) {
-            continue;
-          }
-          pixelsCorrectTotal += total;
-        }
-        if (this.shouldFilterColor.size != 0) {
-          console.log("Colors to filter: ", this.shouldFilterColor);
-          context.putImageData(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height), coordXtoDrawAt, coordYtoDrawAt);
-        }
-        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
-There are ${pixelsCorrectTotal} correct pixels.`);
-        if (typeof template.instance.pixelCount["correct"] == "undefined") {
-          template.instance.pixelCount["correct"] = {};
-        }
-        template.instance.pixelCount["correct"][tileCoords] = pixelsCorrect;
-      }
-      return await canvas.convertToBlob({ type: "image/png" });
-    }
-    /** Imports the JSON object, and appends it to any JSON object already loaded
-     * @param {string} json - The JSON string to parse
-     */
-    importJSON(json) {
-      console.log(`Importing JSON...`);
-      console.log(json);
-      if (json?.whoami == "BlueMarble") {
-        __privateMethod(this, _TemplateManager_instances, parseBlueMarble_fn).call(this, json);
-      }
-    }
-    /** Sets the `templatesShouldBeDrawn` boolean to a value.
-     * @param {boolean} value - The value to set the boolean to
-     * @since 0.73.7
-     */
-    setTemplatesShouldBeDrawn(value2) {
-      this.templatesShouldBeDrawn = value2;
-    }
-  };
-  _TemplateManager_instances = new WeakSet();
-  /** Generates a {@link Template} class instance from the JSON object template
-   */
-  loadTemplate_fn = function() {
-  };
-  storeTemplates_fn = async function() {
-    GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
-  };
-  parseBlueMarble_fn = async function(json) {
-    console.log(`Parsing BlueMarble...`);
-    const templates = json.templates;
-    console.log(`BlueMarble length: ${Object.keys(templates).length}`);
-    if (Object.keys(templates).length > 0) {
-      for (const template in templates) {
-        const templateKey = template;
-        const templateValue = templates[template];
-        console.log(`Template Key: ${templateKey}`);
-        if (templates.hasOwnProperty(template)) {
-          const templateKeyArray = templateKey.split(" ");
-          const sortID = Number(templateKeyArray?.[0]);
-          const authorID = templateKeyArray?.[1] || "0";
-          const displayName = templateValue.name || `Template ${sortID || ""}`;
-          const pixelCount = {
-            total: templateValue.pixels.total,
-            colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value2]) => [Number(key), value2]))
-          };
-          const tilesbase64 = templateValue.tiles;
-          const templateTiles = {};
-          const templateTiles32 = {};
-          const actualTileSize = this.tileSize * this.drawMult;
-          for (const tile in tilesbase64) {
-            console.log(tile);
-            if (tilesbase64.hasOwnProperty(tile)) {
-              const encodedTemplateBase64 = tilesbase64[tile];
-              const templateUint8Array = base64ToUint8(encodedTemplateBase64);
-              const templateBlob = new Blob([templateUint8Array], { type: "image/png" });
-              const templateBitmap = await createImageBitmap(templateBlob);
-              templateTiles[tile] = templateBitmap;
-              const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
-              const context = canvas.getContext("2d");
-              context.drawImage(templateBitmap, 0, 0);
-              const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
-              templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
-            }
-          }
-          const template2 = new Template({
-            displayName,
-            sortID: sortID || this.templatesArray?.length || 0,
-            authorID: authorID || ""
-            //coords: coords,
-          });
-          template2.pixelCount = pixelCount;
-          template2.chunked = templateTiles;
-          template2.chunked32 = templateTiles32;
-          this.templatesArray.push(template2);
-          console.log(this.templatesArray);
-          console.log(`^^^ This ^^^`);
-        }
-      }
-    }
-  };
-  /** Parses the OSU! Place JSON object
-   */
-  parseOSU_fn = function() {
-  };
-  /** Calculates the correct pixels on this tile.
-   * @param {Object} params - Object containing all parameters
-   * @param {Uint32Array} params.tile - The tile without templates as a Uint32Array
-   * @param {Uint32Array} params.template - The template without filtering as a Uint32Array
-   * @param {Array<Number, Number, Number, Number>} params.templateInfo - Information about template location and size
-   * @returns {{correctPixels: Map<number, number>, filteredTemplate: Uint32Array}} A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
-   */
-  calculateCorrectPixelsOnTile_And_FilterTile_fn = function({
-    tile: tile32,
-    template: template32,
-    templateInfo: templateInformation
-  }) {
-    const pixelSize = this.drawMult;
-    const tileWidth = this.tileSize * pixelSize;
-    const tileHeight = tileWidth;
-    const tilePixelOffsetY = -1;
-    const tilePixelOffsetX = 0;
-    const templateCoordX = templateInformation[0];
-    const templateCoordY = templateInformation[1];
-    const templateWidth = templateInformation[2];
-    const templateHeight = templateInformation[3];
-    const tolerance = this.paletteTolerance;
-    const { palette: _, LUT: lookupTable } = this.paletteBM;
-    const _colorpalette = /* @__PURE__ */ new Map();
-    for (let templateRow = 1; templateRow < templateHeight; templateRow += pixelSize) {
-      for (let templateColumn = 1; templateColumn < templateWidth; templateColumn += pixelSize) {
-        const tileRow = templateCoordY + templateRow + tilePixelOffsetY;
-        const tileColumn = templateCoordX + templateColumn + tilePixelOffsetX;
-        const tilePixelAbove = tile32[tileRow * tileWidth + tileColumn];
-        const templatePixel = template32[templateRow * templateWidth + templateColumn];
-        const templatePixelAlpha = templatePixel >>> 24 & 255;
-        const tilePixelAlpha = tilePixelAbove >>> 24 & 255;
-        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
-        if (this.shouldFilterColor.get(bestTemplateColorID)) {
-          template32[templateRow * templateWidth + templateColumn] = tilePixelAbove;
-        }
-        if (templatePixelAlpha <= tolerance || tilePixelAlpha <= tolerance) {
-          continue;
-        }
-        const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
-        if (bestTileColorID != bestTemplateColorID) {
-          continue;
-        }
-        const colorIDcount = _colorpalette.get(bestTemplateColorID);
-        _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
-      }
-    }
-    console.log(`List of template pixels that match the tile:`);
-    console.log(_colorpalette);
-    return { correctPixels: _colorpalette, filteredTemplate: template32 };
-  };
-
-  // src/apiManager.js
-  var ApiManager = class {
-    /** Constructor for ApiManager class
-     * @param {TemplateManager} templateManager 
-     * @since 0.11.34
-     */
-    constructor(templateManager2) {
-      this.templateManager = templateManager2;
-      this.disableAll = false;
-      this.chargeRefillTimerID = "";
-      this.coordsTilePixel = [];
-      this.templateCoordsTilePixel = [];
-    }
-    /** Determines if the spontaneously received response is something we want.
-     * Otherwise, we can ignore it.
-     * Note: Due to aggressive compression, make your calls like `data['jsonData']['name']` instead of `data.jsonData.name`
-     * 
-     * @param {Overlay} overlay - The Overlay class instance
-     * @since 0.11.1
-    */
-    spontaneousResponseListener(overlay) {
-      window.addEventListener("message", async (event) => {
-        const data = event.data;
-        const dataJSON = data["jsonData"];
-        if (!(data && data["source"] === "blue-marble")) {
-          return;
-        }
-        if (!data["endpoint"]) {
-          return;
-        }
-        const endpointText = data["endpoint"]?.split("?")[0].split("/").filter((s) => s && isNaN(Number(s))).filter((s) => s && !s.includes(".")).pop();
-        console.log(`%cBlue Marble%c: Recieved message about "%s"`, "color: cornflowerblue;", "", endpointText);
-        switch (endpointText) {
-          case "me":
-            if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
-              overlay.handleDisplayError(`You are not logged in!
-Could not fetch userdata.`);
-              return;
-            }
-            const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON["level"]) * Math.pow(30, 0.65), 1 / 0.65) - dataJSON["pixelsPainted"]);
-            console.log(dataJSON["id"]);
-            if (!!dataJSON["id"] || dataJSON["id"] === 0) {
-              console.log(numberToEncoded(
-                dataJSON["id"],
-                "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-              ));
-            }
-            this.templateManager.userID = dataJSON["id"];
-            if (this.chargeRefillTimerID.length != 0) {
-              const chargeRefillTimer = document.querySelector("#" + this.chargeRefillTimerID);
-              if (chargeRefillTimer) {
-                const chargeData = dataJSON["charges"];
-                chargeRefillTimer.dataset["endDate"] = Date.now() + (chargeData["max"] - chargeData["count"]) * chargeData["cooldownMs"];
-              }
-            }
-            overlay.updateInnerHTML("bm-user-droplets", `Droplets: <b>${new Intl.NumberFormat().format(dataJSON["droplets"])}</b>`);
-            overlay.updateInnerHTML("bm-user-nextlevel", `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? "" : "s"}`);
-            break;
-          case "pixel":
-            const coordsTile = data["endpoint"].split("?")[0].split("/").filter((s) => s && !isNaN(Number(s)));
-            const payloadExtractor = new URLSearchParams(data["endpoint"].split("?")[1]);
-            const coordsPixel = [payloadExtractor.get("x"), payloadExtractor.get("y")];
-            if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
-              overlay.handleDisplayError(`Coordinates are malformed!
-Did you try clicking the canvas first?`);
-              return;
-            }
-            this.coordsTilePixel = [...coordsTile, ...coordsPixel];
-            const displayTP = serverTPtoDisplayTP(coordsTile, coordsPixel);
-            const spanElements = document.querySelectorAll("span");
-            for (const element of spanElements) {
-              if (element.textContent.trim().includes(`${displayTP[0]}, ${displayTP[1]}`)) {
-                let displayCoords = document.querySelector("#bm-display-coords");
-                const text = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
-                if (!displayCoords) {
-                  displayCoords = document.createElement("span");
-                  displayCoords.id = "bm-display-coords";
-                  displayCoords.textContent = text;
-                  displayCoords.style = "margin-left: calc(var(--spacing)*3); font-size: small;";
-                  element.parentNode.parentNode.insertAdjacentElement("afterend", displayCoords);
-                } else {
-                  displayCoords.textContent = text;
-                }
-              }
-            }
-            break;
-          case "tiles":
-            let tileCoordsTile = data["endpoint"].split("/");
-            tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace(".png", ""))];
-            const blobUUID = data["blobID"];
-            const blobData = data["blobData"];
-            const timer = Date.now();
-            const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
-            console.log(`Finished loading the tile in ${(Date.now() - timer) / 1e3} seconds!`);
-            window.postMessage({
-              source: "blue-marble",
-              blobID: blobUUID,
-              blobData: templateBlob,
-              blink: data["blink"]
-            });
-            break;
-          case "robots":
-            this.disableAll = dataJSON["userscript"]?.toString().toLowerCase() == "false";
-            break;
-        }
-      });
-    }
-    // Sends a heartbeat to the telemetry server
-    async sendHeartbeat(version2) {
-      console.log("Sending heartbeat to telemetry server...");
-      let userSettings2 = GM_getValue("bmUserSettings", "{}");
-      userSettings2 = JSON.parse(userSettings2);
-      if (!userSettings2 || !userSettings2.telemetry || !userSettings2.uuid) {
-        console.log("Telemetry is disabled, not sending heartbeat.");
-        return;
-      }
-      const ua = navigator.userAgent;
-      let browser = await this.getBrowserFromUA(ua);
-      let os = this.getOS(ua);
-      GM_xmlhttpRequest({
-        method: "POST",
-        url: "https://telemetry.thebluecorner.net/heartbeat",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        data: JSON.stringify({
-          uuid: userSettings2.uuid,
-          version: version2,
-          browser,
-          os
-        }),
-        onload: (response) => {
-          if (response.status !== 200) {
-            consoleError("Failed to send heartbeat:", response.statusText);
-          }
-        },
-        onerror: (error) => {
-          consoleError("Error sending heartbeat:", error);
-        }
-      });
-    }
-    async getBrowserFromUA(ua = navigator.userAgent) {
-      ua = ua || "";
-      if (ua.includes("OPR/") || ua.includes("Opera")) return "Opera";
-      if (ua.includes("Edg/")) return "Edge";
-      if (ua.includes("Vivaldi")) return "Vivaldi";
-      if (ua.includes("YaBrowser")) return "Yandex";
-      if (ua.includes("Kiwi")) return "Kiwi";
-      if (ua.includes("Brave")) return "Brave";
-      if (ua.includes("Firefox/")) return "Firefox";
-      if (ua.includes("Chrome/")) return "Chrome";
-      if (ua.includes("Safari/")) return "Safari";
-      if (navigator.brave && typeof navigator.brave.isBrave === "function") {
-        if (await navigator.brave.isBrave()) return "Brave";
-      }
-      return "Unknown";
-    }
-    getOS(ua = navigator.userAgent) {
-      ua = ua || "";
-      if (/Windows NT 11/i.test(ua)) return "Windows 11";
-      if (/Windows NT 10/i.test(ua)) return "Windows 10";
-      if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
-      if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
-      if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
-      if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
-      if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
-      if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
-      if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
-      if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
-      if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
-      if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
-      if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
-      if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
-      if (/Android/i.test(ua)) return "Android";
-      if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
-      if (/Linux/i.test(ua)) return "Linux";
-      return "Unknown";
-    }
-  };
+  customElements.define("confetti-piece", BlueMarbleConfettiPiece);
 
   // src/WindowFilter.js
   var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn;
@@ -2210,7 +2249,7 @@ Did you try clicking the canvas first?`);
           event.preventDefault();
           const formData = new FormData(document.querySelector(`#${this.windowID} form`));
           const formValues = {};
-          for ([input, value] of formData) {
+          for (const [input, value] of formData) {
             formValues[input] = value;
           }
           console.log(`Primary: ${formValues["sortPrimary"]}; Secondary: ${formValues["sortSecondary"]}; Unused: ${formValues["showUnused"] == "on"}`);
@@ -2241,6 +2280,10 @@ Did you try clicking the canvas first?`);
             allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
           }
         }
+      }
+      if (allPixelsCorrectTotal >= allPixelsTotal && !!allPixelsTotal) {
+        const confettiManager = new ConfettiManager();
+        confettiManager.createConfetti(scrollableContainer);
       }
       const timeRemaining = new Date((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
       const timeRemainingLocalized = timeRemaining.toLocaleString(void 0, this.localizeDateTimeOptions);
@@ -2419,8 +2462,8 @@ Did you try clicking the canvas first?`);
             instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
           };
         }
-      ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input2) => {
-        input2.addEventListener("paste", (event) => {
+      ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+        input.addEventListener("paste", (event) => {
           let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter((n) => n).map(Number).filter((n) => !isNaN(n));
           if (splitText.length !== 4) {
             return;
@@ -2449,7 +2492,7 @@ Did you try clicking the canvas first?`);
         };
       }).buildElement().addButton({ "textContent": "Create" }, (instance, button) => {
         button.onclick = () => {
-          const input2 = document.querySelector(`#${this.windowID} .bm-input-file`);
+          const input = document.querySelector(`#${this.windowID} .bm-input-file`);
           const coordTlX = document.querySelector("#bm-input-tx");
           if (!coordTlX.checkValidity()) {
             coordTlX.reportValidity();
@@ -2474,11 +2517,11 @@ Did you try clicking the canvas first?`);
             instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
             return;
           }
-          if (!input2?.files[0]) {
+          if (!input?.files[0]) {
             instance.handleDisplayError(`No file selected!`);
             return;
           }
-          instance?.apiManager?.templateManager.createTemplate(input2.files[0], input2.files[0]?.name.replace(/\.[^/.]+$/, ""), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
+          instance?.apiManager?.templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ""), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);
           instance.handleDisplayStatus(`Drew to canvas!`);
         };
       }).buildElement().addButton({ "textContent": "Filter" }, (instance, button) => {
@@ -2565,9 +2608,9 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
    * @param {number} value - The value to set the telemetry to
    * @since 0.88.339
    */
-  setTelemetryValue_fn = function(value2) {
+  setTelemetryValue_fn = function(value) {
     const userSettings2 = JSON.parse(GM_getValue("bmUserSettings", "{}"));
-    userSettings2.telemetry = value2;
+    userSettings2.telemetry = value;
     GM.setValue("bmUserSettings", JSON.stringify(userSettings2));
   };
 

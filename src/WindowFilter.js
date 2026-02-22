@@ -1,3 +1,4 @@
+import ConfettiManager from "./confetttiManager";
 import Overlay from "./Overlay";
 import { calculateRelativeLuminance } from "./utils";
 
@@ -130,7 +131,7 @@ export default class WindowFilter extends Overlay {
                     // Get the form data
                     const formData = new FormData(document.querySelector(`#${this.windowID} form`));
                     const formValues = {};
-                    for ([input, value] of formData) {
+                    for (const [input, value] of formData) {
                       formValues[input] = value;
                     }
                     console.log(`Primary: ${formValues['sortPrimary']}; Secondary: ${formValues['sortSecondary']}; Unused: ${formValues['showUnused'] == 'on'}`);
@@ -187,6 +188,14 @@ export default class WindowFilter extends Overlay {
           allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
         }
       }
+    }
+
+    // If the template is complete, and the pixel count is non-zero, and the pixel count exists...
+    if ((allPixelsCorrectTotal >= allPixelsTotal) && !!allPixelsTotal) {
+      
+      // Create confetti in the color filter window
+      const confettiManager = new ConfettiManager();
+      confettiManager.createConfetti(scrollableContainer);
     }
 
     // Calculates the date & time the user will complete the templates
