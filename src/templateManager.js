@@ -284,6 +284,8 @@ export default class TemplateManager {
       console.log(`Template:`);
       console.log(template);
 
+      const templateHasErased = !!template.instance.pixelCount?.colors?.get(-1); // Does this template have Erased (#deface) pixels?
+
       // Obtains the template (for only this tile) as a Uint32Array
       let templateBeforeFilter32 = template.chunked32.slice();
       // Remove the `.slice()` and colors, once disabled, can never be re-enabled
@@ -291,8 +293,8 @@ export default class TemplateManager {
       const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
       const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
 
-      // Draws the template to the tile if there are no colors to filter
-      if (this.shouldFilterColor.size == 0) {
+      // Draws the template to the tile if there are no colors to filter, and there are no Erased pixels
+      if ((this.shouldFilterColor.size == 0) && !templateHasErased) {
         context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
       }
 
@@ -325,9 +327,11 @@ export default class TemplateManager {
       }
 
       // If there are colors to filter, then we draw the filtered template on the canvas
-      if (this.shouldFilterColor.size != 0) {
+      // Or, if there are Erased (#deface) pixels, then we draw the modified template on the canvas
+      if ((this.shouldFilterColor.size != 0) || templateHasErased) {
         console.log('Colors to filter: ', this.shouldFilterColor);
-        context.putImageData(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height), coordXtoDrawAt, coordYtoDrawAt);
+        //context.putImageData(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height), coordXtoDrawAt, coordYtoDrawAt);
+        context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
       }
 
       console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
@@ -452,6 +456,9 @@ export default class TemplateManager {
   }
 
   /** Calculates the correct pixels on this tile.
+   * In addition, this function filters colors based on user input.
+   * In addition, this function modifies colors to properly display (#deface).
+   * This function has multiple purposes only to reduce iterations of scans over every pixel on the template.
    * @param {Object} params - Object containing all parameters
    * @param {Uint32Array} params.tile - The tile without templates as a Uint32Array
    * @param {Uint32Array} params.template - The template without filtering as a Uint32Array
@@ -507,24 +514,63 @@ export default class TemplateManager {
         const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
 
         // -----     COLOR FILTER      -----
-
         // If this pixel on the template is a color the user wants to hide on the canvas...
         if (this.shouldFilterColor.get(bestTemplateColorID)) {
 
           // Sets template pixel to match tile background (which removes the template pixel from the user's view)
           template32[(templateRow * templateWidth) + templateColumn] = tilePixelAbove;
         }
-
         // -----  END OF COLOR FILTER  -----
+
+        // -----        ERASED         -----
+        // If this pixel on the template is the Erased (#deface) color...
+        if (bestTemplateColorID == -1) {
+
+          const blackTrans = 0x20000000; // Black translucent color for Erased pixels
+
+          // If the tile row and tile column are even,
+          // Or the tile row and tile column are odd...
+          if ((((tileRow / pixelSize) & 1) && ((tileColumn / pixelSize) & 1))
+          || (!((tileRow / pixelSize) & 1) && !((tileColumn / pixelSize) & 1))) {
+
+            // Sets the template pixels to be a semi-transparent, black grid
+            template32[(templateRow * templateWidth) + templateColumn] = blackTrans; // Center
+            template32[((templateRow - 1) * templateWidth) + (templateColumn - 1)] = blackTrans; // Top Left
+            template32[((templateRow - 1) * templateWidth) + (templateColumn + 1)] = blackTrans; // Top Right
+            template32[((templateRow + 1) * templateWidth) + (templateColumn - 1)] = blackTrans; // Bottom Left
+            template32[((templateRow + 1) * templateWidth) + (templateColumn + 1)] = blackTrans; // Bottom Right
+          } else {
+            // Else, either the row or column is odd, and the other is even.
+
+            // Sets the template pixels to the the inverse of a semi-transparent, black grid
+            template32[(templateRow * templateWidth) + templateColumn] = 0x00000000; // Center (black, 0% opacity)
+            template32[((templateRow - 1) * templateWidth) + (templateColumn)] = blackTrans; // Top Center
+            template32[((templateRow + 1) * templateWidth) + (templateColumn)] = blackTrans; // Bottom Center
+            template32[((templateRow) * templateWidth) + (templateColumn - 1)] = blackTrans; // Middle Left
+            template32[((templateRow) * templateWidth) + (templateColumn + 1)] = blackTrans; // Middle Right
+          }
+        }
+        // -----     END OF ERASED     -----
+
+        // If the template pixel is Erased, and the tile pixel is transparent...
+        if ((bestTemplateColorID == -1) && (tilePixelAbove <= tolerance)) {
+
+          // Increments the count by 1 for the Erased (#deface) color.
+          // If the color ID has not been counted yet, default to 1
+          const colorIDcount = _colorpalette.get(bestTemplateColorID);
+          _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
+          continue;
+        }
+        // If the code passes this point, the pixel is not a correct Erased color.
 
         // If either pixel is transparent...
         if ((templatePixelAlpha <= tolerance) || (tilePixelAlpha <= tolerance)) {
           continue; // ...we skip it. We can't match the RGB color of transparent pixels.
         }
+        // If the code passes this point, both pixels are opaque & not Erased.
 
         // Finds the best matching color ID for the tile pixel. If none is found, default to "-2"
         const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
-        
 
         // If the template pixel does not match the tile pixel, then the pixel is skipped.
         if (bestTileColorID != bestTemplateColorID) {continue;}
