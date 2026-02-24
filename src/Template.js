@@ -141,14 +141,14 @@ export default class Template {
         context.clearRect(0, 0, canvasWidth, canvasHeight); // Clear any previous drawing (only runs when canvas size does not change)
         context.drawImage(
           bitmap, // Bitmap image to draw
-          pixelX - this.coords[2], // Coordinate X to draw from
-          pixelY - this.coords[3], // Coordinate Y to draw from
-          drawSizeX, // X width to draw from
-          drawSizeY, // Y height to draw from
-          0, // Coordinate X to draw at
-          0, // Coordinate Y to draw at
-          drawSizeX * shreadSize, // X width to draw at
-          drawSizeY * shreadSize // Y height to draw at
+          pixelX - this.coords[2], // Coordinate X to draw *from*
+          pixelY - this.coords[3], // Coordinate Y to draw *from*
+          drawSizeX, // X width to draw *from*
+          drawSizeY, // Y height to draw *from*
+          0, // Coordinate X to draw *at*
+          0, // Coordinate Y to draw *at*
+          drawSizeX * shreadSize, // X width to draw *at*
+          drawSizeY * shreadSize // Y height to draw *at*
         ); // Coordinates and size of draw area of source image, then canvas
 
         // const final = await canvas.convertToBlob({ type: 'image/png' });
@@ -170,8 +170,6 @@ export default class Template {
 
         console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
 
-        context.putImageData(imageData, 0, 0);
-
         // Creates the "0000,0000,000,000" key name
         const templateTileName = `${
           (this.coords[0] + Math.floor(pixelX / 1000)).toString().padStart(4, '0')},${
@@ -180,7 +178,7 @@ export default class Template {
           (pixelY % 1000).toString().padStart(3, '0')
         }`;
 
-        this.chunked32[templateTileName] = new Uint32Array(context.getImageData(0, 0, canvasWidth, canvasHeight)); // Creates the Uint32Array
+        this.chunked32[templateTileName] = new Uint32Array(imageData.data.buffer); // Creates the Uint32Array
 
         templateTiles[templateTileName] = await createImageBitmap(canvas); // Creates the bitmap
         

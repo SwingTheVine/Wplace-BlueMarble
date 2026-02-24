@@ -44,6 +44,10 @@ export default class WindowFilter extends Overlay {
     // Obtains the color palette Blue Marble currently uses
     const { palette: palette, LUT: _ } = this.templateManager.paletteBM;
     this.palette = palette;
+
+    // Tile quantity information
+    this.tilesLoadedTotal = 0; // Number of tiles that have been loaded in this session
+    this.tilesTotal = 0; // Number of tiles total, across all templates
   }
 
   /** Spawns a Color Filter window.
@@ -88,6 +92,8 @@ export default class WindowFilter extends Overlay {
         .addDiv({'class': 'bm-container bm-scrollable'})
           .addDiv({'class': 'bm-container', 'style': 'margin-left: 2.5ch; margin-right: 2.5ch;'})
             .addDiv({'class': 'bm-container'})
+              .addSpan({'id': 'bm-filter-tile-load', 'innerHTML': '<b>Tiles Loaded:</b> 0 / ???'}).buildElement()
+              .addBr().buildElement()
               .addSpan({'id': 'bm-filter-tot-correct', 'innerHTML': '<b>Correct Pixels:</b> ???'}).buildElement()
               .addBr().buildElement()
               .addSpan({'id': 'bm-filter-tot-total', 'innerHTML': '<b>Total Pixels:</b> ???'}).buildElement()
@@ -97,7 +103,7 @@ export default class WindowFilter extends Overlay {
               .addSpan({'id': 'bm-filter-tot-completed', 'innerHTML': '??? ???'}).buildElement()
             .buildElement()
             .addDiv({'class': 'bm-container'})
-              .addP({'innerHTML': `Colors with the icon ${this.eyeOpen.replace('<svg', '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace('<svg', '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how much of the template you have loaded since you opened Wplace.live.`}).buildElement()
+              .addP({'innerHTML': `Colors with the icon ${this.eyeOpen.replace('<svg', '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace('<svg', '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how many tiles of the template you have loaded since you last opened Wplace.live. If all tiles have been loaded, then the "correct pixel" count is accurate.`}).buildElement()
             .buildElement()
             .addHr().buildElement()
             .addForm({'class': 'bm-container'})
@@ -179,9 +185,12 @@ export default class WindowFilter extends Overlay {
       // Object that contains the tiles which contain Maps as correct pixels per tile as the value in the key-value pair
       const correctObject = template.pixelCount?.correct ?? {};
 
+      this.tilesLoadedTotal += Object.keys(correctObject).length; // Sums the total loaded tiles per template
+      this.tilesTotal += Object.keys(template.chunked).length; // Sums the total tiles per template
+
       // Sums the pixels placed as "correct" per color ID
-      for (const map of Object.values(correctObject)) { // Per tile per template
-        for (const [colorID, correctPixels] of map) { // Per color per tile per template
+      for (const map of Object.values(correctObject)) { // Per (loaded) tile per template
+        for (const [colorID, correctPixels] of map) { // Per color per (loaded) tile per template
           const _correctPixels = Number(correctPixels) || 0; // Boilerplate
           allPixelsCorrectTotal += _correctPixels; // Sums the pixels placed as "correct" per everything
           const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0; // The total correct pixels for this color ID so far, or zero if none counted so far
@@ -190,12 +199,15 @@ export default class WindowFilter extends Overlay {
       }
     }
 
-    // If the template is complete, and the pixel count is non-zero, and the pixel count exists...
-    if ((allPixelsCorrectTotal >= allPixelsTotal) && !!allPixelsTotal) {
+    console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
+
+    // If the template is complete, and the pixel count is non-zero, and at least 1 template exists, and all template tiles have been loaded this session...
+    if ((allPixelsCorrectTotal >= allPixelsTotal) && !!allPixelsTotal && (this.tilesLoadedTotal == this.tilesTotal)) {
+      // Basically, only run if Blue Marble can confirm with 100% certanty that all (>0) templates are complete.
       
       // Create confetti in the color filter window
       const confettiManager = new ConfettiManager();
-      confettiManager.createConfetti(scrollableContainer);
+      confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
     }
 
     // Calculates the date & time the user will complete the templates
@@ -203,7 +215,8 @@ export default class WindowFilter extends Overlay {
     const timeRemainingLocalized = timeRemaining.toLocaleString(undefined, this.localizeDateTimeOptions);
     // "30" is seconds. "1000" converts to milliseconds. "undefined" forces the localization to be the users.
 
-    // Displays the total amounts across all colors to the user
+    // Displays some template statistics to the user
+    this.updateInnerHTML('#bm-filter-tile-load', `<b>Tiles Loaded:</b> ${this.localizeNumber.format(this.tilesLoadedTotal)} / ${this.localizeNumber.format(this.tilesTotal)}`);
     this.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${this.localizeNumber.format(allPixelsCorrectTotal)}`);
     this.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${this.localizeNumber.format(allPixelsTotal)}`);
     this.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${this.localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${this.localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
@@ -233,10 +246,16 @@ export default class WindowFilter extends Overlay {
       const lumin = calculateRelativeLuminance(color.rgb);
 
       // Calculates if white or black text would contrast better with the palette color
-      const textColorForPaletteColorBackground = 
+      let textColorForPaletteColorBackground = 
       (((1.05) / (lumin + 0.05)) > ((lumin + 0.05) / 0.05)) 
       ? 'white' : 'black';
 
+      // However, if the color is "Transparent" (or there is no color ID), then we make the text color transparent
+      if (!color.id) {
+        textColorForPaletteColorBackground = 'transparent';
+      }
+
+      // Changes the luminance of the hover/focus button effect
       const bgEffectForButtons = (textColorForPaletteColorBackground == 'white') ? 'bm-button-hover-white' : 'bm-button-hover-black';
       
       // Turns "total" color into a string of a number; "0" if unknown
@@ -250,10 +269,21 @@ export default class WindowFilter extends Overlay {
 
       // This will be displayed if the total pixels for this color is non-zero
       if (colorTotal != 0) {
+
+        // Determines the correct pixels, or the proper fallback
         colorCorrect = allPixelsCorrect.get(color.id) ?? '???';
+        if ((typeof colorCorrect != 'number') && (this.tilesLoadedTotal == this.tilesTotal) && !!color.id) {
+          colorCorrect = 0;
+        }
+
         colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : this.localizeNumber.format(colorCorrect);
         colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : this.localizePercent.format(colorCorrect / colorTotal);
       }
+      // There are four outcomes:
+      // 1. The correct pixel count is displayed, because there are correct pixels.
+      // 2. There are NO correct pixels, and the color is not transparent, but since all tiles are loaded, we know that the correct pixel count is actually 0.
+      // 3. There are NO correct pixels, and the color is not transparent, and not all tiles are loaded. We don't know if there are correct pixels or not, so we display "???" instead.
+      // 4. There are NO correct pixels, and the color is transparent, so we display '???' because tracking the "Transparent" color is currently disabled.
 
       // Incorrect pixels for this color
       const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
@@ -276,6 +306,8 @@ export default class WindowFilter extends Overlay {
             'aria-label': isColorHidden ? `Show the color ${color.name || ''} on templates.` : `Hide the color ${color.name || ''} on templates.`,
             'innerHTML': isColorHidden ? this.eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`)},
             (instance, button) => {
+
+              // When the button is clicked
               button.onclick = () => {
                 button.style.textDecoration = 'none';
                 button.disabled = true;
@@ -293,6 +325,9 @@ export default class WindowFilter extends Overlay {
                 button.disabled = false;
                 button.style.textDecoration = '';
               }
+
+              // Disables the "hide color" button if the color is "Transparent" (or no ID exists)
+              if (!color.id) {button.disabled = true;}
             }
           ).buildElement()
         .buildElement()

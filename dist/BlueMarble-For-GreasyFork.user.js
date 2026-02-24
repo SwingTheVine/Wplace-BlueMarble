@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.397
+// @version         0.88.423
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -336,21 +336,21 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
             bitmap,
             // Bitmap image to draw
             pixelX - this.coords[2],
-            // Coordinate X to draw from
+            // Coordinate X to draw *from*
             pixelY - this.coords[3],
-            // Coordinate Y to draw from
+            // Coordinate Y to draw *from*
             drawSizeX,
-            // X width to draw from
+            // X width to draw *from*
             drawSizeY,
-            // Y height to draw from
+            // Y height to draw *from*
             0,
-            // Coordinate X to draw at
+            // Coordinate X to draw *at*
             0,
-            // Coordinate Y to draw at
+            // Coordinate Y to draw *at*
             drawSizeX * shreadSize,
-            // X width to draw at
+            // X width to draw *at*
             drawSizeY * shreadSize
-            // Y height to draw at
+            // Y height to draw *at*
           );
           context.save();
           context.globalCompositeOperation = "destination-in";
@@ -359,9 +359,8 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           context.restore();
           const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
           console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
-          context.putImageData(imageData, 0, 0);
           const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
-          this.chunked32[templateTileName] = new Uint32Array(context.getImageData(0, 0, canvasWidth, canvasHeight));
+          this.chunked32[templateTileName] = new Uint32Array(imageData.data.buffer);
           templateTiles[templateTileName] = await createImageBitmap(canvas);
           const canvasBlob = await canvas.convertToBlob();
           const canvasBuffer = await canvasBlob.arrayBuffer();
@@ -577,10 +576,11 @@ Version: ${this.version}`);
       for (const template of templatesToDraw) {
         console.log(`Template:`);
         console.log(template);
+        const templateHasErased = !!template.instance.pixelCount?.colors?.get(-1);
         let templateBeforeFilter32 = template.chunked32.slice();
         const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
         const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
-        if (this.shouldFilterColor.size == 0) {
+        if (this.shouldFilterColor.size == 0 && !templateHasErased) {
           context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
         }
         if (!templateBeforeFilter32) {
@@ -604,9 +604,9 @@ Version: ${this.version}`);
           }
           pixelsCorrectTotal += total;
         }
-        if (this.shouldFilterColor.size != 0) {
+        if (this.shouldFilterColor.size != 0 || templateHasErased) {
           console.log("Colors to filter: ", this.shouldFilterColor);
-          context.putImageData(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height), coordXtoDrawAt, coordYtoDrawAt);
+          context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
         }
         console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
 There are ${pixelsCorrectTotal} correct pixels.`);
@@ -701,6 +701,9 @@ There are ${pixelsCorrectTotal} correct pixels.`);
   parseOSU_fn = function() {
   };
   /** Calculates the correct pixels on this tile.
+   * In addition, this function filters colors based on user input.
+   * In addition, this function modifies colors to properly display (#deface).
+   * This function has multiple purposes only to reduce iterations of scans over every pixel on the template.
    * @param {Object} params - Object containing all parameters
    * @param {Uint32Array} params.tile - The tile without templates as a Uint32Array
    * @param {Uint32Array} params.template - The template without filtering as a Uint32Array
@@ -735,6 +738,27 @@ There are ${pixelsCorrectTotal} correct pixels.`);
         const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
         if (this.shouldFilterColor.get(bestTemplateColorID)) {
           template32[templateRow * templateWidth + templateColumn] = tilePixelAbove;
+        }
+        if (bestTemplateColorID == -1) {
+          const blackTrans = 536870912;
+          if (tileRow / pixelSize & 1 && tileColumn / pixelSize & 1 || !(tileRow / pixelSize & 1) && !(tileColumn / pixelSize & 1)) {
+            template32[templateRow * templateWidth + templateColumn] = blackTrans;
+            template32[(templateRow - 1) * templateWidth + (templateColumn - 1)] = blackTrans;
+            template32[(templateRow - 1) * templateWidth + (templateColumn + 1)] = blackTrans;
+            template32[(templateRow + 1) * templateWidth + (templateColumn - 1)] = blackTrans;
+            template32[(templateRow + 1) * templateWidth + (templateColumn + 1)] = blackTrans;
+          } else {
+            template32[templateRow * templateWidth + templateColumn] = 0;
+            template32[(templateRow - 1) * templateWidth + templateColumn] = blackTrans;
+            template32[(templateRow + 1) * templateWidth + templateColumn] = blackTrans;
+            template32[templateRow * templateWidth + (templateColumn - 1)] = blackTrans;
+            template32[templateRow * templateWidth + (templateColumn + 1)] = blackTrans;
+          }
+        }
+        if (bestTemplateColorID == -1 && tilePixelAbove <= tolerance) {
+          const colorIDcount2 = _colorpalette.get(bestTemplateColorID);
+          _colorpalette.set(bestTemplateColorID, colorIDcount2 ? colorIDcount2 + 1 : 1);
+          continue;
         }
         if (templatePixelAlpha <= tolerance || tilePixelAlpha <= tolerance) {
           continue;
@@ -2217,6 +2241,8 @@ Did you try clicking the canvas first?`);
       };
       const { palette, LUT: _ } = this.templateManager.paletteBM;
       this.palette = palette;
+      this.tilesLoadedTotal = 0;
+      this.tilesTotal = 0;
     }
     /** Spawns a Color Filter window.
      * If another color filter window already exists, we DON'T spawn another!
@@ -2244,7 +2270,7 @@ Did you try clicking the canvas first?`);
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
       }).buildElement().addButton({ "textContent": "Unselect All" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
-      }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-filter-tot-correct", "innerHTML": "<b>Correct Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-total", "innerHTML": "<b>Total Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-remaining", "innerHTML": "<b>Complete:</b> ??? (???)" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-completed", "innerHTML": "??? ???" }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addP({ "innerHTML": `Colors with the icon ${this.eyeOpen.replace("<svg", '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace("<svg", '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how much of the template you have loaded since you opened Wplace.live.` }).buildElement().buildElement().addHr().buildElement().addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Sort Colors", "type": "submit" }, (instance, button) => {
+      }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-filter-tile-load", "innerHTML": "<b>Tiles Loaded:</b> 0 / ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-correct", "innerHTML": "<b>Correct Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-total", "innerHTML": "<b>Total Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-remaining", "innerHTML": "<b>Complete:</b> ??? (???)" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-completed", "innerHTML": "??? ???" }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addP({ "innerHTML": `Colors with the icon ${this.eyeOpen.replace("<svg", '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace("<svg", '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Select All" and "Unselect All" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how many tiles of the template you have loaded since you last opened Wplace.live. If all tiles have been loaded, then the "correct pixel" count is accurate.` }).buildElement().buildElement().addHr().buildElement().addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Sort Colors", "type": "submit" }, (instance, button) => {
         button.onclick = (event) => {
           event.preventDefault();
           const formData = new FormData(document.querySelector(`#${this.windowID} form`));
@@ -2272,6 +2298,8 @@ Did you try clicking the canvas first?`);
           allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
         }
         const correctObject = template.pixelCount?.correct ?? {};
+        this.tilesLoadedTotal += Object.keys(correctObject).length;
+        this.tilesTotal += Object.keys(template.chunked).length;
         for (const map of Object.values(correctObject)) {
           for (const [colorID, correctPixels] of map) {
             const _correctPixels = Number(correctPixels) || 0;
@@ -2281,12 +2309,14 @@ Did you try clicking the canvas first?`);
           }
         }
       }
-      if (allPixelsCorrectTotal >= allPixelsTotal && !!allPixelsTotal) {
+      console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
+      if (allPixelsCorrectTotal >= allPixelsTotal && !!allPixelsTotal && this.tilesLoadedTotal == this.tilesTotal) {
         const confettiManager = new ConfettiManager();
-        confettiManager.createConfetti(scrollableContainer);
+        confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
       }
       const timeRemaining = new Date((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
       const timeRemainingLocalized = timeRemaining.toLocaleString(void 0, this.localizeDateTimeOptions);
+      this.updateInnerHTML("#bm-filter-tile-load", `<b>Tiles Loaded:</b> ${this.localizeNumber.format(this.tilesLoadedTotal)} / ${this.localizeNumber.format(this.tilesTotal)}`);
       this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${this.localizeNumber.format(allPixelsCorrectTotal)}`);
       this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${this.localizeNumber.format(allPixelsTotal)}`);
       this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${this.localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${this.localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
@@ -2307,7 +2337,10 @@ Did you try clicking the canvas first?`);
     colorList.addDiv({ "class": "bm-filter-flex" });
     for (const color of this.palette) {
       const lumin = calculateRelativeLuminance(color.rgb);
-      const textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
+      let textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
+      if (!color.id) {
+        textColorForPaletteColorBackground = "transparent";
+      }
       const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
       const colorTotal = allPixelsColor.get(color.id) ?? 0;
       const colorTotalLocalized = this.localizeNumber.format(colorTotal);
@@ -2316,6 +2349,9 @@ Did you try clicking the canvas first?`);
       let colorPercent = this.localizePercent.format(1);
       if (colorTotal != 0) {
         colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
+        if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
+          colorCorrect = 0;
+        }
         colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : this.localizeNumber.format(colorCorrect);
         colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : this.localizePercent.format(colorCorrect / colorTotal);
       }
@@ -2355,6 +2391,9 @@ Did you try clicking the canvas first?`);
             button.disabled = false;
             button.style.textDecoration = "";
           };
+          if (!color.id) {
+            button.disabled = true;
+          }
         }
       ).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
     }
@@ -2448,7 +2487,7 @@ Did you try clicking the canvas first?`);
       }).buildElement().addDiv().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }, (instance, img) => {
         const date = /* @__PURE__ */ new Date();
         const dayOfTheYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 1)) / (1e3 * 60 * 60 * 24)) + 1;
-        if (dayOfTheYear == 53) {
+        if (dayOfTheYear == 204) {
           img.parentNode.style.position = "relative";
           img.parentNode.innerHTML = img.parentNode.innerHTML + `<svg viewBox="0 0 9 7" width="2em" height="2em" style="position: absolute; top: -.75em; left: 3.25ch;"><path d="M0,3L9,0L2,7" fill="#0af"/><path d="M0,3A.4,.4 0 1 1 1,5" fill="#a00"/><path d="M1.5,6A1,1 0 0 1 3,6L2,7" fill="#a0f"/><path d="M4,5A.6,.6 0 1 1 5,4" fill="#0a0"/><path d="M6,3A.8,.8 0 1 1 7,2" fill="#fa0"/><path d="M4.5,1.5A1,1 0 0 1 3,2" fill="#aa0"/></svg>`;
           img.onload = () => {
