@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.423
+// @version         0.88.425
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -741,18 +741,22 @@ There are ${pixelsCorrectTotal} correct pixels.`);
         }
         if (bestTemplateColorID == -1) {
           const blackTrans = 536870912;
-          if (tileRow / pixelSize & 1 && tileColumn / pixelSize & 1 || !(tileRow / pixelSize & 1) && !(tileColumn / pixelSize & 1)) {
-            template32[templateRow * templateWidth + templateColumn] = blackTrans;
-            template32[(templateRow - 1) * templateWidth + (templateColumn - 1)] = blackTrans;
-            template32[(templateRow - 1) * templateWidth + (templateColumn + 1)] = blackTrans;
-            template32[(templateRow + 1) * templateWidth + (templateColumn - 1)] = blackTrans;
-            template32[(templateRow + 1) * templateWidth + (templateColumn + 1)] = blackTrans;
-          } else {
+          if (this.shouldFilterColor.get(bestTemplateColorID)) {
             template32[templateRow * templateWidth + templateColumn] = 0;
-            template32[(templateRow - 1) * templateWidth + templateColumn] = blackTrans;
-            template32[(templateRow + 1) * templateWidth + templateColumn] = blackTrans;
-            template32[templateRow * templateWidth + (templateColumn - 1)] = blackTrans;
-            template32[templateRow * templateWidth + (templateColumn + 1)] = blackTrans;
+          } else {
+            if ((tileRow / pixelSize & 1) == (tileColumn / pixelSize & 1)) {
+              template32[templateRow * templateWidth + templateColumn] = blackTrans;
+              template32[(templateRow - 1) * templateWidth + (templateColumn - 1)] = blackTrans;
+              template32[(templateRow - 1) * templateWidth + (templateColumn + 1)] = blackTrans;
+              template32[(templateRow + 1) * templateWidth + (templateColumn - 1)] = blackTrans;
+              template32[(templateRow + 1) * templateWidth + (templateColumn + 1)] = blackTrans;
+            } else {
+              template32[templateRow * templateWidth + templateColumn] = 0;
+              template32[(templateRow - 1) * templateWidth + templateColumn] = blackTrans;
+              template32[(templateRow + 1) * templateWidth + templateColumn] = blackTrans;
+              template32[templateRow * templateWidth + (templateColumn - 1)] = blackTrans;
+              template32[templateRow * templateWidth + (templateColumn + 1)] = blackTrans;
+            }
           }
         }
         if (bestTemplateColorID == -1 && tilePixelAbove <= tolerance) {
@@ -2226,7 +2230,11 @@ Did you try clicking the canvas first?`);
       this.eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
       this.eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
       this.localizeNumber = new Intl.NumberFormat();
-      this.localizePercent = new Intl.NumberFormat(void 0, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      this.localizePercent = new Intl.NumberFormat(void 0, {
+        style: "percent",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
       this.localizeDateTimeOptions = {
         month: "long",
         // July

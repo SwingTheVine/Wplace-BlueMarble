@@ -528,26 +528,32 @@ export default class TemplateManager {
 
           const blackTrans = 0x20000000; // Black translucent color for Erased pixels
 
-          // If the tile row and tile column are even,
-          // Or the tile row and tile column are odd...
-          if ((((tileRow / pixelSize) & 1) && ((tileColumn / pixelSize) & 1))
-          || (!((tileRow / pixelSize) & 1) && !((tileColumn / pixelSize) & 1))) {
-
-            // Sets the template pixels to be a semi-transparent, black grid
-            template32[(templateRow * templateWidth) + templateColumn] = blackTrans; // Center
-            template32[((templateRow - 1) * templateWidth) + (templateColumn - 1)] = blackTrans; // Top Left
-            template32[((templateRow - 1) * templateWidth) + (templateColumn + 1)] = blackTrans; // Top Right
-            template32[((templateRow + 1) * templateWidth) + (templateColumn - 1)] = blackTrans; // Bottom Left
-            template32[((templateRow + 1) * templateWidth) + (templateColumn + 1)] = blackTrans; // Bottom Right
-          } else {
-            // Else, either the row or column is odd, and the other is even.
-
-            // Sets the template pixels to the the inverse of a semi-transparent, black grid
+          // If Erased color should be filtered
+          if (this.shouldFilterColor.get(bestTemplateColorID)) {
             template32[(templateRow * templateWidth) + templateColumn] = 0x00000000; // Center (black, 0% opacity)
-            template32[((templateRow - 1) * templateWidth) + (templateColumn)] = blackTrans; // Top Center
-            template32[((templateRow + 1) * templateWidth) + (templateColumn)] = blackTrans; // Bottom Center
-            template32[((templateRow) * templateWidth) + (templateColumn - 1)] = blackTrans; // Middle Left
-            template32[((templateRow) * templateWidth) + (templateColumn + 1)] = blackTrans; // Middle Right
+          } else {
+            // Don't filter Erased color
+
+            // If the tile row and tile column are even,
+            // Or the tile row and tile column are odd...
+            if (((tileRow / pixelSize) & 1) == ((tileColumn / pixelSize) & 1)) {
+
+              // Sets the template pixels to be a semi-transparent, black grid
+              template32[(templateRow * templateWidth) + templateColumn] = blackTrans; // Center
+              template32[((templateRow - 1) * templateWidth) + (templateColumn - 1)] = blackTrans; // Top Left
+              template32[((templateRow - 1) * templateWidth) + (templateColumn + 1)] = blackTrans; // Top Right
+              template32[((templateRow + 1) * templateWidth) + (templateColumn - 1)] = blackTrans; // Bottom Left
+              template32[((templateRow + 1) * templateWidth) + (templateColumn + 1)] = blackTrans; // Bottom Right
+            } else {
+              // Else, either the row or column is odd, and the other is even.
+
+              // Sets the template pixels to the the inverse of a semi-transparent, black grid
+              template32[(templateRow * templateWidth) + templateColumn] = 0x00000000; // Center (black, 0% opacity)
+              template32[((templateRow - 1) * templateWidth) + (templateColumn)] = blackTrans; // Top Center
+              template32[((templateRow + 1) * templateWidth) + (templateColumn)] = blackTrans; // Bottom Center
+              template32[((templateRow) * templateWidth) + (templateColumn - 1)] = blackTrans; // Middle Left
+              template32[((templateRow) * templateWidth) + (templateColumn + 1)] = blackTrans; // Middle Right
+            }
           }
         }
         // -----     END OF ERASED     -----
