@@ -1,5 +1,6 @@
 import Template from "./Template";
 import { base64ToUint8, colorpaletteForBlueMarble, numberToEncoded } from "./utils";
+import WindowWizard from "./WindowWizard";
 
 /** Manages the template system.
  * This class handles all external requests for template modification, creation, and analysis.
@@ -60,7 +61,7 @@ export default class TemplateManager {
     this.name = name; // Name of userscript
     this.version = version; // Version of userscript
     this.overlay = overlay; // The main instance of the Overlay class
-    this.templatesVersion = '1.0.0'; // Version of JSON schema
+    this.schemaVersion = '1.1.0'; // Version of JSON schema
     this.userID = null; // The ID of the current user
     this.encodingBase = '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~'; // Characters to use for encoding/decoding
     this.tileSize = 1000; // The number of pixels in a tile. Assumes the tile is square
@@ -88,7 +89,7 @@ export default class TemplateManager {
     return {
       "whoami": this.name.replace(' ', ''), // Name of userscript without spaces
       "scriptVersion": this.version, // Version of userscript
-      "schemaVersion": this.templatesVersion, // Version of JSON schema
+      "schemaVersion": this.schemaVersion, // Version of JSON schema
       "templates": {} // The templates
     };
   }
@@ -374,68 +375,102 @@ export default class TemplateManager {
 
     console.log(`BlueMarble length: ${Object.keys(templates).length}`);
 
-    // Run only if there are templates saved
-    if (Object.keys(templates).length > 0) {
+    const schemaVersion = json?.schemaVersion;
+    const schemaVersionArray = schemaVersion.split(/[-\.\+]/); // SemVer -> string[]
+    const schemaVersionBleedingEdge = this.schemaVersion.split(/[-\.\+]/); // SemVer -> string[]
+    const scriptVersion = json?.scriptVersion;
 
-      // For each template...
-      for (const template in templates) {
+    console.log(`BlueMarble Template Schema: ${schemaVersion}; Script Version: ${scriptVersion}`);
 
-        const templateKey = template; // The identification key for the template. E.g., "0 $Z"
-        const templateValue = templates[template]; // The actual content of the template
-        console.log(`Template Key: ${templateKey}`);
+    // If 1.x.x
+    if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
 
-        if (templates.hasOwnProperty(template)) {
+      // If 1.1.x
+      if (schemaVersionArray[1] == schemaVersionBleedingEdge[1]) {
 
-          const templateKeyArray = templateKey.split(' '); // E.g., "0 $Z" -> ["0", "$Z"]
-          const sortID = Number(templateKeyArray?.[0]); // Sort ID of the template
-          const authorID = templateKeyArray?.[1] || '0'; // User ID of the person who exported the template
-          const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
-          //const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
+        loadSchemaVersion_1_x_x(); // Load 1.1.x schema
+      } else {
 
-          const pixelCount = {
-            total: templateValue.pixels.total,
-            colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
-          };
+        // Spawns a new Template Wizard
+        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion);
+        windowWizard.buildWindow();
 
-          const tilesbase64 = templateValue.tiles;
-          const templateTiles = {}; // Stores the template bitmap tiles for each tile.
-          const templateTiles32 = {}; // Stores the template Uint32Array tiles for each tile.
+        loadSchemaVersion_1_x_x(); // Load 1.x.x schema with 1.1.x loader, expecting some things to not function
+      }
+    } else {
+      // We don't know what the schema is. Unsupported?
 
-          const actualTileSize = this.tileSize * this.drawMult;
+      this.overlay.handleDisplayError(`Template version ${schemaVersion} is unsupported.\nUse Blue Marble version ${scriptVersion} or load a new template.`);
+    }
 
-          for (const tile in tilesbase64) {
-            console.log(tile);
-            if (tilesbase64.hasOwnProperty(tile)) {
-              const encodedTemplateBase64 = tilesbase64[tile];
-              const templateUint8Array = base64ToUint8(encodedTemplateBase64); // Base 64 -> Uint8Array
+    /** Loads version 1.0.0 of Blue Marble template storage
+     * @since 0.88.434
+     */
+    async function loadSchemaVersion_1_x_x() {
 
-              const templateBlob = new Blob([templateUint8Array], { type: "image/png" }); // Uint8Array -> Blob
-              const templateBitmap = await createImageBitmap(templateBlob) // Blob -> Bitmap
-              templateTiles[tile] = templateBitmap;
-
-              // Converts to Uint32Array
-              const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
-              const context = canvas.getContext('2d');
-              context.drawImage(templateBitmap, 0, 0);
-              const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
-              templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
+      // Run only if there are templates saved
+      if (Object.keys(templates).length > 0) {
+  
+        // For each template...
+        for (const template in templates) {
+  
+          const templateKey = template; // The identification key for the template. E.g., "0 $Z"
+          const templateValue = templates[template]; // The actual content of the template
+          console.log(`Template Key: ${templateKey}`);
+  
+          if (templates.hasOwnProperty(template)) {
+  
+            const templateKeyArray = templateKey.split(' '); // E.g., "0 $Z" -> ["0", "$Z"]
+            const sortID = Number(templateKeyArray?.[0]); // Sort ID of the template
+            const authorID = templateKeyArray?.[1] || '0'; // User ID of the person who exported the template
+            const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
+            //const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
+  
+            const pixelCount = {
+              total: templateValue.pixels.total,
+              colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
+            };
+  
+            const tilesbase64 = templateValue.tiles;
+            const templateTiles = {}; // Stores the template bitmap tiles for each tile.
+            const templateTiles32 = {}; // Stores the template Uint32Array tiles for each tile.
+  
+            const actualTileSize = this.tileSize * this.drawMult;
+  
+            for (const tile in tilesbase64) {
+              console.log(tile);
+              if (tilesbase64.hasOwnProperty(tile)) {
+                const encodedTemplateBase64 = tilesbase64[tile];
+                const templateUint8Array = base64ToUint8(encodedTemplateBase64); // Base 64 -> Uint8Array
+  
+                const templateBlob = new Blob([templateUint8Array], { type: "image/png" }); // Uint8Array -> Blob
+                const templateBitmap = await createImageBitmap(templateBlob) // Blob -> Bitmap
+                templateTiles[tile] = templateBitmap;
+  
+                // Converts to Uint32Array
+                const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
+                const context = canvas.getContext('2d');
+                context.drawImage(templateBitmap, 0, 0);
+                const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
+                templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
+              }
             }
+  
+            // Creates a new Template class instance
+            const template = new Template({
+              displayName: displayName,
+              sortID: sortID || this.templatesArray?.length || 0,
+              authorID: authorID || '',
+              //coords: coords,
+            });
+            template.pixelCount = pixelCount;
+            template.chunked = templateTiles;
+            template.chunked32 = templateTiles32;
+            
+            this.templatesArray.push(template);
+            console.log(this.templatesArray);
+            console.log(`^^^ This ^^^`);
           }
-
-          // Creates a new Template class instance
-          const template = new Template({
-            displayName: displayName,
-            sortID: sortID || this.templatesArray?.length || 0,
-            authorID: authorID || '',
-            //coords: coords,
-          });
-          template.pixelCount = pixelCount;
-          template.chunked = templateTiles;
-          template.chunked32 = templateTiles32;
-          
-          this.templatesArray.push(template);
-          console.log(this.templatesArray);
-          console.log(`^^^ This ^^^`);
         }
       }
     }

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.433
+// @version         0.88.440
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -424,599 +424,6 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     console.log(_colorpalette);
     return _colorpalette;
   };
-
-  // src/templateManager.js
-  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_And_FilterTile_fn;
-  var TemplateManager = class {
-    /** The constructor for the {@link TemplateManager} class.
-     * @since 0.55.8
-     */
-    constructor(name2, version2, overlay) {
-      __privateAdd(this, _TemplateManager_instances);
-      this.name = name2;
-      this.version = version2;
-      this.overlay = overlay;
-      this.templatesVersion = "1.0.0";
-      this.userID = null;
-      this.encodingBase = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-      this.tileSize = 1e3;
-      this.drawMult = 3;
-      this.paletteTolerance = 3;
-      this.paletteBM = colorpaletteForBlueMarble(this.paletteTolerance);
-      this.template = null;
-      this.templateState = "";
-      this.templatesArray = [];
-      this.templatesJSON = null;
-      this.templatesShouldBeDrawn = true;
-      this.templatePixelsCorrect = null;
-      this.shouldFilterColor = /* @__PURE__ */ new Map();
-    }
-    /** Creates the JSON object to store templates in
-     * @returns {{ whoami: string, scriptVersion: string, schemaVersion: string, templates: Object }} The JSON object
-     * @since 0.65.4
-     */
-    async createJSON() {
-      return {
-        "whoami": this.name.replace(" ", ""),
-        // Name of userscript without spaces
-        "scriptVersion": this.version,
-        // Version of userscript
-        "schemaVersion": this.templatesVersion,
-        // Version of JSON schema
-        "templates": {}
-        // The templates
-      };
-    }
-    /** Creates the template from the inputed file blob
-     * @param {File} blob - The file blob to create a template from
-     * @param {string} name - The display name of the template
-     * @param {Array<number, number, number, number>} coords - The coordinates of the top left corner of the template
-     * @since 0.65.77
-     */
-    async createTemplate(blob, name2, coords2) {
-      if (!this.templatesJSON) {
-        this.templatesJSON = await this.createJSON();
-        console.log(`Creating JSON...`);
-      }
-      this.overlay.handleDisplayStatus(`Creating template at ${coords2.join(", ")}...`);
-      const template = new Template({
-        displayName: name2,
-        sortID: 0,
-        // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
-        authorID: numberToEncoded(this.userID || 0, this.encodingBase),
-        file: blob,
-        coords: coords2
-      });
-      const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize, this.paletteBM);
-      template.chunked = templateTiles;
-      const _pixels = { "total": template.pixelCount.total, "colors": Object.fromEntries(template.pixelCount.colors) };
-      this.templatesJSON.templates[`${template.sortID} ${template.authorID}`] = {
-        "name": template.displayName,
-        // Display name of template
-        "coords": coords2.join(", "),
-        // The coords of the template
-        "enabled": true,
-        "pixels": _pixels,
-        // The total pixels in the template
-        "tiles": templateTilesBuffers
-        // Stores the chunked tile buffers
-      };
-      this.templatesArray = [];
-      this.templatesArray.push(template);
-      this.overlay.handleDisplayStatus(`Template created at ${coords2.join(", ")}!`);
-      console.log(Object.keys(this.templatesJSON.templates).length);
-      console.log(this.templatesJSON);
-      console.log(this.templatesArray);
-      console.log(JSON.stringify(this.templatesJSON));
-      await __privateMethod(this, _TemplateManager_instances, storeTemplates_fn).call(this);
-    }
-    /** Deletes a template from the JSON object.
-     * Also delete's the corrosponding {@link Template} class instance
-     */
-    deleteTemplate() {
-    }
-    /** Disables the template from view
-     */
-    async disableTemplate() {
-      if (!this.templatesJSON) {
-        this.templatesJSON = await this.createJSON();
-        console.log(`Creating JSON...`);
-      }
-    }
-    /** Draws all templates on the specified tile.
-     * This method handles the rendering of template overlays on individual tiles.
-     * @param {File} tileBlob - The pixels that are placed on a tile
-     * @param {Array<number>} tileCoords - The tile coordinates [x, y]
-     * @since 0.65.77
-     */
-    async drawTemplateOnTile(tileBlob, tileCoords) {
-      if (!this.templatesShouldBeDrawn) {
-        return tileBlob;
-      }
-      const drawSize = this.tileSize * this.drawMult;
-      tileCoords = tileCoords[0].toString().padStart(4, "0") + "," + tileCoords[1].toString().padStart(4, "0");
-      console.log(`Searching for templates in tile: "${tileCoords}"`);
-      const templateArray = this.templatesArray;
-      console.log(templateArray);
-      templateArray.sort((a, b) => {
-        return a.sortID - b.sortID;
-      });
-      console.log(templateArray);
-      const templatesToDraw = templateArray.map((template) => {
-        const matchingTiles = Object.keys(template.chunked).filter(
-          (tile) => tile.startsWith(tileCoords)
-        );
-        if (matchingTiles.length === 0) {
-          return null;
-        }
-        const matchingTileBlobs = matchingTiles.map((tile) => {
-          const coords2 = tile.split(",");
-          return {
-            instance: template,
-            bitmap: template.chunked[tile],
-            chunked32: template.chunked32?.[tile],
-            tileCoords: [coords2[0], coords2[1]],
-            pixelCoords: [coords2[2], coords2[3]]
-          };
-        });
-        return matchingTileBlobs?.[0];
-      }).filter(Boolean);
-      console.log(templatesToDraw);
-      const templateCount = templatesToDraw?.length || 0;
-      console.log(`templateCount = ${templateCount}`);
-      if (templateCount > 0) {
-        const totalPixels = templateArray.filter((template) => {
-          const matchingTiles = Object.keys(template.chunked).filter(
-            (tile) => tile.startsWith(tileCoords)
-          );
-          return matchingTiles.length > 0;
-        }).reduce((sum, template) => sum + (template.pixelCount.total || 0), 0);
-        const pixelCountFormatted = new Intl.NumberFormat().format(totalPixels);
-        this.overlay.handleDisplayStatus(
-          `Displaying ${templateCount} template${templateCount == 1 ? "" : "s"}.
-Total pixels: ${pixelCountFormatted}`
-        );
-      } else {
-        this.overlay.handleDisplayStatus(`Sleeping
-Version: ${this.version}`);
-        return tileBlob;
-      }
-      const tileBitmap = await createImageBitmap(tileBlob);
-      const canvas = new OffscreenCanvas(drawSize, drawSize);
-      const context = canvas.getContext("2d");
-      context.imageSmoothingEnabled = false;
-      context.beginPath();
-      context.rect(0, 0, drawSize, drawSize);
-      context.clip();
-      context.clearRect(0, 0, drawSize, drawSize);
-      context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
-      const tileBeforeTemplates = context.getImageData(0, 0, drawSize, drawSize);
-      const tileBeforeTemplates32 = new Uint32Array(tileBeforeTemplates.data.buffer);
-      for (const template of templatesToDraw) {
-        console.log(`Template:`);
-        console.log(template);
-        const templateHasErased = !!template.instance.pixelCount?.colors?.get(-1);
-        let templateBeforeFilter32 = template.chunked32.slice();
-        const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
-        const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
-        if (this.shouldFilterColor.size == 0 && !templateHasErased) {
-          context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
-        }
-        if (!templateBeforeFilter32) {
-          const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
-          templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
-        }
-        const timer = Date.now();
-        const {
-          correctPixels: pixelsCorrect,
-          filteredTemplate: templateAfterFilter
-        } = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_And_FilterTile_fn).call(this, {
-          tile: tileBeforeTemplates32,
-          template: templateBeforeFilter32,
-          templateInfo: [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]
-        });
-        let pixelsCorrectTotal = 0;
-        const transparentColorID = 0;
-        for (const [color, total] of pixelsCorrect) {
-          if (color == transparentColorID) {
-            continue;
-          }
-          pixelsCorrectTotal += total;
-        }
-        if (this.shouldFilterColor.size != 0 || templateHasErased) {
-          console.log("Colors to filter: ", this.shouldFilterColor);
-          context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
-        }
-        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
-There are ${pixelsCorrectTotal} correct pixels.`);
-        if (typeof template.instance.pixelCount["correct"] == "undefined") {
-          template.instance.pixelCount["correct"] = {};
-        }
-        template.instance.pixelCount["correct"][tileCoords] = pixelsCorrect;
-      }
-      return await canvas.convertToBlob({ type: "image/png" });
-    }
-    /** Imports the JSON object, and appends it to any JSON object already loaded
-     * @param {string} json - The JSON string to parse
-     */
-    importJSON(json) {
-      console.log(`Importing JSON...`);
-      console.log(json);
-      if (json?.whoami == "BlueMarble") {
-        __privateMethod(this, _TemplateManager_instances, parseBlueMarble_fn).call(this, json);
-      }
-    }
-    /** Sets the `templatesShouldBeDrawn` boolean to a value.
-     * @param {boolean} value - The value to set the boolean to
-     * @since 0.73.7
-     */
-    setTemplatesShouldBeDrawn(value) {
-      this.templatesShouldBeDrawn = value;
-    }
-  };
-  _TemplateManager_instances = new WeakSet();
-  /** Generates a {@link Template} class instance from the JSON object template
-   */
-  loadTemplate_fn = function() {
-  };
-  storeTemplates_fn = async function() {
-    GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
-  };
-  parseBlueMarble_fn = async function(json) {
-    console.log(`Parsing BlueMarble...`);
-    const templates = json.templates;
-    console.log(`BlueMarble length: ${Object.keys(templates).length}`);
-    if (Object.keys(templates).length > 0) {
-      for (const template in templates) {
-        const templateKey = template;
-        const templateValue = templates[template];
-        console.log(`Template Key: ${templateKey}`);
-        if (templates.hasOwnProperty(template)) {
-          const templateKeyArray = templateKey.split(" ");
-          const sortID = Number(templateKeyArray?.[0]);
-          const authorID = templateKeyArray?.[1] || "0";
-          const displayName = templateValue.name || `Template ${sortID || ""}`;
-          const pixelCount = {
-            total: templateValue.pixels.total,
-            colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
-          };
-          const tilesbase64 = templateValue.tiles;
-          const templateTiles = {};
-          const templateTiles32 = {};
-          const actualTileSize = this.tileSize * this.drawMult;
-          for (const tile in tilesbase64) {
-            console.log(tile);
-            if (tilesbase64.hasOwnProperty(tile)) {
-              const encodedTemplateBase64 = tilesbase64[tile];
-              const templateUint8Array = base64ToUint8(encodedTemplateBase64);
-              const templateBlob = new Blob([templateUint8Array], { type: "image/png" });
-              const templateBitmap = await createImageBitmap(templateBlob);
-              templateTiles[tile] = templateBitmap;
-              const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
-              const context = canvas.getContext("2d");
-              context.drawImage(templateBitmap, 0, 0);
-              const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
-              templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
-            }
-          }
-          const template2 = new Template({
-            displayName,
-            sortID: sortID || this.templatesArray?.length || 0,
-            authorID: authorID || ""
-            //coords: coords,
-          });
-          template2.pixelCount = pixelCount;
-          template2.chunked = templateTiles;
-          template2.chunked32 = templateTiles32;
-          this.templatesArray.push(template2);
-          console.log(this.templatesArray);
-          console.log(`^^^ This ^^^`);
-        }
-      }
-    }
-  };
-  /** Parses the OSU! Place JSON object
-   */
-  parseOSU_fn = function() {
-  };
-  /** Calculates the correct pixels on this tile.
-   * In addition, this function filters colors based on user input.
-   * In addition, this function modifies colors to properly display (#deface).
-   * This function has multiple purposes only to reduce iterations of scans over every pixel on the template.
-   * @param {Object} params - Object containing all parameters
-   * @param {Uint32Array} params.tile - The tile without templates as a Uint32Array
-   * @param {Uint32Array} params.template - The template without filtering as a Uint32Array
-   * @param {Array<Number, Number, Number, Number>} params.templateInfo - Information about template location and size
-   * @returns {{correctPixels: Map<number, number>, filteredTemplate: Uint32Array}} A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
-   */
-  calculateCorrectPixelsOnTile_And_FilterTile_fn = function({
-    tile: tile32,
-    template: template32,
-    templateInfo: templateInformation
-  }) {
-    const pixelSize = this.drawMult;
-    const tileWidth = this.tileSize * pixelSize;
-    const tileHeight = tileWidth;
-    const tilePixelOffsetY = -1;
-    const tilePixelOffsetX = 0;
-    const templateCoordX = templateInformation[0];
-    const templateCoordY = templateInformation[1];
-    const templateWidth = templateInformation[2];
-    const templateHeight = templateInformation[3];
-    const tolerance = this.paletteTolerance;
-    const { palette: _, LUT: lookupTable } = this.paletteBM;
-    const _colorpalette = /* @__PURE__ */ new Map();
-    for (let templateRow = 1; templateRow < templateHeight; templateRow += pixelSize) {
-      for (let templateColumn = 1; templateColumn < templateWidth; templateColumn += pixelSize) {
-        const tileRow = templateCoordY + templateRow + tilePixelOffsetY;
-        const tileColumn = templateCoordX + templateColumn + tilePixelOffsetX;
-        const tilePixelAbove = tile32[tileRow * tileWidth + tileColumn];
-        const templatePixel = template32[templateRow * templateWidth + templateColumn];
-        const templatePixelAlpha = templatePixel >>> 24 & 255;
-        const tilePixelAlpha = tilePixelAbove >>> 24 & 255;
-        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
-        if (this.shouldFilterColor.get(bestTemplateColorID)) {
-          template32[templateRow * templateWidth + templateColumn] = tilePixelAbove;
-        }
-        if (bestTemplateColorID == -1) {
-          const blackTrans = 536870912;
-          if (this.shouldFilterColor.get(bestTemplateColorID)) {
-            template32[templateRow * templateWidth + templateColumn] = 0;
-          } else {
-            if ((tileRow / pixelSize & 1) == (tileColumn / pixelSize & 1)) {
-              template32[templateRow * templateWidth + templateColumn] = blackTrans;
-              template32[(templateRow - 1) * templateWidth + (templateColumn - 1)] = blackTrans;
-              template32[(templateRow - 1) * templateWidth + (templateColumn + 1)] = blackTrans;
-              template32[(templateRow + 1) * templateWidth + (templateColumn - 1)] = blackTrans;
-              template32[(templateRow + 1) * templateWidth + (templateColumn + 1)] = blackTrans;
-            } else {
-              template32[templateRow * templateWidth + templateColumn] = 0;
-              template32[(templateRow - 1) * templateWidth + templateColumn] = blackTrans;
-              template32[(templateRow + 1) * templateWidth + templateColumn] = blackTrans;
-              template32[templateRow * templateWidth + (templateColumn - 1)] = blackTrans;
-              template32[templateRow * templateWidth + (templateColumn + 1)] = blackTrans;
-            }
-          }
-        }
-        if (bestTemplateColorID == -1 && tilePixelAbove <= tolerance) {
-          const colorIDcount2 = _colorpalette.get(bestTemplateColorID);
-          _colorpalette.set(bestTemplateColorID, colorIDcount2 ? colorIDcount2 + 1 : 1);
-          continue;
-        }
-        if (templatePixelAlpha <= tolerance || tilePixelAlpha <= tolerance) {
-          continue;
-        }
-        const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
-        if (bestTileColorID != bestTemplateColorID) {
-          continue;
-        }
-        const colorIDcount = _colorpalette.get(bestTemplateColorID);
-        _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
-      }
-    }
-    console.log(`List of template pixels that match the tile:`);
-    console.log(_colorpalette);
-    return { correctPixels: _colorpalette, filteredTemplate: template32 };
-  };
-
-  // src/apiManager.js
-  var ApiManager = class {
-    /** Constructor for ApiManager class
-     * @param {TemplateManager} templateManager 
-     * @since 0.11.34
-     */
-    constructor(templateManager2) {
-      this.templateManager = templateManager2;
-      this.disableAll = false;
-      this.chargeRefillTimerID = "";
-      this.coordsTilePixel = [];
-      this.templateCoordsTilePixel = [];
-    }
-    /** Determines if the spontaneously received response is something we want.
-     * Otherwise, we can ignore it.
-     * Note: Due to aggressive compression, make your calls like `data['jsonData']['name']` instead of `data.jsonData.name`
-     * 
-     * @param {Overlay} overlay - The Overlay class instance
-     * @since 0.11.1
-    */
-    spontaneousResponseListener(overlay) {
-      window.addEventListener("message", async (event) => {
-        const data = event.data;
-        const dataJSON = data["jsonData"];
-        if (!(data && data["source"] === "blue-marble")) {
-          return;
-        }
-        if (!data["endpoint"]) {
-          return;
-        }
-        const endpointText = data["endpoint"]?.split("?")[0].split("/").filter((s) => s && isNaN(Number(s))).filter((s) => s && !s.includes(".")).pop();
-        console.log(`%cBlue Marble%c: Recieved message about "%s"`, "color: cornflowerblue;", "", endpointText);
-        switch (endpointText) {
-          case "me":
-            if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
-              overlay.handleDisplayError(`You are not logged in!
-Could not fetch userdata.`);
-              return;
-            }
-            const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON["level"]) * Math.pow(30, 0.65), 1 / 0.65) - dataJSON["pixelsPainted"]);
-            console.log(dataJSON["id"]);
-            if (!!dataJSON["id"] || dataJSON["id"] === 0) {
-              console.log(numberToEncoded(
-                dataJSON["id"],
-                "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-              ));
-            }
-            this.templateManager.userID = dataJSON["id"];
-            if (this.chargeRefillTimerID.length != 0) {
-              const chargeRefillTimer = document.querySelector("#" + this.chargeRefillTimerID);
-              if (chargeRefillTimer) {
-                const chargeData = dataJSON["charges"];
-                chargeRefillTimer.dataset["endDate"] = Date.now() + (chargeData["max"] - chargeData["count"]) * chargeData["cooldownMs"];
-              }
-            }
-            overlay.updateInnerHTML("bm-user-droplets", `Droplets: <b>${new Intl.NumberFormat().format(dataJSON["droplets"])}</b>`);
-            overlay.updateInnerHTML("bm-user-nextlevel", `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? "" : "s"}`);
-            break;
-          case "pixel":
-            const coordsTile = data["endpoint"].split("?")[0].split("/").filter((s) => s && !isNaN(Number(s)));
-            const payloadExtractor = new URLSearchParams(data["endpoint"].split("?")[1]);
-            const coordsPixel = [payloadExtractor.get("x"), payloadExtractor.get("y")];
-            if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
-              overlay.handleDisplayError(`Coordinates are malformed!
-Did you try clicking the canvas first?`);
-              return;
-            }
-            this.coordsTilePixel = [...coordsTile, ...coordsPixel];
-            const displayTP = serverTPtoDisplayTP(coordsTile, coordsPixel);
-            const spanElements = document.querySelectorAll("span");
-            for (const element of spanElements) {
-              if (element.textContent.trim().includes(`${displayTP[0]}, ${displayTP[1]}`)) {
-                let displayCoords = document.querySelector("#bm-display-coords");
-                const text = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
-                if (!displayCoords) {
-                  displayCoords = document.createElement("span");
-                  displayCoords.id = "bm-display-coords";
-                  displayCoords.textContent = text;
-                  displayCoords.style = "margin-left: calc(var(--spacing)*3); font-size: small;";
-                  element.parentNode.parentNode.insertAdjacentElement("afterend", displayCoords);
-                } else {
-                  displayCoords.textContent = text;
-                }
-              }
-            }
-            break;
-          case "tiles":
-            let tileCoordsTile = data["endpoint"].split("/");
-            tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace(".png", ""))];
-            const blobUUID = data["blobID"];
-            const blobData = data["blobData"];
-            const timer = Date.now();
-            const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
-            console.log(`Finished loading the tile in ${(Date.now() - timer) / 1e3} seconds!`);
-            window.postMessage({
-              source: "blue-marble",
-              blobID: blobUUID,
-              blobData: templateBlob,
-              blink: data["blink"]
-            });
-            break;
-          case "robots":
-            this.disableAll = dataJSON["userscript"]?.toString().toLowerCase() == "false";
-            break;
-        }
-      });
-    }
-    // Sends a heartbeat to the telemetry server
-    async sendHeartbeat(version2) {
-      console.log("Sending heartbeat to telemetry server...");
-      let userSettings2 = GM_getValue("bmUserSettings", "{}");
-      userSettings2 = JSON.parse(userSettings2);
-      if (!userSettings2 || !userSettings2.telemetry || !userSettings2.uuid) {
-        console.log("Telemetry is disabled, not sending heartbeat.");
-        return;
-      }
-      const ua = navigator.userAgent;
-      let browser = await this.getBrowserFromUA(ua);
-      let os = this.getOS(ua);
-      GM_xmlhttpRequest({
-        method: "POST",
-        url: "https://telemetry.thebluecorner.net/heartbeat",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        data: JSON.stringify({
-          uuid: userSettings2.uuid,
-          version: version2,
-          browser,
-          os
-        }),
-        onload: (response) => {
-          if (response.status !== 200) {
-            consoleError("Failed to send heartbeat:", response.statusText);
-          }
-        },
-        onerror: (error) => {
-          consoleError("Error sending heartbeat:", error);
-        }
-      });
-    }
-    async getBrowserFromUA(ua = navigator.userAgent) {
-      ua = ua || "";
-      if (ua.includes("OPR/") || ua.includes("Opera")) return "Opera";
-      if (ua.includes("Edg/")) return "Edge";
-      if (ua.includes("Vivaldi")) return "Vivaldi";
-      if (ua.includes("YaBrowser")) return "Yandex";
-      if (ua.includes("Kiwi")) return "Kiwi";
-      if (ua.includes("Brave")) return "Brave";
-      if (ua.includes("Firefox/")) return "Firefox";
-      if (ua.includes("Chrome/")) return "Chrome";
-      if (ua.includes("Safari/")) return "Safari";
-      if (navigator.brave && typeof navigator.brave.isBrave === "function") {
-        if (await navigator.brave.isBrave()) return "Brave";
-      }
-      return "Unknown";
-    }
-    getOS(ua = navigator.userAgent) {
-      ua = ua || "";
-      if (/Windows NT 11/i.test(ua)) return "Windows 11";
-      if (/Windows NT 10/i.test(ua)) return "Windows 10";
-      if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
-      if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
-      if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
-      if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
-      if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
-      if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
-      if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
-      if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
-      if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
-      if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
-      if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
-      if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
-      if (/Android/i.test(ua)) return "Android";
-      if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
-      if (/Linux/i.test(ua)) return "Linux";
-      return "Unknown";
-    }
-  };
-
-  // src/confetttiManager.js
-  var ConfettiManager = class {
-    /** The constructor for the confetti manager.
-     * @since 0.88.356
-     */
-    constructor() {
-      this.confettiCount = Math.ceil(80 / 1300 * window.innerWidth);
-      this.colorPalette = colorpalette.slice(1);
-    }
-    /** Immedently creates confetti inside the parent element.
-     * @param {HTMLElement} parentElement - The parent element to create confetti inside of
-     * @since 0.88.356
-     */
-    createConfetti(parentElement) {
-      const confettiContainer = document.createElement("div");
-      for (let currentCount = 0; currentCount < this.confettiCount; currentCount++) {
-        const confettiShard = document.createElement("confetti-piece");
-        confettiShard.style.setProperty("--x", `${Math.random() * 100}vw`);
-        confettiShard.style.setProperty("--delay", `${Math.random() * 2}s`);
-        confettiShard.style.setProperty("--duration", `${3 + Math.random() * 3}s`);
-        confettiShard.style.setProperty("--rot", `${Math.random() * 360}deg`);
-        confettiShard.style.setProperty("--size", `${6 + Math.random() * 6}px`);
-        confettiShard.style.backgroundColor = `rgb(${this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)].rgb.join(",")})`;
-        confettiShard.onanimationend = () => {
-          if (confettiShard.parentNode.childElementCount <= 1) {
-            confettiShard.parentNode.remove();
-          } else {
-            confettiShard.remove();
-          }
-        };
-        confettiContainer.appendChild(confettiShard);
-      }
-      parentElement.appendChild(confettiContainer);
-    }
-  };
-  var BlueMarbleConfettiPiece = class extends HTMLElement {
-  };
-  customElements.define("confetti-piece", BlueMarbleConfettiPiece);
 
   // src/Overlay.js
   var _Overlay_instances, createElement_fn, applyAttribute_fn;
@@ -2230,6 +1637,696 @@ Did you try clicking the canvas first?`);
       element[property] = value;
     }
   };
+
+  // src/WindowWizard.js
+  var _WindowWizard_instances, displaySchemaHealth_fn;
+  var WindowWizard = class extends Overlay {
+    /** Constructor for the Template Wizard window
+     * @param {string} name - The name of the userscript
+     * @param {string} version - The version of the userscript
+     * @param {string} schemaVersionBleedingEdge - The bleeding edge of schema versions for Blue Marble
+     * @since 0.88.434
+     * @see {@link Overlay#constructor} for examples
+     */
+    constructor(name2, version2, schemaVersionBleedingEdge) {
+      super(name2, version2);
+      __privateAdd(this, _WindowWizard_instances);
+      this.window = null;
+      this.windowID = "bm-window-wizard";
+      this.windowParent = document.body;
+      this.currentJSON = JSON.parse(GM_getValue("bmTemplates", "{}"));
+      this.scriptVersion = this.currentJSON?.scriptVersion;
+      this.schemaVersion = this.currentJSON?.schemaVersion;
+      this.schemaHealth = void 0;
+      this.schemaVersionBleedingEdge = schemaVersionBleedingEdge;
+    }
+    /** Spawns a Template Wizard window.
+     * If another template wizard window already exists, we DON'T spawn another!
+     * Parent/child relationships in the DOM structure below are indicated by indentation.
+     * @since 0.88.434
+     */
+    buildWindow() {
+      if (document.querySelector(`#${this.windowID}`)) {
+        this.handleDisplayError("Template Wizard window already exists!");
+        return;
+      }
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": "z-index: 9001;" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Template Wizard"', "data-button-status": "expanded" }, (instance, button) => {
+        button.onclick = () => instance.handleMinimization(button);
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u{1F7AA}", "aria-label": 'Close window "Template Wizard"' }, (instance, button) => {
+        button.onclick = () => {
+          document.querySelector(`#${this.windowID}`)?.remove();
+        };
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-wizard-status", "textContent": "Loading template storage status..." }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addSpan({ "textContent": "Detected templates:" }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      __privateMethod(this, _WindowWizard_instances, displaySchemaHealth_fn).call(this);
+    }
+  };
+  _WindowWizard_instances = new WeakSet();
+  /** Determines how "healthy" the template storage is.
+   * @since 0.88.436
+   */
+  displaySchemaHealth_fn = function() {
+    const schemaVersionArray = this.schemaVersion.split(/[-\.\+]/);
+    const schemaVersionBleedingEdgeArray = this.schemaVersionBleedingEdge.split(/[-\.\+]/);
+    let schemaHealthBanner = "";
+    if (schemaVersionArray[0] == schemaVersionBleedingEdgeArray[0]) {
+      if (schemaVersionArray[1] == schemaVersionBleedingEdgeArray[1]) {
+        schemaHealthBanner = "Template storage health: <b>Healthy!</b><br>No futher action required. (Reason: Semantic version matches)";
+        this.schemaHealth = "Good";
+      } else {
+        schemaHealthBanner = "Template storage health: <b>Poor!</b><br>You can still use your template, but some features may not work. It is recommended that you update Blue Marble's template storage. (Reason: MINOR version mismatch)";
+        this.schemaHealth = "Poor";
+      }
+    } else {
+      schemaHealthBanner = "Template storage health: <b>Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version mismatch)";
+      this.schemaHealth = "Dead";
+    }
+    this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>The current schema version (<b>${escapeHTML(this.schemaVersion)}</b>) was created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b>.<br>The current Blue Marble version (<b>${escapeHTML(this.version)}</b>) requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<br>If you don't want to upgrade the template storage (schema), then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b>.`);
+    if (this.schemaHealth == "Poor" || this.schemaHealth == "Bad") {
+      const buttonOptions = new Overlay(this.name, this.version);
+      buttonOptions.addDiv({ "class": "bm-container bm-flex-center bm-center-vertically" }).addButton({ "textContent": `Update template storage to ${this.schemaVersionBleedingEdge}` }, (instance, button) => {
+        button.onclick = () => {
+        };
+      }).buildElement().buildElement().buildOverlay(document.querySelector("#bm-wizard-status").parentNode);
+    }
+  };
+
+  // src/templateManager.js
+  var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_And_FilterTile_fn;
+  var TemplateManager = class {
+    /** The constructor for the {@link TemplateManager} class.
+     * @since 0.55.8
+     */
+    constructor(name2, version2, overlay) {
+      __privateAdd(this, _TemplateManager_instances);
+      this.name = name2;
+      this.version = version2;
+      this.overlay = overlay;
+      this.schemaVersion = "1.1.0";
+      this.userID = null;
+      this.encodingBase = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      this.tileSize = 1e3;
+      this.drawMult = 3;
+      this.paletteTolerance = 3;
+      this.paletteBM = colorpaletteForBlueMarble(this.paletteTolerance);
+      this.template = null;
+      this.templateState = "";
+      this.templatesArray = [];
+      this.templatesJSON = null;
+      this.templatesShouldBeDrawn = true;
+      this.templatePixelsCorrect = null;
+      this.shouldFilterColor = /* @__PURE__ */ new Map();
+    }
+    /** Creates the JSON object to store templates in
+     * @returns {{ whoami: string, scriptVersion: string, schemaVersion: string, templates: Object }} The JSON object
+     * @since 0.65.4
+     */
+    async createJSON() {
+      return {
+        "whoami": this.name.replace(" ", ""),
+        // Name of userscript without spaces
+        "scriptVersion": this.version,
+        // Version of userscript
+        "schemaVersion": this.schemaVersion,
+        // Version of JSON schema
+        "templates": {}
+        // The templates
+      };
+    }
+    /** Creates the template from the inputed file blob
+     * @param {File} blob - The file blob to create a template from
+     * @param {string} name - The display name of the template
+     * @param {Array<number, number, number, number>} coords - The coordinates of the top left corner of the template
+     * @since 0.65.77
+     */
+    async createTemplate(blob, name2, coords2) {
+      if (!this.templatesJSON) {
+        this.templatesJSON = await this.createJSON();
+        console.log(`Creating JSON...`);
+      }
+      this.overlay.handleDisplayStatus(`Creating template at ${coords2.join(", ")}...`);
+      const template = new Template({
+        displayName: name2,
+        sortID: 0,
+        // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
+        authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+        file: blob,
+        coords: coords2
+      });
+      const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize, this.paletteBM);
+      template.chunked = templateTiles;
+      const _pixels = { "total": template.pixelCount.total, "colors": Object.fromEntries(template.pixelCount.colors) };
+      this.templatesJSON.templates[`${template.sortID} ${template.authorID}`] = {
+        "name": template.displayName,
+        // Display name of template
+        "coords": coords2.join(", "),
+        // The coords of the template
+        "enabled": true,
+        "pixels": _pixels,
+        // The total pixels in the template
+        "tiles": templateTilesBuffers
+        // Stores the chunked tile buffers
+      };
+      this.templatesArray = [];
+      this.templatesArray.push(template);
+      this.overlay.handleDisplayStatus(`Template created at ${coords2.join(", ")}!`);
+      console.log(Object.keys(this.templatesJSON.templates).length);
+      console.log(this.templatesJSON);
+      console.log(this.templatesArray);
+      console.log(JSON.stringify(this.templatesJSON));
+      await __privateMethod(this, _TemplateManager_instances, storeTemplates_fn).call(this);
+    }
+    /** Deletes a template from the JSON object.
+     * Also delete's the corrosponding {@link Template} class instance
+     */
+    deleteTemplate() {
+    }
+    /** Disables the template from view
+     */
+    async disableTemplate() {
+      if (!this.templatesJSON) {
+        this.templatesJSON = await this.createJSON();
+        console.log(`Creating JSON...`);
+      }
+    }
+    /** Draws all templates on the specified tile.
+     * This method handles the rendering of template overlays on individual tiles.
+     * @param {File} tileBlob - The pixels that are placed on a tile
+     * @param {Array<number>} tileCoords - The tile coordinates [x, y]
+     * @since 0.65.77
+     */
+    async drawTemplateOnTile(tileBlob, tileCoords) {
+      if (!this.templatesShouldBeDrawn) {
+        return tileBlob;
+      }
+      const drawSize = this.tileSize * this.drawMult;
+      tileCoords = tileCoords[0].toString().padStart(4, "0") + "," + tileCoords[1].toString().padStart(4, "0");
+      console.log(`Searching for templates in tile: "${tileCoords}"`);
+      const templateArray = this.templatesArray;
+      console.log(templateArray);
+      templateArray.sort((a, b) => {
+        return a.sortID - b.sortID;
+      });
+      console.log(templateArray);
+      const templatesToDraw = templateArray.map((template) => {
+        const matchingTiles = Object.keys(template.chunked).filter(
+          (tile) => tile.startsWith(tileCoords)
+        );
+        if (matchingTiles.length === 0) {
+          return null;
+        }
+        const matchingTileBlobs = matchingTiles.map((tile) => {
+          const coords2 = tile.split(",");
+          return {
+            instance: template,
+            bitmap: template.chunked[tile],
+            chunked32: template.chunked32?.[tile],
+            tileCoords: [coords2[0], coords2[1]],
+            pixelCoords: [coords2[2], coords2[3]]
+          };
+        });
+        return matchingTileBlobs?.[0];
+      }).filter(Boolean);
+      console.log(templatesToDraw);
+      const templateCount = templatesToDraw?.length || 0;
+      console.log(`templateCount = ${templateCount}`);
+      if (templateCount > 0) {
+        const totalPixels = templateArray.filter((template) => {
+          const matchingTiles = Object.keys(template.chunked).filter(
+            (tile) => tile.startsWith(tileCoords)
+          );
+          return matchingTiles.length > 0;
+        }).reduce((sum, template) => sum + (template.pixelCount.total || 0), 0);
+        const pixelCountFormatted = new Intl.NumberFormat().format(totalPixels);
+        this.overlay.handleDisplayStatus(
+          `Displaying ${templateCount} template${templateCount == 1 ? "" : "s"}.
+Total pixels: ${pixelCountFormatted}`
+        );
+      } else {
+        this.overlay.handleDisplayStatus(`Sleeping
+Version: ${this.version}`);
+        return tileBlob;
+      }
+      const tileBitmap = await createImageBitmap(tileBlob);
+      const canvas = new OffscreenCanvas(drawSize, drawSize);
+      const context = canvas.getContext("2d");
+      context.imageSmoothingEnabled = false;
+      context.beginPath();
+      context.rect(0, 0, drawSize, drawSize);
+      context.clip();
+      context.clearRect(0, 0, drawSize, drawSize);
+      context.drawImage(tileBitmap, 0, 0, drawSize, drawSize);
+      const tileBeforeTemplates = context.getImageData(0, 0, drawSize, drawSize);
+      const tileBeforeTemplates32 = new Uint32Array(tileBeforeTemplates.data.buffer);
+      for (const template of templatesToDraw) {
+        console.log(`Template:`);
+        console.log(template);
+        const templateHasErased = !!template.instance.pixelCount?.colors?.get(-1);
+        let templateBeforeFilter32 = template.chunked32.slice();
+        const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
+        const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
+        if (this.shouldFilterColor.size == 0 && !templateHasErased) {
+          context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
+        }
+        if (!templateBeforeFilter32) {
+          const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
+          templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
+        }
+        const timer = Date.now();
+        const {
+          correctPixels: pixelsCorrect,
+          filteredTemplate: templateAfterFilter
+        } = __privateMethod(this, _TemplateManager_instances, calculateCorrectPixelsOnTile_And_FilterTile_fn).call(this, {
+          tile: tileBeforeTemplates32,
+          template: templateBeforeFilter32,
+          templateInfo: [coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height]
+        });
+        let pixelsCorrectTotal = 0;
+        const transparentColorID = 0;
+        for (const [color, total] of pixelsCorrect) {
+          if (color == transparentColorID) {
+            continue;
+          }
+          pixelsCorrectTotal += total;
+        }
+        if (this.shouldFilterColor.size != 0 || templateHasErased) {
+          console.log("Colors to filter: ", this.shouldFilterColor);
+          context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
+        }
+        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
+There are ${pixelsCorrectTotal} correct pixels.`);
+        if (typeof template.instance.pixelCount["correct"] == "undefined") {
+          template.instance.pixelCount["correct"] = {};
+        }
+        template.instance.pixelCount["correct"][tileCoords] = pixelsCorrect;
+      }
+      return await canvas.convertToBlob({ type: "image/png" });
+    }
+    /** Imports the JSON object, and appends it to any JSON object already loaded
+     * @param {string} json - The JSON string to parse
+     */
+    importJSON(json) {
+      console.log(`Importing JSON...`);
+      console.log(json);
+      if (json?.whoami == "BlueMarble") {
+        __privateMethod(this, _TemplateManager_instances, parseBlueMarble_fn).call(this, json);
+      }
+    }
+    /** Sets the `templatesShouldBeDrawn` boolean to a value.
+     * @param {boolean} value - The value to set the boolean to
+     * @since 0.73.7
+     */
+    setTemplatesShouldBeDrawn(value) {
+      this.templatesShouldBeDrawn = value;
+    }
+  };
+  _TemplateManager_instances = new WeakSet();
+  /** Generates a {@link Template} class instance from the JSON object template
+   */
+  loadTemplate_fn = function() {
+  };
+  storeTemplates_fn = async function() {
+    GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
+  };
+  parseBlueMarble_fn = async function(json) {
+    console.log(`Parsing BlueMarble...`);
+    const templates = json.templates;
+    console.log(`BlueMarble length: ${Object.keys(templates).length}`);
+    const schemaVersion = json?.schemaVersion;
+    const schemaVersionArray = schemaVersion.split(/[-\.\+]/);
+    const schemaVersionBleedingEdge = this.schemaVersion.split(/[-\.\+]/);
+    const scriptVersion = json?.scriptVersion;
+    console.log(`BlueMarble Template Schema: ${schemaVersion}; Script Version: ${scriptVersion}`);
+    if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
+      if (schemaVersionArray[1] == schemaVersionBleedingEdge[1]) {
+        loadSchemaVersion_1_x_x();
+      } else {
+        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion);
+        windowWizard.buildWindow();
+        loadSchemaVersion_1_x_x();
+      }
+    } else {
+      this.overlay.handleDisplayError(`Template version ${schemaVersion} is unsupported.
+Use Blue Marble version ${scriptVersion} or load a new template.`);
+    }
+    async function loadSchemaVersion_1_x_x() {
+      if (Object.keys(templates).length > 0) {
+        for (const template in templates) {
+          const templateKey = template;
+          const templateValue = templates[template];
+          console.log(`Template Key: ${templateKey}`);
+          if (templates.hasOwnProperty(template)) {
+            const templateKeyArray = templateKey.split(" ");
+            const sortID = Number(templateKeyArray?.[0]);
+            const authorID = templateKeyArray?.[1] || "0";
+            const displayName = templateValue.name || `Template ${sortID || ""}`;
+            const pixelCount = {
+              total: templateValue.pixels.total,
+              colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
+            };
+            const tilesbase64 = templateValue.tiles;
+            const templateTiles = {};
+            const templateTiles32 = {};
+            const actualTileSize = this.tileSize * this.drawMult;
+            for (const tile in tilesbase64) {
+              console.log(tile);
+              if (tilesbase64.hasOwnProperty(tile)) {
+                const encodedTemplateBase64 = tilesbase64[tile];
+                const templateUint8Array = base64ToUint8(encodedTemplateBase64);
+                const templateBlob = new Blob([templateUint8Array], { type: "image/png" });
+                const templateBitmap = await createImageBitmap(templateBlob);
+                templateTiles[tile] = templateBitmap;
+                const canvas = new OffscreenCanvas(actualTileSize, actualTileSize);
+                const context = canvas.getContext("2d");
+                context.drawImage(templateBitmap, 0, 0);
+                const imageData = context.getImageData(0, 0, templateBitmap.width, templateBitmap.height);
+                templateTiles32[tile] = new Uint32Array(imageData.data.buffer);
+              }
+            }
+            const template2 = new Template({
+              displayName,
+              sortID: sortID || this.templatesArray?.length || 0,
+              authorID: authorID || ""
+              //coords: coords,
+            });
+            template2.pixelCount = pixelCount;
+            template2.chunked = templateTiles;
+            template2.chunked32 = templateTiles32;
+            this.templatesArray.push(template2);
+            console.log(this.templatesArray);
+            console.log(`^^^ This ^^^`);
+          }
+        }
+      }
+    }
+  };
+  /** Parses the OSU! Place JSON object
+   */
+  parseOSU_fn = function() {
+  };
+  /** Calculates the correct pixels on this tile.
+   * In addition, this function filters colors based on user input.
+   * In addition, this function modifies colors to properly display (#deface).
+   * This function has multiple purposes only to reduce iterations of scans over every pixel on the template.
+   * @param {Object} params - Object containing all parameters
+   * @param {Uint32Array} params.tile - The tile without templates as a Uint32Array
+   * @param {Uint32Array} params.template - The template without filtering as a Uint32Array
+   * @param {Array<Number, Number, Number, Number>} params.templateInfo - Information about template location and size
+   * @returns {{correctPixels: Map<number, number>, filteredTemplate: Uint32Array}} A Map containing the color IDs (keys) and how many correct pixels there are for that color (values)
+   */
+  calculateCorrectPixelsOnTile_And_FilterTile_fn = function({
+    tile: tile32,
+    template: template32,
+    templateInfo: templateInformation
+  }) {
+    const pixelSize = this.drawMult;
+    const tileWidth = this.tileSize * pixelSize;
+    const tileHeight = tileWidth;
+    const tilePixelOffsetY = -1;
+    const tilePixelOffsetX = 0;
+    const templateCoordX = templateInformation[0];
+    const templateCoordY = templateInformation[1];
+    const templateWidth = templateInformation[2];
+    const templateHeight = templateInformation[3];
+    const tolerance = this.paletteTolerance;
+    const { palette: _, LUT: lookupTable } = this.paletteBM;
+    const _colorpalette = /* @__PURE__ */ new Map();
+    for (let templateRow = 1; templateRow < templateHeight; templateRow += pixelSize) {
+      for (let templateColumn = 1; templateColumn < templateWidth; templateColumn += pixelSize) {
+        const tileRow = templateCoordY + templateRow + tilePixelOffsetY;
+        const tileColumn = templateCoordX + templateColumn + tilePixelOffsetX;
+        const tilePixelAbove = tile32[tileRow * tileWidth + tileColumn];
+        const templatePixel = template32[templateRow * templateWidth + templateColumn];
+        const templatePixelAlpha = templatePixel >>> 24 & 255;
+        const tilePixelAlpha = tilePixelAbove >>> 24 & 255;
+        const bestTemplateColorID = lookupTable.get(templatePixel) ?? -2;
+        if (this.shouldFilterColor.get(bestTemplateColorID)) {
+          template32[templateRow * templateWidth + templateColumn] = tilePixelAbove;
+        }
+        if (bestTemplateColorID == -1) {
+          const blackTrans = 536870912;
+          if (this.shouldFilterColor.get(bestTemplateColorID)) {
+            template32[templateRow * templateWidth + templateColumn] = 0;
+          } else {
+            if ((tileRow / pixelSize & 1) == (tileColumn / pixelSize & 1)) {
+              template32[templateRow * templateWidth + templateColumn] = blackTrans;
+              template32[(templateRow - 1) * templateWidth + (templateColumn - 1)] = blackTrans;
+              template32[(templateRow - 1) * templateWidth + (templateColumn + 1)] = blackTrans;
+              template32[(templateRow + 1) * templateWidth + (templateColumn - 1)] = blackTrans;
+              template32[(templateRow + 1) * templateWidth + (templateColumn + 1)] = blackTrans;
+            } else {
+              template32[templateRow * templateWidth + templateColumn] = 0;
+              template32[(templateRow - 1) * templateWidth + templateColumn] = blackTrans;
+              template32[(templateRow + 1) * templateWidth + templateColumn] = blackTrans;
+              template32[templateRow * templateWidth + (templateColumn - 1)] = blackTrans;
+              template32[templateRow * templateWidth + (templateColumn + 1)] = blackTrans;
+            }
+          }
+        }
+        if (bestTemplateColorID == -1 && tilePixelAbove <= tolerance) {
+          const colorIDcount2 = _colorpalette.get(bestTemplateColorID);
+          _colorpalette.set(bestTemplateColorID, colorIDcount2 ? colorIDcount2 + 1 : 1);
+          continue;
+        }
+        if (templatePixelAlpha <= tolerance || tilePixelAlpha <= tolerance) {
+          continue;
+        }
+        const bestTileColorID = lookupTable.get(tilePixelAbove) ?? -2;
+        if (bestTileColorID != bestTemplateColorID) {
+          continue;
+        }
+        const colorIDcount = _colorpalette.get(bestTemplateColorID);
+        _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
+      }
+    }
+    console.log(`List of template pixels that match the tile:`);
+    console.log(_colorpalette);
+    return { correctPixels: _colorpalette, filteredTemplate: template32 };
+  };
+
+  // src/apiManager.js
+  var ApiManager = class {
+    /** Constructor for ApiManager class
+     * @param {TemplateManager} templateManager 
+     * @since 0.11.34
+     */
+    constructor(templateManager2) {
+      this.templateManager = templateManager2;
+      this.disableAll = false;
+      this.chargeRefillTimerID = "";
+      this.coordsTilePixel = [];
+      this.templateCoordsTilePixel = [];
+    }
+    /** Determines if the spontaneously received response is something we want.
+     * Otherwise, we can ignore it.
+     * Note: Due to aggressive compression, make your calls like `data['jsonData']['name']` instead of `data.jsonData.name`
+     * 
+     * @param {Overlay} overlay - The Overlay class instance
+     * @since 0.11.1
+    */
+    spontaneousResponseListener(overlay) {
+      window.addEventListener("message", async (event) => {
+        const data = event.data;
+        const dataJSON = data["jsonData"];
+        if (!(data && data["source"] === "blue-marble")) {
+          return;
+        }
+        if (!data["endpoint"]) {
+          return;
+        }
+        const endpointText = data["endpoint"]?.split("?")[0].split("/").filter((s) => s && isNaN(Number(s))).filter((s) => s && !s.includes(".")).pop();
+        console.log(`%cBlue Marble%c: Recieved message about "%s"`, "color: cornflowerblue;", "", endpointText);
+        switch (endpointText) {
+          case "me":
+            if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
+              overlay.handleDisplayError(`You are not logged in!
+Could not fetch userdata.`);
+              return;
+            }
+            const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON["level"]) * Math.pow(30, 0.65), 1 / 0.65) - dataJSON["pixelsPainted"]);
+            console.log(dataJSON["id"]);
+            if (!!dataJSON["id"] || dataJSON["id"] === 0) {
+              console.log(numberToEncoded(
+                dataJSON["id"],
+                "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              ));
+            }
+            this.templateManager.userID = dataJSON["id"];
+            if (this.chargeRefillTimerID.length != 0) {
+              const chargeRefillTimer = document.querySelector("#" + this.chargeRefillTimerID);
+              if (chargeRefillTimer) {
+                const chargeData = dataJSON["charges"];
+                chargeRefillTimer.dataset["endDate"] = Date.now() + (chargeData["max"] - chargeData["count"]) * chargeData["cooldownMs"];
+              }
+            }
+            overlay.updateInnerHTML("bm-user-droplets", `Droplets: <b>${new Intl.NumberFormat().format(dataJSON["droplets"])}</b>`);
+            overlay.updateInnerHTML("bm-user-nextlevel", `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? "" : "s"}`);
+            break;
+          case "pixel":
+            const coordsTile = data["endpoint"].split("?")[0].split("/").filter((s) => s && !isNaN(Number(s)));
+            const payloadExtractor = new URLSearchParams(data["endpoint"].split("?")[1]);
+            const coordsPixel = [payloadExtractor.get("x"), payloadExtractor.get("y")];
+            if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
+              overlay.handleDisplayError(`Coordinates are malformed!
+Did you try clicking the canvas first?`);
+              return;
+            }
+            this.coordsTilePixel = [...coordsTile, ...coordsPixel];
+            const displayTP = serverTPtoDisplayTP(coordsTile, coordsPixel);
+            const spanElements = document.querySelectorAll("span");
+            for (const element of spanElements) {
+              if (element.textContent.trim().includes(`${displayTP[0]}, ${displayTP[1]}`)) {
+                let displayCoords = document.querySelector("#bm-display-coords");
+                const text = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
+                if (!displayCoords) {
+                  displayCoords = document.createElement("span");
+                  displayCoords.id = "bm-display-coords";
+                  displayCoords.textContent = text;
+                  displayCoords.style = "margin-left: calc(var(--spacing)*3); font-size: small;";
+                  element.parentNode.parentNode.insertAdjacentElement("afterend", displayCoords);
+                } else {
+                  displayCoords.textContent = text;
+                }
+              }
+            }
+            break;
+          case "tiles":
+            let tileCoordsTile = data["endpoint"].split("/");
+            tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace(".png", ""))];
+            const blobUUID = data["blobID"];
+            const blobData = data["blobData"];
+            const timer = Date.now();
+            const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
+            console.log(`Finished loading the tile in ${(Date.now() - timer) / 1e3} seconds!`);
+            window.postMessage({
+              source: "blue-marble",
+              blobID: blobUUID,
+              blobData: templateBlob,
+              blink: data["blink"]
+            });
+            break;
+          case "robots":
+            this.disableAll = dataJSON["userscript"]?.toString().toLowerCase() == "false";
+            break;
+        }
+      });
+    }
+    // Sends a heartbeat to the telemetry server
+    async sendHeartbeat(version2) {
+      console.log("Sending heartbeat to telemetry server...");
+      let userSettings2 = GM_getValue("bmUserSettings", "{}");
+      userSettings2 = JSON.parse(userSettings2);
+      if (!userSettings2 || !userSettings2.telemetry || !userSettings2.uuid) {
+        console.log("Telemetry is disabled, not sending heartbeat.");
+        return;
+      }
+      const ua = navigator.userAgent;
+      let browser = await this.getBrowserFromUA(ua);
+      let os = this.getOS(ua);
+      GM_xmlhttpRequest({
+        method: "POST",
+        url: "https://telemetry.thebluecorner.net/heartbeat",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        data: JSON.stringify({
+          uuid: userSettings2.uuid,
+          version: version2,
+          browser,
+          os
+        }),
+        onload: (response) => {
+          if (response.status !== 200) {
+            consoleError("Failed to send heartbeat:", response.statusText);
+          }
+        },
+        onerror: (error) => {
+          consoleError("Error sending heartbeat:", error);
+        }
+      });
+    }
+    async getBrowserFromUA(ua = navigator.userAgent) {
+      ua = ua || "";
+      if (ua.includes("OPR/") || ua.includes("Opera")) return "Opera";
+      if (ua.includes("Edg/")) return "Edge";
+      if (ua.includes("Vivaldi")) return "Vivaldi";
+      if (ua.includes("YaBrowser")) return "Yandex";
+      if (ua.includes("Kiwi")) return "Kiwi";
+      if (ua.includes("Brave")) return "Brave";
+      if (ua.includes("Firefox/")) return "Firefox";
+      if (ua.includes("Chrome/")) return "Chrome";
+      if (ua.includes("Safari/")) return "Safari";
+      if (navigator.brave && typeof navigator.brave.isBrave === "function") {
+        if (await navigator.brave.isBrave()) return "Brave";
+      }
+      return "Unknown";
+    }
+    getOS(ua = navigator.userAgent) {
+      ua = ua || "";
+      if (/Windows NT 11/i.test(ua)) return "Windows 11";
+      if (/Windows NT 10/i.test(ua)) return "Windows 10";
+      if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
+      if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
+      if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
+      if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
+      if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
+      if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
+      if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
+      if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
+      if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
+      if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
+      if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
+      if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
+      if (/Android/i.test(ua)) return "Android";
+      if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
+      if (/Linux/i.test(ua)) return "Linux";
+      return "Unknown";
+    }
+  };
+
+  // src/confetttiManager.js
+  var ConfettiManager = class {
+    /** The constructor for the confetti manager.
+     * @since 0.88.356
+     */
+    constructor() {
+      this.confettiCount = Math.ceil(80 / 1300 * window.innerWidth);
+      this.colorPalette = colorpalette.slice(1);
+    }
+    /** Immedently creates confetti inside the parent element.
+     * @param {HTMLElement} parentElement - The parent element to create confetti inside of
+     * @since 0.88.356
+     */
+    createConfetti(parentElement) {
+      const confettiContainer = document.createElement("div");
+      for (let currentCount = 0; currentCount < this.confettiCount; currentCount++) {
+        const confettiShard = document.createElement("confetti-piece");
+        confettiShard.style.setProperty("--x", `${Math.random() * 100}vw`);
+        confettiShard.style.setProperty("--delay", `${Math.random() * 2}s`);
+        confettiShard.style.setProperty("--duration", `${3 + Math.random() * 3}s`);
+        confettiShard.style.setProperty("--rot", `${Math.random() * 360}deg`);
+        confettiShard.style.setProperty("--size", `${6 + Math.random() * 6}px`);
+        confettiShard.style.backgroundColor = `rgb(${this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)].rgb.join(",")})`;
+        confettiShard.onanimationend = () => {
+          if (confettiShard.parentNode.childElementCount <= 1) {
+            confettiShard.parentNode.remove();
+          } else {
+            confettiShard.remove();
+          }
+        };
+        confettiContainer.appendChild(confettiShard);
+      }
+      parentElement.appendChild(confettiContainer);
+    }
+  };
+  var BlueMarbleConfettiPiece = class extends HTMLElement {
+  };
+  customElements.define("confetti-piece", BlueMarbleConfettiPiece);
 
   // src/WindowFilter.js
   var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn;
