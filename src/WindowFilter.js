@@ -30,7 +30,11 @@ export default class WindowFilter extends Overlay {
 
     // Localization formats
     this.localizeNumber = new Intl.NumberFormat();
-    this.localizePercent = new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    this.localizePercent = new Intl.NumberFormat(undefined, {
+      style: 'percent',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
     // Localization string formatting for "Remaining Time" in color filter window.
     // This is more of a hint than anything, as browsers seem to ignore it >:(
     this.localizeDateTimeOptions = {
