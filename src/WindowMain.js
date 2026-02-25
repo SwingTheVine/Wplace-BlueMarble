@@ -1,5 +1,6 @@
 import ConfettiManager from "./confetttiManager";
 import Overlay from "./Overlay";
+import { getClipboardData } from "./utils";
 import WindowFilter from "./WindowFilter";
 
 /** The overlay builder for the main Blue Marble window.
@@ -92,22 +93,17 @@ export default class WindowMain extends Overlay {
               }
             ).buildElement()
             .addInput({'type': 'number', 'id': 'bm-input-tx', 'class': 'bm-input-coords', 'placeholder': 'Tl X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
-              //if a paste happens on tx, split and format it into other coordinates if possible
-              input.addEventListener("paste", (event) => {
-                let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter(n => n).map(Number).filter(n => !isNaN(n)); //split and filter all Non Numbers
-                if (splitText.length !== 4 ) { // If we don't have 4 clean coordinates, end the function.
-                  return;
-                }
-                let coords = selectAllCoordinateInputs(document); 
-                for (let i = 0; i < coords.length; i++) { 
-                  coords[i].value = splitText[i]; //add the split vales
-                }
-                event.preventDefault(); //prevent the pasting of the original paste that would overide the split value
-              })
+              input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
             }).buildElement()
-            .addInput({'type': 'number', 'id': 'bm-input-ty', 'class': 'bm-input-coords', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
-            .addInput({'type': 'number', 'id': 'bm-input-px', 'class': 'bm-input-coords', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
-            .addInput({'type': 'number', 'id': 'bm-input-py', 'class': 'bm-input-coords', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}).buildElement()
+            .addInput({'type': 'number', 'id': 'bm-input-ty', 'class': 'bm-input-coords', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+              input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
+            }).buildElement()
+            .addInput({'type': 'number', 'id': 'bm-input-px', 'class': 'bm-input-coords', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+              input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
+            }).buildElement()
+            .addInput({'type': 'number', 'id': 'bm-input-py', 'class': 'bm-input-coords', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+              input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
+            }).buildElement()
           .buildElement()
           .addDiv({'class': 'bm-container'})
             .addInputFile({'class': 'bm-input-file', 'textContent': 'Upload Template', 'accept': 'image/png, image/jpeg, image/webp, image/bmp, image/gif'}).buildElement()
@@ -190,5 +186,43 @@ export default class WindowMain extends Overlay {
   #buildWindowFilter() {
     const windowFilter = new WindowFilter(this); // Creates a new color filter window instance
     windowFilter.buildWindow();
+  }
+
+  /** Handles pasting into the coordinate input boxes in the main Blue Marble window.
+   * @param {Overlay} instance - The Overlay class instance
+   * @param {HTMLInputElement} input - The input element that was pasted into
+   * @param {ClipboardEvent} event - The event that triggered this
+   * @since 0.88.426
+   */
+  async #coordinateInputPaste(instance, input, event) {
+
+    event.preventDefault(); // Stops the paste so we can process it
+
+    const data = await getClipboardData(event); // Obtains the clipboard text
+
+    const coords = data.split(/[^a-zA-Z0-9]+/) // Split. Delimiter to split on is "alphanumeric" `f00 bar 4` -> `['f00', 'bar', '4', '']`
+      .filter(index => index) // Only preserves non-empty indexes `['f00', 'bar', '4']`
+      .map(Number) // Converts every index to a number `[NaN, NaN, 4]`
+      .filter(number => !isNaN(number) // Removes NaN `[4]`
+    );
+
+    // If there are only two coordinates, and they were pasted into the pixel coords...
+    if ((coords.length == 2) && (input.id == 'bm-input-px')) {
+      // ...then paste into the pixel inputs
+
+      instance.updateInnerHTML('bm-input-px', coords?.[0] || '');
+      instance.updateInnerHTML('bm-input-py', coords?.[1] || '');
+    } else if ((coords.length == 1)) {
+      // Else if there is only 1 coordinate, we paste into the input like normal
+
+      instance.updateInnerHTML(input.id, coords?.[0] || '');
+    } else {
+      // Else we paste like normal
+
+      instance.updateInnerHTML('bm-input-tx', coords?.[0] || '');
+      instance.updateInnerHTML('bm-input-ty', coords?.[1] || '');
+      instance.updateInnerHTML('bm-input-px', coords?.[2] || '');
+      instance.updateInnerHTML('bm-input-py', coords?.[3] || '');
+    }
   }
 }
