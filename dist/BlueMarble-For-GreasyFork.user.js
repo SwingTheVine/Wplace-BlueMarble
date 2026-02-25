@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.425
+// @version         0.88.433
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -129,6 +129,25 @@
       array[i] = binary.charCodeAt(i);
     }
     return array;
+  }
+  async function getClipboardData(event = void 0) {
+    let data = "";
+    if (event) {
+      data = event.clipboardData.getData("text/plain");
+    }
+    if (data.length != 0) {
+      return data;
+    }
+    await navigator.clipboard.readText().then((text) => {
+      data = text;
+    }).catch((error) => {
+      consoleLog(`Failed to retrieve clipboard data using navigator! Using fallback methods...`);
+    });
+    if (data.length != 0) {
+      return data;
+    }
+    data = window.clipboardData?.getData("Text");
+    return data;
   }
   function calculateRelativeLuminance(array) {
     const srgb = array.map((channel) => {
@@ -2463,7 +2482,7 @@ Did you try clicking the canvas first?`);
   };
 
   // src/WindowMain.js
-  var _WindowMain_instances, buildWindowFilter_fn;
+  var _WindowMain_instances, buildWindowFilter_fn, coordinateInputPaste_fn;
   var WindowMain = class extends Overlay {
     /** Constructor for the main Blue Marble window
      * @param {string} name - The name of the userscript
@@ -2521,18 +2540,14 @@ Did you try clicking the canvas first?`);
           };
         }
       ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
-        input.addEventListener("paste", (event) => {
-          let splitText = (event.clipboardData || window.clipboardData).getData("text").split(" ").filter((n) => n).map(Number).filter((n) => !isNaN(n));
-          if (splitText.length !== 4) {
-            return;
-          }
-          let coords2 = selectAllCoordinateInputs(document);
-          for (let i = 0; i < coords2.length; i++) {
-            coords2[i].value = splitText[i];
-          }
-          event.preventDefault();
-        });
-      }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "class": "bm-input-coords", "placeholder": "Tl Y", "min": 0, "max": 2047, "step": 1, "required": true }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "class": "bm-input-coords", "placeholder": "Px X", "min": 0, "max": 2047, "step": 1, "required": true }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "class": "bm-input-coords", "placeholder": "Px Y", "min": 0, "max": 2047, "step": 1, "required": true }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addInputFile({ "class": "bm-input-file", "textContent": "Upload Template", "accept": "image/png, image/jpeg, image/webp, image/bmp, image/gif" }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between" }).addButton({ "textContent": "Disable", "data-button-status": "shown" }, (instance, button) => {
+        input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
+      }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "class": "bm-input-coords", "placeholder": "Tl Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+        input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
+      }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "class": "bm-input-coords", "placeholder": "Px X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+        input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
+      }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "class": "bm-input-coords", "placeholder": "Px Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+        input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
+      }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addInputFile({ "class": "bm-input-file", "textContent": "Upload Template", "accept": "image/png, image/jpeg, image/webp, image/bmp, image/gif" }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between" }).addButton({ "textContent": "Disable", "data-button-status": "shown" }, (instance, button) => {
         button.onclick = () => {
           button.disabled = true;
           if (button.dataset["buttonStatus"] == "shown") {
@@ -2606,6 +2621,25 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
   buildWindowFilter_fn = function() {
     const windowFilter = new WindowFilter(this);
     windowFilter.buildWindow();
+  };
+  coordinateInputPaste_fn = async function(instance, input, event) {
+    event.preventDefault();
+    const data = await getClipboardData(event);
+    const coords2 = data.split(/[^a-zA-Z0-9]+/).filter((index) => index).map(Number).filter(
+      (number) => !isNaN(number)
+      // Removes NaN `[4]`
+    );
+    if (coords2.length == 2 && input.id == "bm-input-px") {
+      instance.updateInnerHTML("bm-input-px", coords2?.[0] || "");
+      instance.updateInnerHTML("bm-input-py", coords2?.[1] || "");
+    } else if (coords2.length == 1) {
+      instance.updateInnerHTML(input.id, coords2?.[0] || "");
+    } else {
+      instance.updateInnerHTML("bm-input-tx", coords2?.[0] || "");
+      instance.updateInnerHTML("bm-input-ty", coords2?.[1] || "");
+      instance.updateInnerHTML("bm-input-px", coords2?.[2] || "");
+      instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
+    }
   };
 
   // src/WindowTelemetry.js

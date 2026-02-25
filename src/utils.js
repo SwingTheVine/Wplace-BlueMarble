@@ -127,6 +127,39 @@ export function base64ToUint8(base64) {
   return array;
 }
 
+/** Handles reading from the clipboard.
+ * Assume this only returns text.
+ * Assume this requires user input.
+ * @param {ClipboardEvent} [event=undefined] - (Optional) The clipboard event that triggered this to run
+ * @since 0.88.426
+ * @returns {string} The clipboard data as a string
+ */
+export async function getClipboardData(event = undefined) {
+
+  let data = ''; // Data from clipboard
+
+  // Try using the event, if any was provided
+  if (event) {
+    data = event.clipboardData.getData('text/plain');
+  }
+
+  if (data.length != 0) {return data;} // Continue only if data is still empty
+  
+  // Try using the navigator clipboard
+  await navigator.clipboard.readText().then(text => {
+    data = text;
+  }).catch(error => {
+    consoleLog(`Failed to retrieve clipboard data using navigator! Using fallback methods...`);
+  });
+
+  if (data.length != 0) {return data;} // Continue only if data is still empty
+
+  // Try using IE clipboard
+  data = window.clipboardData?.getData('Text');
+
+  return data;
+}
+
 /** Calcualtes the relative luminance of an RGB value
  * @param {Array<Number, Number, Number>} array - The RGB values as an array
  * @returns {Number} The relative luminance as a Number
