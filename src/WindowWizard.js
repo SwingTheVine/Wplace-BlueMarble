@@ -74,6 +74,9 @@ export default class WindowWizard extends Overlay {
       .buildElement()
     .buildElement().buildOverlay(this.windowParent);
 
+    // Creates dragging capability on the drag bar for dragging the window
+    this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+
     this.#displaySchemaHealth(); // Displays template storage health to the user
     this.#displayTemplateList(); // Displays a list of all templates in the template storage
   }
