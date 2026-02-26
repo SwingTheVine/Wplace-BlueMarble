@@ -1,4 +1,73 @@
 
+/** Returns the localized number format.
+ * @param {number} number - The number to localize
+ * @since 0.88.472
+ * @returns {string} Localized number as a string
+ */
+export function localizeNumber(number) {
+  const numberFormat = new Intl.NumberFormat();
+  return numberFormat.format(number);
+}
+
+/** Returns the localized percentage format.
+ * @param {number} percent - The percentage to localize
+ * @since 0.88.472
+ * @returns {string} Localized percentage as a string
+ */
+export function localizePercent(percent) {
+  const percentFormat = new Intl.NumberFormat(undefined, {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  return percentFormat.format(percent);
+}
+
+/** Returns the localized date format.
+ * @param {number} date - The date to localize
+ * @since 0.88.472
+ * @returns {string} Localized date as a string
+ */
+export function localizeDate(date) {
+  const options = {
+    month: 'long', // July
+    day: 'numeric', // 23
+    hour: '2-digit', // 17
+    minute: '2-digit', // 47
+    second: '2-digit' // 00
+  };
+  return date.toLocaleString(undefined, options);
+}
+
+/** Returns the localized duration format.
+ * @param {number} durationTotalMs - The duration to localize, in milliseconds
+ * @since 0.88.472
+ * @returns {string} Localized duration as a string
+ */
+export function localizeDuration(durationTotalMs) {
+
+  // "Total" indicates it is the total time for that unit. E.g. 62 minutes is "62" minutes.
+  const durationTotalSec = Math.floor(durationTotalMs / 1000);
+  const durationTotalHr = Math.floor(durationTotalSec / 3600);
+
+  // "Only" indicates it is formatted in that unit. E.g. 62 minutes is "2" minutes.
+  const durationOnlySec = Math.floor(durationTotalSec % 60);
+  const durationOnlyMin = Math.floor((durationTotalSec % 3600) / 60);
+
+  // Duration Object for localization
+  const duration = {
+    hours: durationTotalHr,
+    minutes: durationOnlyMin,
+    seconds: durationOnlySec
+  };
+
+  // Options Object for localization
+  const options = {
+    style: 'short'
+  };
+
+  return new Intl.DurationFormat(undefined, options).format(duration);
+}
 
 /** Sanitizes HTML to display as plain-text.
  * This prevents some Cross Site Scripting (XSS).

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.471
+// @version         0.88.473
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -88,6 +88,33 @@
   };
 
   // src/utils.js
+  function localizeNumber(number) {
+    const numberFormat = new Intl.NumberFormat();
+    return numberFormat.format(number);
+  }
+  function localizePercent(percent) {
+    const percentFormat = new Intl.NumberFormat(void 0, {
+      style: "percent",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    return percentFormat.format(percent);
+  }
+  function localizeDate(date) {
+    const options = {
+      month: "long",
+      // July
+      day: "numeric",
+      // 23
+      hour: "2-digit",
+      // 17
+      minute: "2-digit",
+      // 47
+      second: "2-digit"
+      // 00
+    };
+    return date.toLocaleString(void 0, options);
+  }
   function escapeHTML(text) {
     const div = document.createElement("div");
     div.textContent = text;
@@ -1348,6 +1375,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     /** Adds a timer `time` element to the overlay.
      * This timer will countdown until it reaches the end date that was passed in.
      * Additionally, you can update the end date by changing the endDate dataset attribute on the element.
+     * Timer elements are not localized. Output is HH:MM:SS with no units.
      * This timer will have properties shared between all timers in the overlay.
      * You can override the shared properties by using a callback.
      * @param {Date} [endDate=Date.now()] - The time to count down to.
@@ -1747,18 +1775,13 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
    */
   displayTemplateList_fn = function() {
     const templates = this.currentJSON?.templates;
-    console.log("Loading Template Wizard...");
-    console.log(templates);
-    console.log(Object.keys(templates).length);
     if (Object.keys(templates).length > 0) {
       const templateListParentElement = document.querySelector(`#${this.windowID} .bm-scrollable`);
-      console.log(templateListParentElement);
       const templateList = new Overlay(this.name, this.version);
       templateList.addDiv({ "id": "bm-wizard-tlist", "class": "bm-container" });
       for (const template in templates) {
         const templateKey = template;
         const templateValue = templates[template];
-        console.log(`Wzrd - Template Key: ${templateKey}`);
         if (templates.hasOwnProperty(template)) {
           const templateKeyArray = templateKey.split(" ");
           const sortID = Number(templateKeyArray?.[0]);
@@ -1767,11 +1790,6 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           const coords2 = templateValue?.coords?.split(",").map(Number);
           const totalPixelCount = templateValue.pixels?.total ?? void 0;
           const templateImage = void 0;
-          console.log("Sort ID:", sortID);
-          console.log("Author ID:", authorID);
-          console.log("Display Name:", displayName);
-          console.log("Coords", coords2);
-          console.log("Pixels:", totalPixelCount);
           templateList.addDiv({ "class": "bm-container bm-flex-center" }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column; gap: 0;" }).addDiv({ "class": "bm-wizard-template-container-image", "textContent": templateImage || "\u{1F5BC}\uFE0F" }).buildElement().addSmall({ "textContent": `#${sortID}` }).buildElement().buildElement().addDiv({ "class": "bm-flex-center bm-wizard-template-container-flavor" }).addHeader(3, { "textContent": displayName }).buildElement().addSpan({ "textContent": `Uploaded by user #${authorID}` }).buildElement().addSpan({ "textContent": `Coordinates: ${coords2.join(", ")}` }).buildElement().addSpan({ "textContent": `Total Pixels: ${totalPixelCount || "???"}` }).buildElement().buildElement().buildElement();
         }
       }
@@ -1925,7 +1943,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           );
           return matchingTiles.length > 0;
         }).reduce((sum, template) => sum + (template.pixelCount.total || 0), 0);
-        const pixelCountFormatted = new Intl.NumberFormat().format(totalPixels);
+        const pixelCountFormatted = localizeNumber(totalPixels);
         this.overlay.handleDisplayStatus(
           `Displaying ${templateCount} template${templateCount == 1 ? "" : "s"}.
 Total pixels: ${pixelCountFormatted}`
@@ -2237,8 +2255,8 @@ Could not fetch userdata.`);
                 chargeRefillTimer.dataset["endDate"] = Date.now() + (chargeData["max"] - chargeData["count"]) * chargeData["cooldownMs"];
               }
             }
-            overlay.updateInnerHTML("bm-user-droplets", `Droplets: <b>${new Intl.NumberFormat().format(dataJSON["droplets"])}</b>`);
-            overlay.updateInnerHTML("bm-user-nextlevel", `Next level in <b>${new Intl.NumberFormat().format(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? "" : "s"}`);
+            overlay.updateInnerHTML("bm-user-droplets", `Droplets: <b>${localizeNumber(dataJSON["droplets"])}</b>`);
+            overlay.updateInnerHTML("bm-user-nextlevel", `Next level in <b>${localizeNumber(nextLevelPixels)}</b> pixel${nextLevelPixels == 1 ? "" : "s"}`);
             break;
           case "pixel":
             const coordsTile = data["endpoint"].split("?")[0].split("/").filter((s) => s && !isNaN(Number(s)));
@@ -2418,24 +2436,6 @@ Did you try clicking the canvas first?`);
       this.templateManager = executor.apiManager?.templateManager;
       this.eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
       this.eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
-      this.localizeNumber = new Intl.NumberFormat();
-      this.localizePercent = new Intl.NumberFormat(void 0, {
-        style: "percent",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-      this.localizeDateTimeOptions = {
-        month: "long",
-        // July
-        day: "numeric",
-        // 23
-        hour: "2-digit",
-        // 17
-        minute: "2-digit",
-        // 47
-        second: "2-digit"
-        // 00
-      };
       const { palette, LUT: _ } = this.templateManager.paletteBM;
       this.palette = palette;
       this.tilesLoadedTotal = 0;
@@ -2512,11 +2512,11 @@ Did you try clicking the canvas first?`);
         confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
       }
       const timeRemaining = new Date((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
-      const timeRemainingLocalized = timeRemaining.toLocaleString(void 0, this.localizeDateTimeOptions);
-      this.updateInnerHTML("#bm-filter-tile-load", `<b>Tiles Loaded:</b> ${this.localizeNumber.format(this.tilesLoadedTotal)} / ${this.localizeNumber.format(this.tilesTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${this.localizeNumber.format(allPixelsCorrectTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${this.localizeNumber.format(allPixelsTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${this.localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${this.localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
+      const timeRemainingLocalized = localizeDate(timeRemaining);
+      this.updateInnerHTML("#bm-filter-tile-load", `<b>Tiles Loaded:</b> ${localizeNumber(this.tilesLoadedTotal)} / ${localizeNumber(this.tilesTotal)}`);
+      this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber(allPixelsCorrectTotal)}`);
+      this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber(allPixelsTotal)}`);
+      this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
       this.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${timeRemainingLocalized}</time>`);
       __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer, allPixelsCorrect, allPixelsColor);
       __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, "id", "ascending", false);
@@ -2543,14 +2543,14 @@ Did you try clicking the canvas first?`);
       const colorTotalLocalized = this.localizeNumber.format(colorTotal);
       let colorCorrect = 0;
       let colorCorrectLocalized = "0";
-      let colorPercent = this.localizePercent.format(1);
+      let colorPercent = localizePercent(1);
       if (colorTotal != 0) {
         colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
         if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
           colorCorrect = 0;
         }
         colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : this.localizeNumber.format(colorCorrect);
-        colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : this.localizePercent.format(colorCorrect / colorTotal);
+        colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent(colorCorrect / colorTotal);
       }
       const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
       const isColorHidden = !!(this.templateManager.shouldFilterColor.get(color.id) || false);

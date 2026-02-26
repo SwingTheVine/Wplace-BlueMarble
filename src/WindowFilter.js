@@ -1,6 +1,6 @@
 import ConfettiManager from "./confetttiManager";
 import Overlay from "./Overlay";
-import { calculateRelativeLuminance } from "./utils";
+import { calculateRelativeLuminance, localizeDate, localizeNumber, localizePercent } from "./utils";
 
 /** The overlay builder for the color filter Blue Marble window.
  * @description This class handles the overlay UI for the color filter window of the Blue Marble userscript.
@@ -27,23 +27,6 @@ export default class WindowFilter extends Overlay {
     // Eye icons
     this.eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
     this.eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
-
-    // Localization formats
-    this.localizeNumber = new Intl.NumberFormat();
-    this.localizePercent = new Intl.NumberFormat(undefined, {
-      style: 'percent',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-    // Localization string formatting for "Remaining Time" in color filter window.
-    // This is more of a hint than anything, as browsers seem to ignore it >:(
-    this.localizeDateTimeOptions = {
-      month: 'long', // July
-      day: 'numeric', // 23
-      hour: '2-digit', // 17
-      minute: '2-digit', // 47
-      second: '2-digit' // 00
-    }
 
     // Obtains the color palette Blue Marble currently uses
     const { palette: palette, LUT: _ } = this.templateManager.paletteBM;
@@ -216,14 +199,13 @@ export default class WindowFilter extends Overlay {
 
     // Calculates the date & time the user will complete the templates
     const timeRemaining = new Date(((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1000) + Date.now());
-    const timeRemainingLocalized = timeRemaining.toLocaleString(undefined, this.localizeDateTimeOptions);
-    // "30" is seconds. "1000" converts to milliseconds. "undefined" forces the localization to be the users.
+    const timeRemainingLocalized = localizeDate(timeRemaining);
 
     // Displays some template statistics to the user
-    this.updateInnerHTML('#bm-filter-tile-load', `<b>Tiles Loaded:</b> ${this.localizeNumber.format(this.tilesLoadedTotal)} / ${this.localizeNumber.format(this.tilesTotal)}`);
-    this.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${this.localizeNumber.format(allPixelsCorrectTotal)}`);
-    this.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${this.localizeNumber.format(allPixelsTotal)}`);
-    this.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${this.localizeNumber.format((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${this.localizePercent.format(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
+    this.updateInnerHTML('#bm-filter-tile-load', `<b>Tiles Loaded:</b> ${localizeNumber(this.tilesLoadedTotal)} / ${localizeNumber(this.tilesTotal)}`);
+    this.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${localizeNumber(allPixelsCorrectTotal)}`);
+    this.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${localizeNumber(allPixelsTotal)}`);
+    this.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${localizeNumber((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
     this.updateInnerHTML('#bm-filter-tot-completed', `<b>Completed at:</b> <time datetime="${timeRemaining.toISOString().replace(/\.\d{3}Z$/, 'Z')}">${timeRemainingLocalized}</time>`);
 
     // These run when the user opens the Color Filter window
@@ -269,7 +251,7 @@ export default class WindowFilter extends Overlay {
       // This will be displayed if the total pixels for this color is zero
       let colorCorrect = 0;
       let colorCorrectLocalized = '0';
-      let colorPercent = this.localizePercent.format(1);
+      let colorPercent = localizePercent(1);
 
       // This will be displayed if the total pixels for this color is non-zero
       if (colorTotal != 0) {
@@ -281,7 +263,7 @@ export default class WindowFilter extends Overlay {
         }
 
         colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : this.localizeNumber.format(colorCorrect);
-        colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : this.localizePercent.format(colorCorrect / colorTotal);
+        colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : localizePercent(colorCorrect / colorTotal);
       }
       // There are four outcomes:
       // 1. The correct pixel count is displayed, because there are correct pixels.
