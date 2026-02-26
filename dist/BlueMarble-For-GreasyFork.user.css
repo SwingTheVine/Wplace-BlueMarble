@@ -267,6 +267,8 @@ input[type=file] {
   align-items: center;
   gap: 0.5ch;
 }
+
+/* src/WindowFilter.css */
 #bm-window-filter p svg {
   display: inline;
   height: 1em;
