@@ -61,7 +61,7 @@ export default class TemplateManager {
     this.name = name; // Name of userscript
     this.version = version; // Version of userscript
     this.overlay = overlay; // The main instance of the Overlay class
-    this.schemaVersion = '1.1.0'; // Version of JSON schema
+    this.schemaVersion = '2.0.0'; // Version of JSON schema
     this.userID = null; // The ID of the current user
     this.encodingBase = '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~'; // Characters to use for encoding/decoding
     this.tileSize = 1000; // The number of pixels in a tile. Assumes the tile is square
@@ -382,31 +382,49 @@ export default class TemplateManager {
 
     console.log(`BlueMarble Template Schema: ${schemaVersion}; Script Version: ${scriptVersion}`);
 
-    // If 1.x.x
+    // If MAJOR version is up-to-date...
     if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
 
-      // If 1.1.x
-      if (schemaVersionArray[1] == schemaVersionBleedingEdge[1]) {
-
-        loadSchemaVersion_1_x_x(); // Load 1.1.x schema
-      } else {
+      // If MINOR version is NOT up-to-date...
+      if (schemaVersionArray[1] != schemaVersionBleedingEdge[1]) {
 
         // Spawns a new Template Wizard
         const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
         windowWizard.buildWindow();
-
-        loadSchemaVersion_1_x_x(); // Load 1.x.x schema with 1.1.x loader, expecting some things to not function
       }
+
+      // Load using the latest schema loader. It will be fine, probably...
+      this.templatesArray = await loadSchema({
+        tileSize: this.tileSize,
+        drawMult: this.drawMult,
+        templatesArray: this.templatesArray
+      });
+
+    } else if (schemaVersionArray[0] < schemaVersionBleedingEdge[0]) {
+      // Else if the MAJOR verison is out-of-date
+
+      // Spawns a new Template Wizard
+      const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
+      windowWizard.buildWindow();
+    
     } else {
       // We don't know what the schema is. Unsupported?
 
       this.overlay.handleDisplayError(`Template version ${schemaVersion} is unsupported.\nUse Blue Marble version ${scriptVersion} or load a new template.`);
     }
 
-    /** Loads version 1.0.0 of Blue Marble template storage
+    /** Loads schema of Blue Marble template storage
+     * @param {Object} params - Object containing parameters
+     * @param {number} params.tileSize - Size of tile
+     * @param {number} params.drawMult - Tile scale multiplier
+     * @param {Array<Template>} params.templatesArray - Array of Template instances
      * @since 0.88.434
      */
-    async function loadSchemaVersion_1_x_x() {
+    async function loadSchema({
+      tileSize: tileSize,
+      drawMult: drawMult,
+      templatesArray: templatesArray
+    }) {
 
       // Run only if there are templates saved
       if (Object.keys(templates).length > 0) {
@@ -427,15 +445,15 @@ export default class TemplateManager {
             //const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
   
             const pixelCount = {
-              total: templateValue.pixels.total,
-              colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
+              total: templateValue.pixels?.total,
+              colors: new Map(Object.entries(templateValue.pixels?.colors || {}).map(([key, value]) => [Number(key), value]))
             };
   
             const tilesbase64 = templateValue.tiles;
             const templateTiles = {}; // Stores the template bitmap tiles for each tile.
             const templateTiles32 = {}; // Stores the template Uint32Array tiles for each tile.
   
-            const actualTileSize = this.tileSize * this.drawMult;
+            const actualTileSize = tileSize * drawMult;
   
             for (const tile in tilesbase64) {
               console.log(tile);
@@ -467,12 +485,14 @@ export default class TemplateManager {
             template.chunked = templateTiles;
             template.chunked32 = templateTiles32;
             
-            this.templatesArray.push(template);
+            templatesArray.push(template);
             console.log(this.templatesArray);
             console.log(`^^^ This ^^^`);
           }
         }
       }
+
+      return templatesArray
     }
   }
 
