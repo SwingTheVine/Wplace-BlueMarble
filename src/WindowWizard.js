@@ -57,8 +57,12 @@ export default class WindowWizard extends Overlay {
     // Forces the Wizard window to show above the main window if and only if the schema is bad when Blue Marble loads for the first time this session
 
     // Creates a new template wizard window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': style})
-      .addDragbar()
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': style}, (instance, div) => {
+      div.onclick = (event) => {
+        if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
+        div.parentElement.appendChild(div); // When the window is clicked on, bring to top
+      }
+    }).addDragbar()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Template Wizard"', 'data-button-status': 'expanded'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);
           button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar

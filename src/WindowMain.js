@@ -38,8 +38,12 @@ export default class WindowMain extends Overlay {
     }
 
     // Creates the window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': 'top: 10px; left: unset; right: 75px;'})
-      .addDragbar()
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': 'top: 10px; left: unset; right: 75px;'}, (instance, div) => {
+      div.onclick = (event) => {
+        if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
+        div.parentElement.appendChild(div); // When the window is clicked on, bring to top
+      }
+    }).addDragbar()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);
           button.ontouchend = () => {button.click();}; // Needed ONLY to negate weird interaction with dragbar
