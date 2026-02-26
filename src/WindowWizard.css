@@ -1,0 +1,38 @@
+/* @since 0.88.452 */
+
+/* Template Wizard template list */
+#bm-wizard-tlist {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+/* Wizard template card */
+#bm-wizard-tlist > .bm-container {
+  width: 100%;
+  justify-content: flex-start;
+  background-color: rgba(21, 48, 99, 0.9);
+  border-radius: 1em;
+  padding: 0.5em;
+  transition: background-color 0.3s ease;
+}
+
+/* Wizard template card on hover/focus */
+#bm-wizard-tlist > .bm-container:hover,
+#bm-wizard-tlist > .bm-container:focus-within {
+  background-color: rgba(17, 40, 85, 0.9);
+}
+
+/* Wizard template card image container */
+#bm-wizard-tlist .bm-wizard-template-container-image {
+  height: 100%;
+  font-size: xxx-large;
+}
+
+/* Wizard template card text container */
+#bm-wizard-tlist .bm-wizard-template-container-flavor {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}

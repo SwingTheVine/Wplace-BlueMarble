@@ -392,7 +392,7 @@ export default class TemplateManager {
       } else {
 
         // Spawns a new Template Wizard
-        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion);
+        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
         windowWizard.buildWindow();
 
         loadSchemaVersion_1_x_x(); // Load 1.x.x schema with 1.1.x loader, expecting some things to not function

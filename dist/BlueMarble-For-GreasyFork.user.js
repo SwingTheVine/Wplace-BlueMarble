@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.440
+// @version         0.88.458
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -114,6 +114,18 @@
       number = Math.floor(number / base);
     }
     return result;
+  }
+  function encodedToNumber(encoded, encoding) {
+    let decodedNumber = 0;
+    const base = encoding.length;
+    for (const character of encoded) {
+      const decodedCharacter = encoding.indexOf(character);
+      if (decodedCharacter == -1) {
+        consoleError(`Invalid character '${character}' encountered whilst decoding! Is the decode alphabet/base incorrect?`);
+      }
+      decodedNumber = decodedNumber * base + decodedCharacter;
+    }
+    return decodedNumber;
   }
   function uint8ToBase64(uint8) {
     let binary = "";
@@ -1639,16 +1651,17 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
   };
 
   // src/WindowWizard.js
-  var _WindowWizard_instances, displaySchemaHealth_fn;
+  var _WindowWizard_instances, displaySchemaHealth_fn, displayTemplateList_fn;
   var WindowWizard = class extends Overlay {
     /** Constructor for the Template Wizard window
      * @param {string} name - The name of the userscript
      * @param {string} version - The version of the userscript
      * @param {string} schemaVersionBleedingEdge - The bleeding edge of schema versions for Blue Marble
+     * @param {string} encodingBase - The encoding base typically used by Blue Marble for encoding numbers
      * @since 0.88.434
      * @see {@link Overlay#constructor} for examples
      */
-    constructor(name2, version2, schemaVersionBleedingEdge) {
+    constructor(name2, version2, schemaVersionBleedingEdge, encodingBase) {
       super(name2, version2);
       __privateAdd(this, _WindowWizard_instances);
       this.window = null;
@@ -1659,6 +1672,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.schemaVersion = this.currentJSON?.schemaVersion;
       this.schemaHealth = void 0;
       this.schemaVersionBleedingEdge = schemaVersionBleedingEdge;
+      this.encodingBase = encodingBase;
     }
     /** Spawns a Template Wizard window.
      * If another template wizard window already exists, we DON'T spawn another!
@@ -1682,8 +1696,9 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-wizard-status", "textContent": "Loading template storage status..." }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addSpan({ "textContent": "Detected templates:" }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-wizard-status", "textContent": "Loading template storage status..." }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addHeader(2, { "textContent": "Detected templates:" }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       __privateMethod(this, _WindowWizard_instances, displaySchemaHealth_fn).call(this);
+      __privateMethod(this, _WindowWizard_instances, displayTemplateList_fn).call(this);
     }
   };
   _WindowWizard_instances = new WeakSet();
@@ -1696,23 +1711,67 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     let schemaHealthBanner = "";
     if (schemaVersionArray[0] == schemaVersionBleedingEdgeArray[0]) {
       if (schemaVersionArray[1] == schemaVersionBleedingEdgeArray[1]) {
-        schemaHealthBanner = "Template storage health: <b>Healthy!</b><br>No futher action required. (Reason: Semantic version matches)";
+        schemaHealthBanner = 'Template storage health: <b style="color:#0f0;">Healthy!</b><br>No futher action required. (Reason: Semantic version matches)';
         this.schemaHealth = "Good";
       } else {
-        schemaHealthBanner = "Template storage health: <b>Poor!</b><br>You can still use your template, but some features may not work. It is recommended that you update Blue Marble's template storage. (Reason: MINOR version mismatch)";
+        schemaHealthBanner = `Template storage health: <b style="color:#ff0;">Poor!</b><br>You can still use your template, but some features may not work. It is recommended that you update Blue Marble's template storage. (Reason: MINOR version mismatch)`;
         this.schemaHealth = "Poor";
       }
     } else {
-      schemaHealthBanner = "Template storage health: <b>Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version mismatch)";
+      schemaHealthBanner = 'Template storage health: <b style="color:#f00">Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version mismatch)';
       this.schemaHealth = "Dead";
     }
     this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>The current schema version (<b>${escapeHTML(this.schemaVersion)}</b>) was created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b>.<br>The current Blue Marble version (<b>${escapeHTML(this.version)}</b>) requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<br>If you don't want to upgrade the template storage (schema), then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b>.`);
-    if (this.schemaHealth == "Poor" || this.schemaHealth == "Bad") {
-      const buttonOptions = new Overlay(this.name, this.version);
-      buttonOptions.addDiv({ "class": "bm-container bm-flex-center bm-center-vertically" }).addButton({ "textContent": `Update template storage to ${this.schemaVersionBleedingEdge}` }, (instance, button) => {
+    const buttonOptions = new Overlay(this.name, this.version);
+    if (this.schemaHealth != "Dead") {
+      buttonOptions.addDiv({ "class": "bm-container bm-flex-center bm-center-vertically" });
+      buttonOptions.addButton({ "textContent": "Download all templates" }, (instance, button) => {
         button.onclick = () => {
         };
-      }).buildElement().buildElement().buildOverlay(document.querySelector("#bm-wizard-status").parentNode);
+      }).buildElement();
+    }
+    if (this.schemaHealth == "Poor" || this.schemaHealth == "Bad") {
+      buttonOptions.addButton({ "textContent": `Update template storage to ${this.schemaVersionBleedingEdge}` }, (instance, button) => {
+        button.onclick = () => {
+        };
+      }).buildElement();
+    }
+    buttonOptions.buildElement().buildOverlay(document.querySelector("#bm-wizard-status").parentNode);
+  };
+  /** Displays loaded templates to the user.
+   * @since 0.88.441
+   */
+  displayTemplateList_fn = function() {
+    const templates = this.currentJSON?.templates;
+    console.log("Loading Template Wizard...");
+    console.log(templates);
+    console.log(Object.keys(templates).length);
+    if (Object.keys(templates).length > 0) {
+      const templateListParentElement = document.querySelector(`#${this.windowID} .bm-scrollable`);
+      console.log(templateListParentElement);
+      const templateList = new Overlay(this.name, this.version);
+      templateList.addDiv({ "id": "bm-wizard-tlist", "class": "bm-container" });
+      for (const template in templates) {
+        const templateKey = template;
+        const templateValue = templates[template];
+        console.log(`Wzrd - Template Key: ${templateKey}`);
+        if (templates.hasOwnProperty(template)) {
+          const templateKeyArray = templateKey.split(" ");
+          const sortID = Number(templateKeyArray?.[0]);
+          const authorID = encodedToNumber(templateKeyArray?.[1] || "0", this.encodingBase);
+          const displayName = templateValue.name || `Template ${sortID || ""}`;
+          const coords2 = templateValue?.coords?.split(",").map(Number);
+          const totalPixelCount = templateValue.pixels?.total ?? void 0;
+          const templateImage = void 0;
+          console.log("Sort ID:", sortID);
+          console.log("Author ID:", authorID);
+          console.log("Display Name:", displayName);
+          console.log("Coords", coords2);
+          console.log("Pixels:", totalPixelCount);
+          templateList.addDiv({ "class": "bm-container bm-flex-center" }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column; gap: 0;" }).addDiv({ "class": "bm-wizard-template-container-image", "textContent": templateImage || "\u{1F5BC}\uFE0F" }).buildElement().addSmall({ "textContent": `#${sortID}` }).buildElement().buildElement().addDiv({ "class": "bm-flex-center bm-wizard-template-container-flavor" }).addHeader(3, { "textContent": displayName }).buildElement().addSpan({ "textContent": `Uploaded by user #${authorID}` }).buildElement().addSpan({ "textContent": `Coordinates: ${coords2.join(", ")}` }).buildElement().addSpan({ "textContent": `Total Pixels: ${totalPixelCount || "???"}` }).buildElement().buildElement().buildElement();
+        }
+      }
+      templateList.buildElement().buildOverlay(templateListParentElement);
     }
   };
 
@@ -1966,7 +2025,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
       if (schemaVersionArray[1] == schemaVersionBleedingEdge[1]) {
         loadSchemaVersion_1_x_x();
       } else {
-        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion);
+        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
         windowWizard.buildWindow();
         loadSchemaVersion_1_x_x();
       }
