@@ -149,18 +149,12 @@ export default class WindowWizard extends Overlay {
   #displayTemplateList() {
 
     const templates = this.currentJSON?.templates; // Templates in user storage
-    console.log('Loading Template Wizard...');
-    console.log(templates);
-
-    console.log(Object.keys(templates).length);
 
     // If there is at least one template loaded...
     if (Object.keys(templates).length > 0) {
 
       // Obtains the parent element for the template list
       const templateListParentElement = document.querySelector(`#${this.windowID} .bm-scrollable`);
-      
-      console.log(templateListParentElement);
 
       // Creates the template list DOM tree
       const templateList = new Overlay(this.name, this.version);
@@ -171,7 +165,6 @@ export default class WindowWizard extends Overlay {
 
         const templateKey = template; // The identification key for the template. E.g., "0 $Z"
         const templateValue = templates[template]; // The actual content of the template
-        console.log(`Wzrd - Template Key: ${templateKey}`);
 
         // If the template is a direct child of the templates Object...
         if (templates.hasOwnProperty(template)) {
@@ -184,12 +177,6 @@ export default class WindowWizard extends Overlay {
           const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
           const totalPixelCount = templateValue.pixels?.total ?? undefined;
           const templateImage = undefined; // TODO: Add template image
-
-          console.log('Sort ID:', sortID);
-          console.log('Author ID:', authorID);
-          console.log('Display Name:', displayName);
-          console.log('Coords', coords);
-          console.log('Pixels:', totalPixelCount);
 
           templateList.addDiv({'class': 'bm-container bm-flex-center'})
             .addDiv({'class': 'bm-flex-center', 'style': 'flex-direction: column; gap: 0;'})
@@ -212,6 +199,4 @@ export default class WindowWizard extends Overlay {
       templateList.buildElement().buildOverlay(templateListParentElement);
     }
   }
-
-
 }

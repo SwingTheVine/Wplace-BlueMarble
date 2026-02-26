@@ -1,5 +1,5 @@
 import Template from "./Template";
-import { base64ToUint8, colorpaletteForBlueMarble, numberToEncoded } from "./utils";
+import { base64ToUint8, colorpaletteForBlueMarble, localizeNumber, numberToEncoded } from "./utils";
 import WindowWizard from "./WindowWizard";
 
 /** Manages the template system.
@@ -250,7 +250,7 @@ export default class TemplateManager {
       
       // Format pixel count with locale-appropriate thousands separators for better readability
       // Examples: "1,234,567" (US), "1.234.567" (DE), "1 234 567" (FR)
-      const pixelCountFormatted = new Intl.NumberFormat().format(totalPixels);
+      const pixelCountFormatted = localizeNumber(totalPixels);
       
       // Display status information about the templates being rendered
       this.overlay.handleDisplayStatus(

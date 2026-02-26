@@ -1086,6 +1086,7 @@ export default class Overlay {
   /** Adds a timer `time` element to the overlay.
    * This timer will countdown until it reaches the end date that was passed in.
    * Additionally, you can update the end date by changing the endDate dataset attribute on the element.
+   * Timer elements are not localized. Output is HH:MM:SS with no units.
    * This timer will have properties shared between all timers in the overlay.
    * You can override the shared properties by using a callback.
    * @param {Date} [endDate=Date.now()] - The time to count down to.
