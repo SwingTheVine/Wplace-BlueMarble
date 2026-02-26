@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.461
+// @version         0.88.471
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -1696,7 +1696,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addP({ "id": "bm-wizard-status", "textContent": "Loading template storage status..." }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addHeader(2, { "textContent": "Detected templates:" }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Status" }).buildElement().addP({ "id": "bm-wizard-status", "textContent": "Loading template storage status..." }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addHeader(2, { "textContent": "Detected templates:" }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       __privateMethod(this, _WindowWizard_instances, displaySchemaHealth_fn).call(this);
       __privateMethod(this, _WindowWizard_instances, displayTemplateList_fn).call(this);
@@ -1718,14 +1718,17 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         schemaHealthBanner = `Template storage health: <b style="color:#ff0;">Poor!</b><br>You can still use your template, but some features may not work. It is recommended that you update Blue Marble's template storage. (Reason: MINOR version mismatch)`;
         this.schemaHealth = "Poor";
       }
+    } else if (schemaVersionArray[0] < schemaVersionBleedingEdgeArray[0]) {
+      schemaHealthBanner = `Template storage health: <b style="color:#f00;">Bad!</b><br>It is guaranteed that some features are broken. You <em>might</em> still be able to use the template. It is HIGHLY recommended that you update Blue Marble's template storage. (Reason: MAJOR version mismatch)`;
+      this.schemaHealth = "Bad";
     } else {
-      schemaHealthBanner = 'Template storage health: <b style="color:#f00">Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version mismatch)';
+      schemaHealthBanner = 'Template storage health: <b style="color:#f00">Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version unknown)';
       this.schemaHealth = "Dead";
     }
-    this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>The current schema version (<b>${escapeHTML(this.schemaVersion)}</b>) was created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b>.<br>The current Blue Marble version (<b>${escapeHTML(this.version)}</b>) requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<br>If you don't want to upgrade the template storage (schema), then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b>.`);
+    this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`);
     const buttonOptions = new Overlay(this.name, this.version);
     if (this.schemaHealth != "Dead") {
-      buttonOptions.addDiv({ "class": "bm-container bm-flex-center bm-center-vertically" });
+      buttonOptions.addDiv({ "class": "bm-container bm-flex-center bm-center-vertically", "style": "gap: 1.5ch;" });
       buttonOptions.addButton({ "textContent": "Download all templates" }, (instance, button) => {
         button.onclick = () => {
         };
@@ -1787,7 +1790,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.name = name2;
       this.version = version2;
       this.overlay = overlay;
-      this.schemaVersion = "1.1.0";
+      this.schemaVersion = "2.0.0";
       this.userID = null;
       this.encodingBase = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
       this.tileSize = 1e3;
@@ -2023,18 +2026,27 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     const scriptVersion = json?.scriptVersion;
     console.log(`BlueMarble Template Schema: ${schemaVersion}; Script Version: ${scriptVersion}`);
     if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
-      if (schemaVersionArray[1] == schemaVersionBleedingEdge[1]) {
-        loadSchemaVersion_1_x_x();
-      } else {
+      if (schemaVersionArray[1] != schemaVersionBleedingEdge[1]) {
         const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
         windowWizard.buildWindow();
-        loadSchemaVersion_1_x_x();
       }
+      this.templatesArray = await loadSchema({
+        tileSize: this.tileSize,
+        drawMult: this.drawMult,
+        templatesArray: this.templatesArray
+      });
+    } else if (schemaVersionArray[0] < schemaVersionBleedingEdge[0]) {
+      const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
+      windowWizard.buildWindow();
     } else {
       this.overlay.handleDisplayError(`Template version ${schemaVersion} is unsupported.
 Use Blue Marble version ${scriptVersion} or load a new template.`);
     }
-    async function loadSchemaVersion_1_x_x() {
+    async function loadSchema({
+      tileSize,
+      drawMult,
+      templatesArray
+    }) {
       if (Object.keys(templates).length > 0) {
         for (const template in templates) {
           const templateKey = template;
@@ -2046,13 +2058,13 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
             const authorID = templateKeyArray?.[1] || "0";
             const displayName = templateValue.name || `Template ${sortID || ""}`;
             const pixelCount = {
-              total: templateValue.pixels.total,
-              colors: new Map(Object.entries(templateValue.pixels.colors).map(([key, value]) => [Number(key), value]))
+              total: templateValue.pixels?.total,
+              colors: new Map(Object.entries(templateValue.pixels?.colors || {}).map(([key, value]) => [Number(key), value]))
             };
             const tilesbase64 = templateValue.tiles;
             const templateTiles = {};
             const templateTiles32 = {};
-            const actualTileSize = this.tileSize * this.drawMult;
+            const actualTileSize = tileSize * drawMult;
             for (const tile in tilesbase64) {
               console.log(tile);
               if (tilesbase64.hasOwnProperty(tile)) {
@@ -2077,12 +2089,13 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
             template2.pixelCount = pixelCount;
             template2.chunked = templateTiles;
             template2.chunked32 = templateTiles32;
-            this.templatesArray.push(template2);
+            templatesArray.push(template2);
             console.log(this.templatesArray);
             console.log(`^^^ This ^^^`);
           }
         }
       }
+      return templatesArray;
     }
   };
   /** Parses the OSU! Place JSON object

@@ -65,6 +65,7 @@ export default class WindowWizard extends Overlay {
         .buildElement()
         .addHr().buildElement()
         .addDiv({'class': 'bm-container'})
+          .addHeader(2, {'textContent': 'Status'}).buildElement()
           .addP({'id': 'bm-wizard-status', 'textContent': 'Loading template storage status...'}).buildElement()
         .buildElement()
         .addDiv({'class': 'bm-container bm-scrollable'})
@@ -92,32 +93,42 @@ export default class WindowWizard extends Overlay {
 
     // Calculates the health that is displayed as a banner
     let schemaHealthBanner = '';
+    // If the MAJOR version is up-to-date...
     if (schemaVersionArray[0] == schemaVersionBleedingEdgeArray[0]) {
 
+      // ...AND IF the MINOR version is up-to-date...
       if (schemaVersionArray[1] == schemaVersionBleedingEdgeArray[1]) {
         schemaHealthBanner = 'Template storage health: <b style="color:#0f0;">Healthy!</b><br>No futher action required. (Reason: Semantic version matches)';
         this.schemaHealth = 'Good';
-      } else {
+      } else { // ...else, the MINOR version is out-of-date
         schemaHealthBanner = 'Template storage health: <b style="color:#ff0;">Poor!</b><br>You can still use your template, but some features may not work. It is recommended that you update Blue Marble\'s template storage. (Reason: MINOR version mismatch)';
         this.schemaHealth = 'Poor';
       }
+    } else if (schemaVersionArray[0] < schemaVersionBleedingEdgeArray[0]) {
+      // ...ELSE IF the MAJOR version is out-of-date
+      
+      schemaHealthBanner = 'Template storage health: <b style="color:#f00;">Bad!</b><br>It is guaranteed that some features are broken. You <em>might</em> still be able to use the template. It is HIGHLY recommended that you update Blue Marble\'s template storage. (Reason: MAJOR version mismatch)';
+      this.schemaHealth = 'Bad';
     } else {
-      schemaHealthBanner = 'Template storage health: <b style="color:#f00">Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version mismatch)';
+      // ...ELSE the Semantic version is unknown
+
+      schemaHealthBanner = 'Template storage health: <b style="color:#f00">Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version unknown)';
       this.schemaHealth = 'Dead';
     }
 
     // Display schema health to user
-    this.updateInnerHTML('#bm-wizard-status', `${schemaHealthBanner}<br>The current schema version (<b>${escapeHTML(this.schemaVersion)}</b>) was created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b>.<br>The current Blue Marble version (<b>${escapeHTML(this.version)}</b>) requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<br>If you don't want to upgrade the template storage (schema), then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b>.`);
+    this.updateInnerHTML('#bm-wizard-status', `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`);
     
     // Create button options (only if schema is not 'Dead')
     const buttonOptions = new Overlay(this.name, this.version);
     if (this.schemaHealth != 'Dead') {
-      buttonOptions.addDiv({'class': 'bm-container bm-flex-center bm-center-vertically'})
+      buttonOptions.addDiv({'class': 'bm-container bm-flex-center bm-center-vertically', 'style': 'gap: 1.5ch;'})
         buttonOptions.addButton({'textContent': 'Download all templates'}, (instance, button) => {
           button.onclick = () => {
   
           }
         }).buildElement();
+      // Leave the container open for the next button to be added
     }
     // If the schema health is Poor or Bad, then show update option
     if ((this.schemaHealth == 'Poor') || (this.schemaHealth == 'Bad')) {
@@ -201,4 +212,6 @@ export default class WindowWizard extends Overlay {
       templateList.buildElement().buildOverlay(templateListParentElement);
     }
   }
+
+
 }
