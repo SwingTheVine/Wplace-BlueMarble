@@ -14,7 +14,7 @@ export default class Template {
    * @param {string} [params.authorID=''] - The user ID of the person who exported the template (prevents sort ID collisions)
    * @param {string} [params.url=''] - The URL to the source image
    * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
-   * @param {Array<number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
+   * @param {Array<number, number, number, number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
    * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
    * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
    * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
@@ -195,6 +195,22 @@ export default class Template {
     console.log('Template Tiles Buffers: ', templateTilesBuffers);
     console.log('Template Tiles Uint32Array: ', this.chunked32);
     return { templateTiles, templateTilesBuffers };
+  }
+
+  /** Calculates top left coordinate of template.
+   * It uses `Template.chunked` to update `Template.coords`
+   * @since 0.88.504
+   */
+  calculateCoordsFromChunked() {
+    let topLeftCoord = [Infinity, Infinity, Infinity, Infinity];
+    const tileKeys = Object.keys(this.chunked).sort(); // Sorts the tile keys
+    tileKeys.forEach((key, index) => { // For each tile key...
+      const [tileX, tileY, pixelX, pixelY] = key.split(',').map(Number); // Deconstruct the tile key
+      if ((tileY < topLeftCoord[1]) || (tileY == topLeftCoord[1] && tileX < topLeftCoord[0])) {
+        topLeftCoord = [tileX, tileY, pixelX, pixelY]; // Record the smallest tile key coordinates. Otherwise, use previous best
+      }
+    });
+    this.coords = topLeftCoord;
   }
 
   /** Calculates the total pixels for each color for the image.

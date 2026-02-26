@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.503
+// @version         0.88.524
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -17,6 +17,7 @@
 // @grant           GM_addStyle
 // @grant           GM.setValue
 // @grant           GM_getValue
+// @grant           GM_deleteValue
 // @grant           GM_xmlhttpRequest
 // @grant           GM.download
 // @connect         telemetry.thebluecorner.net
@@ -303,7 +304,7 @@
      * @param {string} [params.authorID=''] - The user ID of the person who exported the template (prevents sort ID collisions)
      * @param {string} [params.url=''] - The URL to the source image
      * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
-     * @param {Array<number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
+     * @param {Array<number, number, number, number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
      * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
      * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
      * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
@@ -438,6 +439,21 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       console.log("Template Tiles Buffers: ", templateTilesBuffers);
       console.log("Template Tiles Uint32Array: ", this.chunked32);
       return { templateTiles, templateTilesBuffers };
+    }
+    /** Calculates top left coordinate of template.
+     * It uses `Template.chunked` to update `Template.coords`
+     * @since 0.88.504
+     */
+    calculateCoordsFromChunked() {
+      let topLeftCoord = [Infinity, Infinity, Infinity, Infinity];
+      const tileKeys = Object.keys(this.chunked).sort();
+      tileKeys.forEach((key, index) => {
+        const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
+        if (tileY < topLeftCoord[1] || tileY == topLeftCoord[1] && tileX < topLeftCoord[0]) {
+          topLeftCoord = [tileX, tileY, pixelX, pixelY];
+        }
+      });
+      this.coords = topLeftCoord;
     }
   };
   _Template_instances = new WeakSet();
@@ -1683,13 +1699,12 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
   };
 
   // src/WindowWizard.js
-  var _WindowWizard_instances, displaySchemaHealth_fn, displayTemplateList_fn, downloadAllTemplates_fn, downloadTemplate_fn;
-  var WindowWizard = class extends Overlay {
+  var _WindowWizard_instances, displaySchemaHealth_fn, displayTemplateList_fn, convertSchema_1_x_x_To_2_x_x_fn;
+  var _WindowWizard = class _WindowWizard extends Overlay {
     /** Constructor for the Template Wizard window
      * @param {string} name - The name of the userscript
      * @param {string} version - The version of the userscript
      * @param {string} schemaVersionBleedingEdge - The bleeding edge of schema versions for Blue Marble
-     * @param {string} encodingBase - The encoding base typically used by Blue Marble for encoding numbers
      * @param {TemplateManager} [templateManager=undefined] - (Optional) The TemplateManager class instance
      * @since 0.88.434
      * @see {@link Overlay#constructor} for examples
@@ -1756,7 +1771,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         this.schemaHealth = "Poor";
       }
     } else if (schemaVersionArray[0] < schemaVersionBleedingEdgeArray[0]) {
-      schemaHealthBanner = `Template storage health: <b style="color:#f00;">Bad!</b><br>It is guaranteed that some features are broken. You <em>might</em> still be able to use the template. It is HIGHLY recommended that you update Blue Marble's template storage. (Reason: MAJOR version mismatch)`;
+      schemaHealthBanner = `Template storage health: <b style="color:#f00;">Bad!</b><br>It is guaranteed that some features are broken. You <em>might</em> still be able to use the template. It is HIGHLY recommended that you download all templates and update Blue Marble's template storage before continuing. (Reason: MAJOR version mismatch)`;
       this.schemaHealth = "Bad";
     } else {
       schemaHealthBanner = 'Template storage health: <b style="color:#f00">Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version unknown)';
@@ -1779,6 +1794,8 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     if (this.schemaHealth == "Poor" || this.schemaHealth == "Bad") {
       buttonOptions.addButton({ "textContent": `Update template storage to ${this.schemaVersionBleedingEdge}` }, (instance, button) => {
         button.onclick = () => {
+          button.disabled = true;
+          __privateMethod(this, _WindowWizard_instances, convertSchema_1_x_x_To_2_x_x_fn).call(this, true);
         };
       }).buildElement();
     }
@@ -1813,85 +1830,29 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       templateList.buildElement().buildOverlay(templateListParentElement);
     }
   };
-  downloadAllTemplates_fn = async function() {
+  convertSchema_1_x_x_To_2_x_x_fn = async function(shouldWindowWizardOpen) {
+    GM_deleteValue("bmCoords");
     const templates = this.currentJSON?.templates;
-    console.log(templates);
     if (Object.keys(templates).length > 0) {
       for (const [key, template] of Object.entries(templates)) {
         if (templates.hasOwnProperty(key)) {
-          const sortID = key.split(" ")?.[0];
-          await __privateMethod(this, _WindowWizard_instances, downloadTemplate_fn).call(this, sortID, template);
-          await sleep(500);
+          const _template = new Template({
+            displayName: template.name,
+            chunked: template.tiles
+          });
+          _template.calculateCoordsFromChunked();
+          const blob = await this.templateManager.convertTemplateToBlob(_template);
+          await this.templateManager.createTemplate(blob, _template.displayName, _template.coords);
         }
       }
     }
-  };
-  downloadTemplate_fn = async function(sortID, template) {
-    console.log(template);
-    const displayName = template.name || `Template ${sortID || ""}`;
-    const templateTiles64 = template.tiles;
-    const templateTileKeysSorted = Object.keys(templateTiles64).sort();
-    const templateTilesImageSorted = await Promise.all(templateTileKeysSorted.map((tileKey) => convertBase64ToImage(templateTiles64[tileKey])));
-    let absoluteSmallestTileKey = [Infinity, Infinity, Infinity, Infinity];
-    let absoluteSmallestX = Infinity;
-    let absoluteSmallestY = Infinity;
-    let absoluteLargestX = 0;
-    let absoluteLargestY = 0;
-    templateTileKeysSorted.forEach((key, index) => {
-      const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
-      const tileImage = templateTilesImageSorted[index];
-      const absoluteX = tileX * this.tileSize + pixelX;
-      const absoluteY = tileY * this.tileSize + pixelY;
-      if (tileY < absoluteSmallestTileKey[1] || tileY == absoluteSmallestTileKey[1] && tileX < absoluteSmallestTileKey[0]) {
-        absoluteSmallestTileKey = [tileX, tileY, pixelX, pixelY];
-      }
-      absoluteSmallestX = Math.min(absoluteSmallestX, absoluteX);
-      absoluteSmallestY = Math.min(absoluteSmallestY, absoluteY);
-      absoluteLargestX = Math.max(absoluteLargestX, absoluteX + tileImage.width / this.drawMult);
-      absoluteLargestY = Math.max(absoluteLargestY, absoluteY + tileImage.height / this.drawMult);
-    });
-    console.log(`Absolute coordinates: (${absoluteSmallestX}, ${absoluteSmallestY}) and (${absoluteLargestX}, ${absoluteLargestY})`);
-    const templateWidth = absoluteLargestX - absoluteSmallestX;
-    const templateHeight = absoluteLargestY - absoluteSmallestY;
-    console.log(`Template Width: ${templateWidth}
-Template Height: ${templateHeight}`);
-    const canvas = new OffscreenCanvas(templateWidth, templateHeight);
-    const context = canvas.getContext("2d");
-    context.imageSmoothingEnabled = false;
-    templateTileKeysSorted.forEach((key, index) => {
-      const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
-      const tileImage = templateTilesImageSorted[index];
-      const absoluteX = tileX * this.tileSize + pixelX;
-      const absoluteY = tileY * this.tileSize + pixelY;
-      console.log(`Drawing tile (${tileX}, ${tileY}, ${pixelX}, ${pixelY}) (${absoluteX}, ${absoluteY}) at (${absoluteX - absoluteSmallestX}, ${absoluteY - absoluteSmallestY}) on the canvas...`);
-      context.drawImage(tileImage, absoluteX - absoluteSmallestX, absoluteY - absoluteSmallestY, tileImage.width / this.drawMult, tileImage.height / this.drawMult);
-    });
-    const templateFileName = `${absoluteSmallestTileKey.join("-")}_${displayName.replaceAll(" ", "-")}`;
-    console.log(`Downloading template '${templateFileName}'...`);
-    const blob = await canvas.convertToBlob({ type: "image/png" });
-    await GM.download({
-      url: URL.createObjectURL(blob),
-      name: templateFileName + ".png",
-      conflictAction: "uniquify",
-      onload: () => {
-        this.handleDisplayStatus(`Download of template '${templateFileName}' complete!`);
-      },
-      onerror: (error, details) => {
-        this.handleDisplayError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
-      },
-      ontimeout: () => {
-        this.handleDisplayError(`Download of template '${templateFileName}' has timed out!`);
-      }
-    });
-    function convertBase64ToImage(base64) {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = "data:image/png;base64," + base64;
-      });
+    if (shouldWindowWizardOpen) {
+      console.log(`Restarting Template Wizard...`);
+      document.querySelector(`#${this.windowID}`).remove();
+      new _WindowWizard(this.name, this.version, this.schemaVersionBleedingEdge, this.templateManager).buildWindow();
     }
   };
+  var WindowWizard = _WindowWizard;
 
   // src/templateManager.js
   var _TemplateManager_instances, loadTemplate_fn, storeTemplates_fn, parseBlueMarble_fn, parseOSU_fn, calculateCorrectPixelsOnTile_And_FilterTile_fn;
@@ -2012,7 +1973,7 @@ Template Height: ${templateHeight}`);
         for (const [key, template] of Object.entries(templates)) {
           if (templates.hasOwnProperty(key)) {
             await this.downloadTemplate(new Template({
-              displayName: template.displayName,
+              displayName: template.name,
               sortID: key.split(" ")?.[0],
               authorID: key.split(" ")?.[1],
               chunked: template.tiles
@@ -2027,12 +1988,34 @@ Template Height: ${templateHeight}`);
      * @since 0.88.499
      */
     async downloadTemplate(template) {
+      template.calculateCoordsFromChunked();
+      const templateFileName = `${template.coords.join("-")}_${template.displayName.replaceAll(" ", "-")}`;
+      const blob = await this.convertTemplateToBlob(template);
+      await GM.download({
+        url: URL.createObjectURL(blob),
+        name: templateFileName + ".png",
+        conflictAction: "uniquify",
+        onload: () => {
+          consoleLog(`Download of template '${templateFileName}' complete!`);
+        },
+        onerror: (error, details) => {
+          consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
+        },
+        ontimeout: () => {
+          consoleWarn(`Download of template '${templateFileName}' has timed out!`);
+        }
+      });
+    }
+    /** Converts a Template class instance into a Blob. 
+     * Specifically, this takes `Template.chunked` and converts it to a Blob.
+     * @since 0.88.504
+     * @returns {Promise<Blob>} A Promise of a Blob PNG image of the template
+     */
+    async convertTemplateToBlob(template) {
       console.log(template);
-      const displayName = template.displayName;
       const templateTiles64 = template.chunked;
       const templateTileKeysSorted = Object.keys(templateTiles64).sort();
       const templateTilesImageSorted = await Promise.all(templateTileKeysSorted.map((tileKey) => convertBase64ToImage(templateTiles64[tileKey])));
-      let absoluteSmallestTileKey = [Infinity, Infinity, Infinity, Infinity];
       let absoluteSmallestX = Infinity;
       let absoluteSmallestY = Infinity;
       let absoluteLargestX = 0;
@@ -2042,9 +2025,6 @@ Template Height: ${templateHeight}`);
         const tileImage = templateTilesImageSorted[index];
         const absoluteX = tileX * this.tileSize + pixelX;
         const absoluteY = tileY * this.tileSize + pixelY;
-        if (tileY < absoluteSmallestTileKey[1] || tileY == absoluteSmallestTileKey[1] && tileX < absoluteSmallestTileKey[0]) {
-          absoluteSmallestTileKey = [tileX, tileY, pixelX, pixelY];
-        }
         absoluteSmallestX = Math.min(absoluteSmallestX, absoluteX);
         absoluteSmallestY = Math.min(absoluteSmallestY, absoluteY);
         absoluteLargestX = Math.max(absoluteLargestX, absoluteX + tileImage.width / this.drawMult);
@@ -2066,23 +2046,7 @@ Template Height: ${templateHeight}`);
         console.log(`Drawing tile (${tileX}, ${tileY}, ${pixelX}, ${pixelY}) (${absoluteX}, ${absoluteY}) at (${absoluteX - absoluteSmallestX}, ${absoluteY - absoluteSmallestY}) on the canvas...`);
         context.drawImage(tileImage, absoluteX - absoluteSmallestX, absoluteY - absoluteSmallestY, tileImage.width / this.drawMult, tileImage.height / this.drawMult);
       });
-      const templateFileName = `${absoluteSmallestTileKey.join("-")}_${displayName.replaceAll(" ", "-")}`;
-      console.log(`Downloading template '${templateFileName}'...`);
-      const blob = await canvas.convertToBlob({ type: "image/png" });
-      await GM.download({
-        url: URL.createObjectURL(blob),
-        name: templateFileName + ".png",
-        conflictAction: "uniquify",
-        onload: () => {
-          consoleLog(`Download of template '${templateFileName}' complete!`);
-        },
-        onerror: (error, details) => {
-          consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
-        },
-        ontimeout: () => {
-          consoleWarn(`Download of template '${templateFileName}' has timed out!`);
-        }
-      });
+      return canvas.convertToBlob({ type: "image/png" });
       function convertBase64ToImage(base64) {
         return new Promise((resolve, reject) => {
           const image = new Image();
@@ -2224,9 +2188,26 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     }
   };
   _TemplateManager_instances = new WeakSet();
-  /** Generates a {@link Template} class instance from the JSON object template
+  /** Generates a {@link Template} class instance from the JSON object template.
+   * {@link createTemplate()} will create a class instance and save to template storage.
+   * `#loadTemplate()` will create a class instance without saving to the template storage.
+   * @param {Object} template - The template to load
+   * @since 0.88.504
    */
-  loadTemplate_fn = function() {
+  loadTemplate_fn = function(templateObject) {
+    const pixelCount = {
+      total: templateObject.pixels?.total,
+      colors: new Map(Object.entries(templateObject.pixels?.colors || {}).map(([key, value]) => [Number(key), value]))
+    };
+    const template = new Template({
+      displayName: templateObject.displayName,
+      sortID: Object.keys(this.templatesJSON.templates).length || 0,
+      authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+      pixelCount,
+      chunked: templateObject.tiles
+    });
+    template.calculateCoordsFromChunked();
+    this.templatesArray.push(template);
   };
   storeTemplates_fn = async function() {
     GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
@@ -2970,7 +2951,7 @@ Did you try clicking the canvas first?`);
 Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0;" }).addDiv({ "class": "bm-flex-between" }).addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F9D9}", "title": "Template Wizard" }, (instance, button) => {
         button.onclick = () => {
           const templateManager2 = instance.apiManager?.templateManager;
-          const wizard = new WindowWizard(this.name, this.version, templateManager2?.schemaVersion, templateManager2?.encodingBase, templateManager2?.tileSize, templateManager2?.drawMult);
+          const wizard = new WindowWizard(this.name, this.version, templateManager2?.schemaVersion, templateManager2);
           wizard.buildWindow();
         };
       }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" }, (instance, button) => {

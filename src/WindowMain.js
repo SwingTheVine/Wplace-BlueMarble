@@ -161,7 +161,7 @@ export default class WindowMain extends Overlay {
               .addButton({'class': 'bm-button-circle', 'innerHTML': '🧙', 'title': 'Template Wizard'}, (instance, button) => {
                 button.onclick = () => {
                   const templateManager = instance.apiManager?.templateManager;
-                  const wizard = new WindowWizard(this.name, this.version, templateManager?.schemaVersion, templateManager?.encodingBase, templateManager?.tileSize, templateManager?.drawMult);
+                  const wizard = new WindowWizard(this.name, this.version, templateManager?.schemaVersion, templateManager);
                   wizard.buildWindow();
                 }
               }).buildElement()

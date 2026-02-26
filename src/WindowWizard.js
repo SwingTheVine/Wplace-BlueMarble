@@ -1,6 +1,7 @@
 import Overlay from "./Overlay";
+import Template from "./Template";
 import TemplateManager from "./templateManager";
-import { encodedToNumber, escapeHTML, localizeNumber } from "./utils";
+import { encodedToNumber, escapeHTML, localizeNumber, sleep } from "./utils";
 
 /** Wizard that manages template updates & recovery
  * @class WindowWizard
@@ -116,7 +117,7 @@ export default class WindowWizard extends Overlay {
     } else if (schemaVersionArray[0] < schemaVersionBleedingEdgeArray[0]) {
       // ...ELSE IF the MAJOR version is out-of-date
       
-      schemaHealthBanner = 'Template storage health: <b style="color:#f00;">Bad!</b><br>It is guaranteed that some features are broken. You <em>might</em> still be able to use the template. It is HIGHLY recommended that you update Blue Marble\'s template storage. (Reason: MAJOR version mismatch)';
+      schemaHealthBanner = 'Template storage health: <b style="color:#f00;">Bad!</b><br>It is guaranteed that some features are broken. You <em>might</em> still be able to use the template. It is HIGHLY recommended that you download all templates and update Blue Marble\'s template storage before continuing. (Reason: MAJOR version mismatch)';
       this.schemaHealth = 'Bad';
     } else {
       // ...ELSE the Semantic version is unknown
@@ -150,7 +151,11 @@ export default class WindowWizard extends Overlay {
       buttonOptions.addButton({'textContent': `Update template storage to ${this.schemaVersionBleedingEdge}`}, (instance, button) => {
         button.onclick = () => {
 
-        }
+          button.disabled = true; // Disables the button
+
+          // Converts the template schema from 1.x.x to 2.x.x
+          this.#convertSchema_1_x_x_To_2_x_x(true);
+        };
       }).buildElement();
     }
 
@@ -217,6 +222,52 @@ export default class WindowWizard extends Overlay {
 
       // Adds the template list to the real DOM tree
       templateList.buildElement().buildOverlay(templateListParentElement);
+    }
+  }
+
+  /** Converts schema version 1.0.0 to schema version 2.0.0.
+   * @param {boolean} shouldWindowWizardOpen - Should we open a new Template Wizard window after schema conversion? This will close any Template Wizard already open.
+   * @since 0.88.504
+   */
+  async #convertSchema_1_x_x_To_2_x_x(shouldWindowWizardOpen) {
+
+    // Deletes the bmCoords value set in 1.0.0 which is unused in 2.0.0
+    GM_deleteValue('bmCoords');
+
+    // Obtains the templates from JSON storage
+    const templates = this.currentJSON?.templates;
+
+    // If there is at least one template loaded...
+    if (Object.keys(templates).length > 0) {
+
+      // For each template loaded...
+      for (const [key, template] of Object.entries(templates)) {
+
+        // If the template is a direct child of the templates Object...
+        if (templates.hasOwnProperty(key)) {
+
+          // Creates a dummy Template class instance
+          const _template = new Template({
+            displayName: template.name,
+            chunked: template.tiles
+          });
+
+          _template.calculateCoordsFromChunked(); // Updates `Template.coords`
+
+          // Converts the template to a Blob
+          const blob = await this.templateManager.convertTemplateToBlob(_template);
+
+          // Uses the information from the dummy Template class instance to make the actual Template
+          await this.templateManager.createTemplate(blob, _template.displayName, _template.coords);
+        }
+      }
+    }
+
+    // If it has been requested that we open a new Template Wizard window, we do so
+    if (shouldWindowWizardOpen) {
+      console.log(`Restarting Template Wizard...`);
+      document.querySelector(`#${this.windowID}`).remove();
+      new WindowWizard(this.name, this.version, this.schemaVersionBleedingEdge, this.templateManager).buildWindow();
     }
   }
 }

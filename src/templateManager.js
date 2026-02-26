@@ -176,10 +176,32 @@ export default class TemplateManager {
     await this.#storeTemplates();
   }
 
-  /** Generates a {@link Template} class instance from the JSON object template
+  /** Generates a {@link Template} class instance from the JSON object template.
+   * {@link createTemplate()} will create a class instance and save to template storage.
+   * `#loadTemplate()` will create a class instance without saving to the template storage.
+   * @param {Object} template - The template to load
+   * @since 0.88.504
    */
-  #loadTemplate() {
+  #loadTemplate(templateObject) {
 
+    // Calculates the pixel count
+    const pixelCount = {
+      total: templateObject.pixels?.total,
+      colors: new Map(Object.entries(templateObject.pixels?.colors || {}).map(([key, value]) => [Number(key), value]))
+    };
+
+    // Creates the template
+    const template = new Template({
+      displayName: templateObject.displayName,
+      sortID: Object.keys(this.templatesJSON.templates).length || 0,
+      authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+      pixelCount: pixelCount,
+      chunked: templateObject.tiles
+    });
+
+    template.calculateCoordsFromChunked(); // Updates `Template.coords`
+
+    this.templatesArray.push(template);
   }
 
   /** Stores the JSON object of the loaded templates into TamperMonkey (GreaseMonkey) storage.
@@ -243,12 +265,13 @@ export default class TemplateManager {
         // If the template is a direct child of the templates Object...
         if (templates.hasOwnProperty(key)) {
           
+          // Downloads the template using a dummy Template instance
           await this.downloadTemplate(new Template({
-            displayName: template.displayName,
+            displayName: template.name,
             sortID: key.split(' ')?.[0],
             authorID: key.split(' ')?.[1],
             chunked: template.tiles
-          })); // Downloads the template
+          }));
 
           await sleep(500); // Avoids download throttling from the browser
         }
@@ -262,10 +285,33 @@ export default class TemplateManager {
    */
   async downloadTemplate(template) {
 
-    console.log(template);
+    template.calculateCoordsFromChunked(); // Updates `Template.coords`
 
-    // Obtains the display name of the template
-    const displayName = template.displayName;
+    // Constructs the file name to download as
+    const templateFileName = `${template.coords.join('-')}_${template.displayName.replaceAll(' ', '-')}`;
+
+    // Converts `Template.chunked` to a blob
+    const blob = await this.convertTemplateToBlob(template);
+
+    // Downloads the template
+    await GM.download({
+      url: URL.createObjectURL(blob),
+      name: templateFileName + '.png',
+      conflictAction: 'uniquify',
+      onload: () => {consoleLog(`Download of template '${templateFileName}' complete!`);},
+      onerror: (error, details) => {consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);},
+      ontimeout: () => {consoleWarn(`Download of template '${templateFileName}' has timed out!`);}
+    });
+  }
+
+  /** Converts a Template class instance into a Blob. 
+   * Specifically, this takes `Template.chunked` and converts it to a Blob.
+   * @since 0.88.504
+   * @returns {Promise<Blob>} A Promise of a Blob PNG image of the template
+   */
+  async convertTemplateToBlob(template) {
+
+    console.log(template);
 
     const templateTiles64 = template.chunked; // Tiles of template image as base 64
 
@@ -276,7 +322,6 @@ export default class TemplateManager {
     const templateTilesImageSorted = await Promise.all(templateTileKeysSorted.map(tileKey => convertBase64ToImage(templateTiles64[tileKey])));
 
     // Absolute pixel coordinates for smallest (top left) and largest (bottom right) pixel coordinates
-    let absoluteSmallestTileKey = [Infinity, Infinity, Infinity, Infinity];
     let absoluteSmallestX = Infinity;
     let absoluteSmallestY = Infinity;
     let absoluteLargestX = 0;
@@ -293,11 +338,6 @@ export default class TemplateManager {
       // Calculates the absolute pixel coordinates for this tile
       const absoluteX = (tileX * this.tileSize) + pixelX;
       const absoluteY = (tileY * this.tileSize) + pixelY;
-
-      // Records the smallest tile key if and only if this tile is the smallest. Otherwise, use previous best
-      if ((tileY < absoluteSmallestTileKey[1]) || (tileY == absoluteSmallestTileKey[1] && tileX < absoluteSmallestTileKey[0])) {
-        absoluteSmallestTileKey = [tileX, tileY, pixelX, pixelY];
-      }
 
       // Record the smallest/largest absolute coordinates if and only if this tile is the smallest/largest. Otherwise, use previous best
       absoluteSmallestX = Math.min(absoluteSmallestX, absoluteX);
@@ -336,21 +376,9 @@ export default class TemplateManager {
       // Draws the tile to the canvas AND scales it down in the process
       context.drawImage(tileImage, absoluteX - absoluteSmallestX, absoluteY - absoluteSmallestY, tileImage.width / this.drawMult, tileImage.height / this.drawMult);
     })
-    
-    const templateFileName = `${absoluteSmallestTileKey.join('-')}_${displayName.replaceAll(' ', '-')}`;
 
-    console.log(`Downloading template '${templateFileName}'...`);
-
-    // Downloads the canvas as a PNG file
-    const blob = await canvas.convertToBlob({ type: 'image/png' });
-    await GM.download({
-      url: URL.createObjectURL(blob),
-      name: templateFileName + '.png',
-      conflictAction: 'uniquify',
-      onload: () => {consoleLog(`Download of template '${templateFileName}' complete!`);},
-      onerror: (error, details) => {consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);},
-      ontimeout: () => {consoleWarn(`Download of template '${templateFileName}' has timed out!`);}
-    });
+    // Returns a blob
+    return canvas.convertToBlob({ type: 'image/png' });
 
     /** Turns a chunked base 64 string template tile into an Image template tile
      * @param {string} base64 - Base64 string of image data (without URI header)
