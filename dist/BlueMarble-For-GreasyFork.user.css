@@ -119,6 +119,11 @@ confetti-piece {
   font-weight: 700;
   vertical-align: middle;
 }
+.bm-window h3 {
+  display: inline-block;
+  font-size: large;
+  font-weight: 700;
+}
 .bm-container.bm-center-vertically {
   width: fit-content;
   margin-left: auto;
@@ -331,6 +336,35 @@ input[type=file] {
 }
 #bm-window-filter .bm-filter-color.bm-color-hide {
   display: none;
+}
+
+/* src/WindowWizard.css */
+#bm-wizard-tlist {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+#bm-wizard-tlist > .bm-container {
+  width: 100%;
+  justify-content: flex-start;
+  background-color: rgba(21, 48, 99, 0.9);
+  border-radius: 1em;
+  padding: 0.5em;
+  transition: background-color 0.3s ease;
+}
+#bm-wizard-tlist > .bm-container:hover,
+#bm-wizard-tlist > .bm-container:focus-within {
+  background-color: rgba(17, 40, 85, 0.9);
+}
+#bm-wizard-tlist .bm-wizard-template-container-image {
+  height: 100%;
+  font-size: xxx-large;
+}
+#bm-wizard-tlist .bm-wizard-template-container-flavor {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
 
 /* src/main.css */

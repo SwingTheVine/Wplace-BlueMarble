@@ -122,6 +122,13 @@
   vertical-align: middle;
 }
 
+/* Header 3 */
+.bm-window h3 {
+  display: inline-block;
+  font-size: large;
+  font-weight: 700;
+}
+
 /* Container with a vertically centered header 1-6 */
 .bm-container.bm-center-vertically {
   width: fit-content;

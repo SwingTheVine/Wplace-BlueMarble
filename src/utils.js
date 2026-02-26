@@ -100,6 +100,39 @@ export function numberToEncoded(number, encoding) {
   return result; // The final encoded string
 }
 
+/** Decodes a number from a custom encoded string.
+ * @param {string} encoded - The encoded string
+ * @param {string} encoding - The characters to use when decoding
+ * @since 0.88.448
+ * @returns {number} Decoded number
+ * @example
+ * const encode = '012abcABC'; // Base 9
+ * console.log(encodedToNumber('0', encode));     // 0
+ * console.log(encodedToNumber('c', encode));     // 5
+ * console.log(encodedToNumber('1A', encode));    // 15
+ * console.log(encodedToNumber('1BCaA', encode)); // 12345
+ */
+export function encodedToNumber(encoded, encoding) {
+
+  let decodedNumber = 0; // The decoded number
+  const base = encoding.length; // The number of characters used, which determins the base
+
+  // For every character in the encoded string...
+  for (const character of encoded) {
+
+    const decodedCharacter = encoding.indexOf(character); // Decodes the character
+
+    // If no matching decode was found for this character...
+    if (decodedCharacter == -1) {
+      consoleError(`Invalid character '${character}' encountered whilst decoding! Is the decode alphabet/base incorrect?`);
+    }
+
+    decodedNumber = (decodedNumber * base) + decodedCharacter; // Adds the decoded character to the final number
+  }
+
+  return decodedNumber; // Returns the decoded number
+}
+
 /** Converts a Uint8 array to base64 using the browser's built-in binary to ASCII function
  * @param {Uint8Array} uint8 - The Uint8Array to convert
  * @returns {Uint8Array} The base64 encoded Uint8Array
