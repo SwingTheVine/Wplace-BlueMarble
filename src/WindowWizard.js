@@ -231,6 +231,28 @@ export default class WindowWizard extends Overlay {
    */
   async #convertSchema_1_x_x_To_2_x_x(shouldWindowWizardOpen) {
 
+    // Creates loading screen
+    if (shouldWindowWizardOpen) {
+      
+      // Obtains the Template Wizard window content container
+      const windowContent = document.querySelector(`#${this.windowID} .bm-window-content`);
+
+      // Deletes all content in the Template Wizard window content container
+      windowContent.innerHTML = '';
+
+      const loadingScreen = new Overlay(this.name, this.version);
+      loadingScreen.addDiv({'class': 'bm-container'})
+        .addDiv({'class': 'bm-container bm-center-vertically'})
+          .addHeader(1, {'textContent': 'Template Wizard'}).buildElement()
+        .buildElement()
+        .addHr().buildElement()
+        .addDiv({'class': 'bm-container'})
+          .addHeader(2, {'textContent': 'Status'}).buildElement()
+          .addP({'textContent': 'Updating template storage. Please wait...'}).buildElement()
+        .buildElement()
+      .buildElement().buildOverlay(windowContent);
+    }
+
     // Deletes the bmCoords value set in 1.0.0 which is unused in 2.0.0
     GM_deleteValue('bmCoords');
 
