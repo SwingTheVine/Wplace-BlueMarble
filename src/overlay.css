@@ -38,11 +38,6 @@
   letter-spacing: 0.05em;
 }
 
-/* The main window */
-#bm-window-main {
-  max-width: 300px;
-}
-
 /* The drag bar */
 .bm-dragbar {
   display: grid;

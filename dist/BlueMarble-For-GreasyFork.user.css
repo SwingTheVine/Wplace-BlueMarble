@@ -56,9 +56,6 @@ confetti-piece {
     "Arial";
   letter-spacing: 0.05em;
 }
-#bm-window-main {
-  max-width: 300px;
-}
 .bm-dragbar {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -338,6 +335,11 @@ input[type=file] {
 }
 #bm-window-filter .bm-filter-color.bm-color-hide {
   display: none;
+}
+
+/* src/WindowMain.css */
+#bm-window-main {
+  max-width: 300px;
 }
 
 /* src/WindowWizard.css */
