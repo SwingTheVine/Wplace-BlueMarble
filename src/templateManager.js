@@ -1,5 +1,5 @@
 import Template from "./Template";
-import { base64ToUint8, colorpaletteForBlueMarble, localizeNumber, numberToEncoded } from "./utils";
+import { base64ToUint8, colorpaletteForBlueMarble, consoleError, consoleLog, consoleWarn, localizeNumber, numberToEncoded, sleep } from "./utils";
 import WindowWizard from "./WindowWizard";
 
 /** Manages the template system.
@@ -8,12 +8,13 @@ import WindowWizard from "./WindowWizard";
  * @class TemplateManager
  * @since 0.55.8
  * @example
- * // JSON structure for a template.
+ * // JSON structure for a template made in schema version 2.0.0.
  * // Note: The pixel "colors" Object contains more than 2 keys.
+ * // Note: The template tiles are stored as base64 PNG images.
  * {
  *   "whoami": "BlueMarble",
  *   "scriptVersion": "1.13.0",
- *   "schemaVersion": "2.1.0",
+ *   "schemaVersion": "2.0.0",
  *   "templates": {
  *     "0 $Z": {
  *       "name": "My Template",
@@ -26,8 +27,8 @@ import WindowWizard from "./WindowWizard";
  *         }
  *       }
  *       "tiles": {
- *         "1231,0047,183,593": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA",
- *         "1231,0048,183,000": "data:image/png;AAAFCAYAAACNbyblAAAAHElEQVQI12P4"
+ *         "1231,0047,183,593": "iVBORw0KGgoAAAANSUhEUgAA",
+ *         "1231,0048,183,000": "AAAFCAYAAACNbyblAAAAHElEQVQI12P4"
  *       }
  *     },
  *     "1 $Z": {
@@ -45,6 +46,35 @@ import WindowWizard from "./WindowWizard";
  *       "tiles": {
  *         "375,1846,276,188": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA",
  *         "376,1846,000,188": "data:image/png;AAAFCAYAAACNbyblAAAAHElEQVQI12P4"
+ *       }
+ *     }
+ *   }
+ * }
+ * @example
+ * // JSON structure for a template made in schema version 1.0.0.
+ * // Note: The template tiles are stored as base64 PNG images.
+ * {
+ *   "whoami": "BlueMarble",
+ *   "scriptVersion": "1.13.0",
+ *   "schemaVersion": "1.0.0",
+ *   "templates": {
+ *     "0 $Z": {
+ *       "name": "My Template",
+ *       "enabled": true,
+ *       "coords": "2000, 230, 45, 201"
+ *       "palette": {
+ *         "0,0,0": {
+ *            "count": 123,
+ *            "enabled": true
+ *         },
+ *         "255,255,255": {
+ *            "count": 1315,
+ *            "enabled": false
+ *         }
+ *       }
+ *       "tiles": {
+ *         "1231,0047,183,593": "iVBORw0KGgoAAAANSUhEUgAA",
+ *         "1231,0048,183,000": "AAAFCAYAAACNbyblAAAAHElEQVQI12P4"
  *       }
  *     }
  *   }
@@ -174,6 +204,167 @@ export default class TemplateManager {
     if (!this.templatesJSON) {this.templatesJSON = await this.createJSON(); console.log(`Creating JSON...`);}
 
 
+  }
+
+  /** Downloads all templates loaded.
+   * @since 0.88.499
+   */
+  async downloadAllTemplates() {
+
+    consoleLog(`Downloading all templates...`);
+
+    console.log(this.templatesArray);
+
+    // For each template loaded...
+    for (const template of this.templatesArray) {
+
+      await this.downloadTemplate(template); // Downloads the template
+
+      await sleep(500); // Avoids download throttling from the browser
+    }
+  }
+
+  /** Downloads all templates from Blue Marble's template storage.
+   * @since 0.88.474
+   */
+  async downloadAllTemplatesFromStorage() {
+
+    // Templates in user storage
+    const templates = JSON.parse(GM_getValue('bmTemplates', '{}'))?.templates;
+
+    console.log(templates);
+
+    // If there is at least one template loaded...
+    if (Object.keys(templates).length > 0) {
+
+      // For each template loaded...
+      for (const [key, template] of Object.entries(templates)) {
+
+        // If the template is a direct child of the templates Object...
+        if (templates.hasOwnProperty(key)) {
+          
+          await this.downloadTemplate(new Template({
+            displayName: template.displayName,
+            sortID: key.split(' ')?.[0],
+            authorID: key.split(' ')?.[1],
+            chunked: template.tiles
+          })); // Downloads the template
+
+          await sleep(500); // Avoids download throttling from the browser
+        }
+      }
+    }
+  }
+
+  /** Downloads the template passed-in.
+   * @param {Template} template - The template class instance to download
+   * @since 0.88.499
+   */
+  async downloadTemplate(template) {
+
+    console.log(template);
+
+    // Obtains the display name of the template
+    const displayName = template.displayName;
+
+    const templateTiles64 = template.chunked; // Tiles of template image as base 64
+
+    // Sorts the keys of the tiles (Object -> Array)
+    const templateTileKeysSorted = Object.keys(templateTiles64).sort();
+
+    // Turns the base64 tiles into Images
+    const templateTilesImageSorted = await Promise.all(templateTileKeysSorted.map(tileKey => convertBase64ToImage(templateTiles64[tileKey])));
+
+    // Absolute pixel coordinates for smallest (top left) and largest (bottom right) pixel coordinates
+    let absoluteSmallestTileKey = [Infinity, Infinity, Infinity, Infinity];
+    let absoluteSmallestX = Infinity;
+    let absoluteSmallestY = Infinity;
+    let absoluteLargestX = 0;
+    let absoluteLargestY = 0;
+
+    // Calculates the minimum and maximum (X, Y) absolute coordinates
+    templateTileKeysSorted.forEach((key, index) => {
+
+      // Deconstructs the tile coordinates
+      const [tileX, tileY, pixelX, pixelY] = key.split(',').map(Number);
+
+      const tileImage = templateTilesImageSorted[index]; // Obtains the image for this tile
+
+      // Calculates the absolute pixel coordinates for this tile
+      const absoluteX = (tileX * this.tileSize) + pixelX;
+      const absoluteY = (tileY * this.tileSize) + pixelY;
+
+      // Records the smallest tile key if and only if this tile is the smallest. Otherwise, use previous best
+      if ((tileY < absoluteSmallestTileKey[1]) || (tileY == absoluteSmallestTileKey[1] && tileX < absoluteSmallestTileKey[0])) {
+        absoluteSmallestTileKey = [tileX, tileY, pixelX, pixelY];
+      }
+
+      // Record the smallest/largest absolute coordinates if and only if this tile is the smallest/largest. Otherwise, use previous best
+      absoluteSmallestX = Math.min(absoluteSmallestX, absoluteX);
+      absoluteSmallestY = Math.min(absoluteSmallestY, absoluteY);
+      absoluteLargestX = Math.max(absoluteLargestX, absoluteX + (tileImage.width / this.drawMult));
+      absoluteLargestY = Math.max(absoluteLargestY, absoluteY + (tileImage.height / this.drawMult));
+    })
+
+    console.log(`Absolute coordinates: (${absoluteSmallestX}, ${absoluteSmallestY}) and (${absoluteLargestX}, ${absoluteLargestY})`);
+
+    // Calculates the template/canvas width and height
+    const templateWidth = absoluteLargestX - absoluteSmallestX;
+    const templateHeight = absoluteLargestY - absoluteSmallestY;
+
+    console.log(`Template Width: ${templateWidth}\nTemplate Height: ${templateHeight}`);
+
+    // Creates a new canvas the size of the template
+    const canvas = new OffscreenCanvas(templateWidth, templateHeight);
+    const context = canvas.getContext('2d');
+    context.imageSmoothingEnabled = false; // Forces nearest neighbor scaling algorithm
+
+    // For each tile...
+    templateTileKeysSorted.forEach((key, index) => {
+
+      // Deconstructs the tile coordinates
+      const [tileX, tileY, pixelX, pixelY] = key.split(',').map(Number);
+
+      const tileImage = templateTilesImageSorted[index]; // Obtains the image for this tile
+
+      // Calculates the absolute pixel coordinates for this tile
+      const absoluteX = (tileX * this.tileSize) + pixelX;
+      const absoluteY = (tileY * this.tileSize) + pixelY;
+
+      console.log(`Drawing tile (${tileX}, ${tileY}, ${pixelX}, ${pixelY}) (${absoluteX}, ${absoluteY}) at (${absoluteX - absoluteSmallestX}, ${absoluteY - absoluteSmallestY}) on the canvas...`);
+
+      // Draws the tile to the canvas AND scales it down in the process
+      context.drawImage(tileImage, absoluteX - absoluteSmallestX, absoluteY - absoluteSmallestY, tileImage.width / this.drawMult, tileImage.height / this.drawMult);
+    })
+    
+    const templateFileName = `${absoluteSmallestTileKey.join('-')}_${displayName.replaceAll(' ', '-')}`;
+
+    console.log(`Downloading template '${templateFileName}'...`);
+
+    // Downloads the canvas as a PNG file
+    const blob = await canvas.convertToBlob({ type: 'image/png' });
+    await GM.download({
+      url: URL.createObjectURL(blob),
+      name: templateFileName + '.png',
+      conflictAction: 'uniquify',
+      onload: () => {consoleLog(`Download of template '${templateFileName}' complete!`);},
+      onerror: (error, details) => {consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);},
+      ontimeout: () => {consoleWarn(`Download of template '${templateFileName}' has timed out!`);}
+    });
+
+    /** Turns a chunked base 64 string template tile into an Image template tile
+     * @param {string} base64 - Base64 string of image data (without URI header)
+     * @since 0.88.474
+     * @returns {Promise} Promise to load a new Image()
+     */
+    function convertBase64ToImage(base64) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = "data:image/png;base64," + base64;
+      });
+    }
   }
 
   /** Draws all templates on the specified tile.
@@ -389,7 +580,7 @@ export default class TemplateManager {
       if (schemaVersionArray[1] != schemaVersionBleedingEdge[1]) {
 
         // Spawns a new Template Wizard
-        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
+        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
         windowWizard.buildWindow();
       }
 
@@ -404,7 +595,7 @@ export default class TemplateManager {
       // Else if the MAJOR verison is out-of-date
 
       // Spawns a new Template Wizard
-      const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
+      const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
       windowWizard.buildWindow();
     
     } else {

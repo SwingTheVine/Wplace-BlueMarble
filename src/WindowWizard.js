@@ -1,5 +1,6 @@
 import Overlay from "./Overlay";
-import { encodedToNumber, escapeHTML } from "./utils";
+import TemplateManager from "./templateManager";
+import { encodedToNumber, escapeHTML, localizeNumber } from "./utils";
 
 /** Wizard that manages template updates & recovery
  * @class WindowWizard
@@ -12,11 +13,11 @@ export default class WindowWizard extends Overlay {
    * @param {string} name - The name of the userscript
    * @param {string} version - The version of the userscript
    * @param {string} schemaVersionBleedingEdge - The bleeding edge of schema versions for Blue Marble
-   * @param {string} encodingBase - The encoding base typically used by Blue Marble for encoding numbers
+   * @param {TemplateManager} [templateManager=undefined] - (Optional) The TemplateManager class instance
    * @since 0.88.434
    * @see {@link Overlay#constructor} for examples
    */
-  constructor(name, version, schemaVersionBleedingEdge, encodingBase) {
+  constructor(name, version, schemaVersionBleedingEdge, templateManager = undefined) {
     super(name, version); // Executes the code in the Overlay constructor
     this.window = null; // Contains the *window* DOM tree
     this.windowID = 'bm-window-wizard'; // The ID attribute for this window
@@ -30,7 +31,7 @@ export default class WindowWizard extends Overlay {
     this.schemaHealth = undefined; // Current schema health. This is: 'Good', 'Poor', 'Bad', or 'Dead' for full match, MINOR mismatch, MAJOR mismatch, and unknown, respectively.
     this.schemaVersionBleedingEdge = schemaVersionBleedingEdge; // Latest schema version
 
-    this.encodingBase = encodingBase; // The encoding base typically used by Blue Marble for encoding numbers
+    this.templateManager = templateManager;
   }
 
   /** Spawns a Template Wizard window.
@@ -46,8 +47,16 @@ export default class WindowWizard extends Overlay {
       return;
     }
 
+    let style = ''; // Window style
+
+    // If the main window does not exist yet...
+    if (!document.querySelector(`#bm-window-main`)) {
+      style = style.concat('z-index: 9001;').trim();
+    }
+    // Forces the Wizard window to show above the main window if and only if the schema is bad when Blue Marble loads for the first time this session
+
     // Creates a new template wizard window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': 'z-index: 9001;'})
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': style})
       .addDragbar()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Template Wizard"', 'data-button-status': 'expanded'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);
@@ -116,8 +125,11 @@ export default class WindowWizard extends Overlay {
       this.schemaHealth = 'Dead';
     }
 
+    // Further recovery directions (only displayed if health is NOT 'Good')
+    const recoveryInstructions = `<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`;
+
     // Display schema health to user
-    this.updateInnerHTML('#bm-wizard-status', `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`);
+    this.updateInnerHTML('#bm-wizard-status', `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.${(this.schemaHealth != 'Good') ? recoveryInstructions : ''}`);
     
     // Create button options (only if schema is not 'Dead')
     const buttonOptions = new Overlay(this.name, this.version);
@@ -125,8 +137,11 @@ export default class WindowWizard extends Overlay {
       buttonOptions.addDiv({'class': 'bm-container bm-flex-center bm-center-vertically', 'style': 'gap: 1.5ch;'})
         buttonOptions.addButton({'textContent': 'Download all templates'}, (instance, button) => {
           button.onclick = () => {
-  
-          }
+            button.disabled = true;
+            this.templateManager.downloadAllTemplatesFromStorage().then(() => {
+              button.disabled = false;
+            })
+          };
         }).buildElement();
       // Leave the container open for the next button to be added
     }
@@ -172,24 +187,29 @@ export default class WindowWizard extends Overlay {
           // Obtain template information
           const templateKeyArray = templateKey.split(' '); // E.g., "0 $Z" -> ["0", "$Z"]
           const sortID = Number(templateKeyArray?.[0]); // Sort ID of the template
-          const authorID = encodedToNumber(templateKeyArray?.[1] || '0', this.encodingBase); // User ID of the person who exported the template
+          const authorID = encodedToNumber(templateKeyArray?.[1] || '0', this.templateManager.encodingBase); // User ID of the person who exported the template
           const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
           const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
           const totalPixelCount = templateValue.pixels?.total ?? undefined;
           const templateImage = undefined; // TODO: Add template image
+
+          // Localization of information to display to the user
+          const sortIDLocalized = (typeof sortID == 'number') ? localizeNumber(sortID) : '???';
+          const authorIDLocalized = (typeof authorID == 'number') ? localizeNumber(authorID) : '???';
+          const totalPixelCountLocalized = (typeof totalPixelCount == 'number') ? localizeNumber(totalPixelCount) : '???';
 
           templateList.addDiv({'class': 'bm-container bm-flex-center'})
             .addDiv({'class': 'bm-flex-center', 'style': 'flex-direction: column; gap: 0;'})
               .addDiv({'class': 'bm-wizard-template-container-image', 'textContent': templateImage || '🖼️'})
                 // TODO: Add image element and SVG fallback
               .buildElement()
-              .addSmall({'textContent': `#${sortID}`}).buildElement()
+              .addSmall({'textContent': `#${sortIDLocalized}`}).buildElement()
             .buildElement()
             .addDiv({'class': 'bm-flex-center bm-wizard-template-container-flavor'})
               .addHeader(3, {'textContent': displayName}).buildElement()
-              .addSpan({'textContent': `Uploaded by user #${authorID}`}).buildElement()
+              .addSpan({'textContent': `Uploaded by user #${authorIDLocalized}`}).buildElement()
               .addSpan({'textContent': `Coordinates: ${coords.join(', ')}`}).buildElement()
-              .addSpan({'textContent': `Total Pixels: ${totalPixelCount || '???'}`}).buildElement()
+              .addSpan({'textContent': `Total Pixels: ${totalPixelCountLocalized}`}).buildElement()
             .buildElement()
           .buildElement()
         }

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.473
+// @version         0.88.503
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -18,6 +18,7 @@
 // @grant           GM.setValue
 // @grant           GM_getValue
 // @grant           GM_xmlhttpRequest
+// @grant           GM.download
 // @connect         telemetry.thebluecorner.net
 // @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/0c760b903739e6214f7b8990ffc4089a93e73bd2/dist/BlueMarble-For-GreasyFork.user.css
 // @antifeature     tracking Anonymous opt-in telemetry data
@@ -88,6 +89,9 @@
   };
 
   // src/utils.js
+  function sleep(time) {
+    return new Promise((resolve) => setTimeout(resolve, time));
+  }
   function localizeNumber(number) {
     const numberFormat = new Intl.NumberFormat();
     return numberFormat.format(number);
@@ -1679,17 +1683,18 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
   };
 
   // src/WindowWizard.js
-  var _WindowWizard_instances, displaySchemaHealth_fn, displayTemplateList_fn;
+  var _WindowWizard_instances, displaySchemaHealth_fn, displayTemplateList_fn, downloadAllTemplates_fn, downloadTemplate_fn;
   var WindowWizard = class extends Overlay {
     /** Constructor for the Template Wizard window
      * @param {string} name - The name of the userscript
      * @param {string} version - The version of the userscript
      * @param {string} schemaVersionBleedingEdge - The bleeding edge of schema versions for Blue Marble
      * @param {string} encodingBase - The encoding base typically used by Blue Marble for encoding numbers
+     * @param {TemplateManager} [templateManager=undefined] - (Optional) The TemplateManager class instance
      * @since 0.88.434
      * @see {@link Overlay#constructor} for examples
      */
-    constructor(name2, version2, schemaVersionBleedingEdge, encodingBase) {
+    constructor(name2, version2, schemaVersionBleedingEdge, templateManager2 = void 0) {
       super(name2, version2);
       __privateAdd(this, _WindowWizard_instances);
       this.window = null;
@@ -1700,7 +1705,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.schemaVersion = this.currentJSON?.schemaVersion;
       this.schemaHealth = void 0;
       this.schemaVersionBleedingEdge = schemaVersionBleedingEdge;
-      this.encodingBase = encodingBase;
+      this.templateManager = templateManager2;
     }
     /** Spawns a Template Wizard window.
      * If another template wizard window already exists, we DON'T spawn another!
@@ -1712,7 +1717,11 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         this.handleDisplayError("Template Wizard window already exists!");
         return;
       }
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": "z-index: 9001;" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Template Wizard"', "data-button-status": "expanded" }, (instance, button) => {
+      let style = "";
+      if (!document.querySelector(`#bm-window-main`)) {
+        style = style.concat("z-index: 9001;").trim();
+      }
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": style }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Template Wizard"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
           button.click();
@@ -1753,12 +1762,17 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       schemaHealthBanner = 'Template storage health: <b style="color:#f00">Dead!</b><br>Blue Marble can not load the template storage. (Reason: MAJOR version unknown)';
       this.schemaHealth = "Dead";
     }
-    this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`);
+    const recoveryInstructions = `<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`;
+    this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.${this.schemaHealth != "Good" ? recoveryInstructions : ""}`);
     const buttonOptions = new Overlay(this.name, this.version);
     if (this.schemaHealth != "Dead") {
       buttonOptions.addDiv({ "class": "bm-container bm-flex-center bm-center-vertically", "style": "gap: 1.5ch;" });
       buttonOptions.addButton({ "textContent": "Download all templates" }, (instance, button) => {
         button.onclick = () => {
+          button.disabled = true;
+          this.templateManager.downloadAllTemplatesFromStorage().then(() => {
+            button.disabled = false;
+          });
         };
       }).buildElement();
     }
@@ -1785,15 +1799,97 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         if (templates.hasOwnProperty(template)) {
           const templateKeyArray = templateKey.split(" ");
           const sortID = Number(templateKeyArray?.[0]);
-          const authorID = encodedToNumber(templateKeyArray?.[1] || "0", this.encodingBase);
+          const authorID = encodedToNumber(templateKeyArray?.[1] || "0", this.templateManager.encodingBase);
           const displayName = templateValue.name || `Template ${sortID || ""}`;
           const coords2 = templateValue?.coords?.split(",").map(Number);
           const totalPixelCount = templateValue.pixels?.total ?? void 0;
           const templateImage = void 0;
-          templateList.addDiv({ "class": "bm-container bm-flex-center" }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column; gap: 0;" }).addDiv({ "class": "bm-wizard-template-container-image", "textContent": templateImage || "\u{1F5BC}\uFE0F" }).buildElement().addSmall({ "textContent": `#${sortID}` }).buildElement().buildElement().addDiv({ "class": "bm-flex-center bm-wizard-template-container-flavor" }).addHeader(3, { "textContent": displayName }).buildElement().addSpan({ "textContent": `Uploaded by user #${authorID}` }).buildElement().addSpan({ "textContent": `Coordinates: ${coords2.join(", ")}` }).buildElement().addSpan({ "textContent": `Total Pixels: ${totalPixelCount || "???"}` }).buildElement().buildElement().buildElement();
+          const sortIDLocalized = typeof sortID == "number" ? localizeNumber(sortID) : "???";
+          const authorIDLocalized = typeof authorID == "number" ? localizeNumber(authorID) : "???";
+          const totalPixelCountLocalized = typeof totalPixelCount == "number" ? localizeNumber(totalPixelCount) : "???";
+          templateList.addDiv({ "class": "bm-container bm-flex-center" }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column; gap: 0;" }).addDiv({ "class": "bm-wizard-template-container-image", "textContent": templateImage || "\u{1F5BC}\uFE0F" }).buildElement().addSmall({ "textContent": `#${sortIDLocalized}` }).buildElement().buildElement().addDiv({ "class": "bm-flex-center bm-wizard-template-container-flavor" }).addHeader(3, { "textContent": displayName }).buildElement().addSpan({ "textContent": `Uploaded by user #${authorIDLocalized}` }).buildElement().addSpan({ "textContent": `Coordinates: ${coords2.join(", ")}` }).buildElement().addSpan({ "textContent": `Total Pixels: ${totalPixelCountLocalized}` }).buildElement().buildElement().buildElement();
         }
       }
       templateList.buildElement().buildOverlay(templateListParentElement);
+    }
+  };
+  downloadAllTemplates_fn = async function() {
+    const templates = this.currentJSON?.templates;
+    console.log(templates);
+    if (Object.keys(templates).length > 0) {
+      for (const [key, template] of Object.entries(templates)) {
+        if (templates.hasOwnProperty(key)) {
+          const sortID = key.split(" ")?.[0];
+          await __privateMethod(this, _WindowWizard_instances, downloadTemplate_fn).call(this, sortID, template);
+          await sleep(500);
+        }
+      }
+    }
+  };
+  downloadTemplate_fn = async function(sortID, template) {
+    console.log(template);
+    const displayName = template.name || `Template ${sortID || ""}`;
+    const templateTiles64 = template.tiles;
+    const templateTileKeysSorted = Object.keys(templateTiles64).sort();
+    const templateTilesImageSorted = await Promise.all(templateTileKeysSorted.map((tileKey) => convertBase64ToImage(templateTiles64[tileKey])));
+    let absoluteSmallestTileKey = [Infinity, Infinity, Infinity, Infinity];
+    let absoluteSmallestX = Infinity;
+    let absoluteSmallestY = Infinity;
+    let absoluteLargestX = 0;
+    let absoluteLargestY = 0;
+    templateTileKeysSorted.forEach((key, index) => {
+      const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
+      const tileImage = templateTilesImageSorted[index];
+      const absoluteX = tileX * this.tileSize + pixelX;
+      const absoluteY = tileY * this.tileSize + pixelY;
+      if (tileY < absoluteSmallestTileKey[1] || tileY == absoluteSmallestTileKey[1] && tileX < absoluteSmallestTileKey[0]) {
+        absoluteSmallestTileKey = [tileX, tileY, pixelX, pixelY];
+      }
+      absoluteSmallestX = Math.min(absoluteSmallestX, absoluteX);
+      absoluteSmallestY = Math.min(absoluteSmallestY, absoluteY);
+      absoluteLargestX = Math.max(absoluteLargestX, absoluteX + tileImage.width / this.drawMult);
+      absoluteLargestY = Math.max(absoluteLargestY, absoluteY + tileImage.height / this.drawMult);
+    });
+    console.log(`Absolute coordinates: (${absoluteSmallestX}, ${absoluteSmallestY}) and (${absoluteLargestX}, ${absoluteLargestY})`);
+    const templateWidth = absoluteLargestX - absoluteSmallestX;
+    const templateHeight = absoluteLargestY - absoluteSmallestY;
+    console.log(`Template Width: ${templateWidth}
+Template Height: ${templateHeight}`);
+    const canvas = new OffscreenCanvas(templateWidth, templateHeight);
+    const context = canvas.getContext("2d");
+    context.imageSmoothingEnabled = false;
+    templateTileKeysSorted.forEach((key, index) => {
+      const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
+      const tileImage = templateTilesImageSorted[index];
+      const absoluteX = tileX * this.tileSize + pixelX;
+      const absoluteY = tileY * this.tileSize + pixelY;
+      console.log(`Drawing tile (${tileX}, ${tileY}, ${pixelX}, ${pixelY}) (${absoluteX}, ${absoluteY}) at (${absoluteX - absoluteSmallestX}, ${absoluteY - absoluteSmallestY}) on the canvas...`);
+      context.drawImage(tileImage, absoluteX - absoluteSmallestX, absoluteY - absoluteSmallestY, tileImage.width / this.drawMult, tileImage.height / this.drawMult);
+    });
+    const templateFileName = `${absoluteSmallestTileKey.join("-")}_${displayName.replaceAll(" ", "-")}`;
+    console.log(`Downloading template '${templateFileName}'...`);
+    const blob = await canvas.convertToBlob({ type: "image/png" });
+    await GM.download({
+      url: URL.createObjectURL(blob),
+      name: templateFileName + ".png",
+      conflictAction: "uniquify",
+      onload: () => {
+        this.handleDisplayStatus(`Download of template '${templateFileName}' complete!`);
+      },
+      onerror: (error, details) => {
+        this.handleDisplayError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
+      },
+      ontimeout: () => {
+        this.handleDisplayError(`Download of template '${templateFileName}' has timed out!`);
+      }
+    });
+    function convertBase64ToImage(base64) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = "data:image/png;base64," + base64;
+      });
     }
   };
 
@@ -1893,6 +1989,107 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       if (!this.templatesJSON) {
         this.templatesJSON = await this.createJSON();
         console.log(`Creating JSON...`);
+      }
+    }
+    /** Downloads all templates loaded.
+     * @since 0.88.499
+     */
+    async downloadAllTemplates() {
+      consoleLog(`Downloading all templates...`);
+      console.log(this.templatesArray);
+      for (const template of this.templatesArray) {
+        await this.downloadTemplate(template);
+        await sleep(500);
+      }
+    }
+    /** Downloads all templates from Blue Marble's template storage.
+     * @since 0.88.474
+     */
+    async downloadAllTemplatesFromStorage() {
+      const templates = JSON.parse(GM_getValue("bmTemplates", "{}"))?.templates;
+      console.log(templates);
+      if (Object.keys(templates).length > 0) {
+        for (const [key, template] of Object.entries(templates)) {
+          if (templates.hasOwnProperty(key)) {
+            await this.downloadTemplate(new Template({
+              displayName: template.displayName,
+              sortID: key.split(" ")?.[0],
+              authorID: key.split(" ")?.[1],
+              chunked: template.tiles
+            }));
+            await sleep(500);
+          }
+        }
+      }
+    }
+    /** Downloads the template passed-in.
+     * @param {Template} template - The template class instance to download
+     * @since 0.88.499
+     */
+    async downloadTemplate(template) {
+      console.log(template);
+      const displayName = template.displayName;
+      const templateTiles64 = template.chunked;
+      const templateTileKeysSorted = Object.keys(templateTiles64).sort();
+      const templateTilesImageSorted = await Promise.all(templateTileKeysSorted.map((tileKey) => convertBase64ToImage(templateTiles64[tileKey])));
+      let absoluteSmallestTileKey = [Infinity, Infinity, Infinity, Infinity];
+      let absoluteSmallestX = Infinity;
+      let absoluteSmallestY = Infinity;
+      let absoluteLargestX = 0;
+      let absoluteLargestY = 0;
+      templateTileKeysSorted.forEach((key, index) => {
+        const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
+        const tileImage = templateTilesImageSorted[index];
+        const absoluteX = tileX * this.tileSize + pixelX;
+        const absoluteY = tileY * this.tileSize + pixelY;
+        if (tileY < absoluteSmallestTileKey[1] || tileY == absoluteSmallestTileKey[1] && tileX < absoluteSmallestTileKey[0]) {
+          absoluteSmallestTileKey = [tileX, tileY, pixelX, pixelY];
+        }
+        absoluteSmallestX = Math.min(absoluteSmallestX, absoluteX);
+        absoluteSmallestY = Math.min(absoluteSmallestY, absoluteY);
+        absoluteLargestX = Math.max(absoluteLargestX, absoluteX + tileImage.width / this.drawMult);
+        absoluteLargestY = Math.max(absoluteLargestY, absoluteY + tileImage.height / this.drawMult);
+      });
+      console.log(`Absolute coordinates: (${absoluteSmallestX}, ${absoluteSmallestY}) and (${absoluteLargestX}, ${absoluteLargestY})`);
+      const templateWidth = absoluteLargestX - absoluteSmallestX;
+      const templateHeight = absoluteLargestY - absoluteSmallestY;
+      console.log(`Template Width: ${templateWidth}
+Template Height: ${templateHeight}`);
+      const canvas = new OffscreenCanvas(templateWidth, templateHeight);
+      const context = canvas.getContext("2d");
+      context.imageSmoothingEnabled = false;
+      templateTileKeysSorted.forEach((key, index) => {
+        const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
+        const tileImage = templateTilesImageSorted[index];
+        const absoluteX = tileX * this.tileSize + pixelX;
+        const absoluteY = tileY * this.tileSize + pixelY;
+        console.log(`Drawing tile (${tileX}, ${tileY}, ${pixelX}, ${pixelY}) (${absoluteX}, ${absoluteY}) at (${absoluteX - absoluteSmallestX}, ${absoluteY - absoluteSmallestY}) on the canvas...`);
+        context.drawImage(tileImage, absoluteX - absoluteSmallestX, absoluteY - absoluteSmallestY, tileImage.width / this.drawMult, tileImage.height / this.drawMult);
+      });
+      const templateFileName = `${absoluteSmallestTileKey.join("-")}_${displayName.replaceAll(" ", "-")}`;
+      console.log(`Downloading template '${templateFileName}'...`);
+      const blob = await canvas.convertToBlob({ type: "image/png" });
+      await GM.download({
+        url: URL.createObjectURL(blob),
+        name: templateFileName + ".png",
+        conflictAction: "uniquify",
+        onload: () => {
+          consoleLog(`Download of template '${templateFileName}' complete!`);
+        },
+        onerror: (error, details) => {
+          consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
+        },
+        ontimeout: () => {
+          consoleWarn(`Download of template '${templateFileName}' has timed out!`);
+        }
+      });
+      function convertBase64ToImage(base64) {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = "data:image/png;base64," + base64;
+        });
       }
     }
     /** Draws all templates on the specified tile.
@@ -2045,7 +2242,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     console.log(`BlueMarble Template Schema: ${schemaVersion}; Script Version: ${scriptVersion}`);
     if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
       if (schemaVersionArray[1] != schemaVersionBleedingEdge[1]) {
-        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
+        const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
         windowWizard.buildWindow();
       }
       this.templatesArray = await loadSchema({
@@ -2054,7 +2251,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
         templatesArray: this.templatesArray
       });
     } else if (schemaVersionArray[0] < schemaVersionBleedingEdge[0]) {
-      const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this.encodingBase);
+      const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
       windowWizard.buildWindow();
     } else {
       this.overlay.handleDisplayError(`Template version ${schemaVersion} is unsupported.
@@ -2540,7 +2737,7 @@ Did you try clicking the canvas first?`);
       }
       const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
       const colorTotal = allPixelsColor.get(color.id) ?? 0;
-      const colorTotalLocalized = this.localizeNumber.format(colorTotal);
+      const colorTotalLocalized = localizeNumber(colorTotal);
       let colorCorrect = 0;
       let colorCorrectLocalized = "0";
       let colorPercent = localizePercent(1);
@@ -2549,7 +2746,7 @@ Did you try clicking the canvas first?`);
         if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
           colorCorrect = 0;
         }
-        colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : this.localizeNumber.format(colorCorrect);
+        colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : localizeNumber(colorCorrect);
         colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent(colorCorrect / colorTotal);
       }
       const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
@@ -2770,7 +2967,13 @@ Did you try clicking the canvas first?`);
       }).buildElement().addButton({ "textContent": "Filter" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowMain_instances, buildWindowFilter_fn).call(this);
       }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addTextarea({ "id": this.outputStatusId, "placeholder": `Status: Sleeping...
-Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0;" }).addDiv({ "class": "bm-flex-between" }).addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" }, (instance, button) => {
+Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0;" }).addDiv({ "class": "bm-flex-between" }).addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F9D9}", "title": "Template Wizard" }, (instance, button) => {
+        button.onclick = () => {
+          const templateManager2 = instance.apiManager?.templateManager;
+          const wizard = new WindowWizard(this.name, this.version, templateManager2?.schemaVersion, templateManager2?.encodingBase, templateManager2?.tileSize, templateManager2?.drawMult);
+          wizard.buildWindow();
+        };
+      }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" }, (instance, button) => {
         button.onclick = () => {
           window.open("https://pepoafonso.github.io/color_converter_wplace/", "_blank", "noopener noreferrer");
         };

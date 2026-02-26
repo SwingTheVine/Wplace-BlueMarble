@@ -151,11 +151,6 @@ export default class Template {
           drawSizeY * shreadSize // Y height to draw *at*
         ); // Coordinates and size of draw area of source image, then canvas
 
-        // const final = await canvas.convertToBlob({ type: 'image/png' });
-        // const url = URL.createObjectURL(final); // Creates a blob URL
-        // window.open(url, '_blank'); // Opens a new tab with blob
-        // setTimeout(() => URL.revokeObjectURL(url), 60000); // Destroys the blob 1 minute later
-
         context.save(); // Saves the current context of the canvas
         context.globalCompositeOperation = "destination-in"; // The existing canvas content is kept where both the new shape and existing canvas content overlap. Everything else is made transparent.
         // For our purposes, this means any non-transparent pixels on the mask will be kept
