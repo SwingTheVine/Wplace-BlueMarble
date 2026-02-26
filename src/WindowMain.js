@@ -2,6 +2,7 @@ import ConfettiManager from "./confetttiManager";
 import Overlay from "./Overlay";
 import { getClipboardData } from "./utils";
 import WindowFilter from "./WindowFilter";
+import WindowWizard from "./WindowWizard";
 
 /** The overlay builder for the main Blue Marble window.
  * @description This class handles the overlay UI for the main window of the Blue Marble userscript.
@@ -157,6 +158,13 @@ export default class WindowMain extends Overlay {
           .addDiv({'class': 'bm-container bm-flex-between', 'style': 'margin-bottom: 0;'})
             .addDiv({'class': 'bm-flex-between'})
               // .addButton({'class': 'bm-button-circle', 'innerHTML': '🖌'}).buildElement()
+              .addButton({'class': 'bm-button-circle', 'innerHTML': '🧙', 'title': 'Template Wizard'}, (instance, button) => {
+                button.onclick = () => {
+                  const templateManager = instance.apiManager?.templateManager;
+                  const wizard = new WindowWizard(this.name, this.version, templateManager?.schemaVersion, templateManager?.encodingBase, templateManager?.tileSize, templateManager?.drawMult);
+                  wizard.buildWindow();
+                }
+              }).buildElement()
               .addButton({'class': 'bm-button-circle', 'innerHTML': '🎨', 'title': 'Template Color Converter'}, (instance, button) => {
                 button.onclick = () => {
                   window.open('https://pepoafonso.github.io/color_converter_wplace/', '_blank', 'noopener noreferrer');

@@ -246,7 +246,7 @@ export default class WindowFilter extends Overlay {
       
       // Turns "total" color into a string of a number; "0" if unknown
       const colorTotal = allPixelsColor.get(color.id) ?? 0
-      const colorTotalLocalized = this.localizeNumber.format(colorTotal);
+      const colorTotalLocalized = localizeNumber(colorTotal);
       
       // This will be displayed if the total pixels for this color is zero
       let colorCorrect = 0;
@@ -262,7 +262,7 @@ export default class WindowFilter extends Overlay {
           colorCorrect = 0;
         }
 
-        colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : this.localizeNumber.format(colorCorrect);
+        colorCorrectLocalized = (typeof colorCorrect == 'string') ? colorCorrect : localizeNumber(colorCorrect);
         colorPercent = isNaN(colorCorrect / colorTotal) ? '???' : localizePercent(colorCorrect / colorTotal);
       }
       // There are four outcomes:

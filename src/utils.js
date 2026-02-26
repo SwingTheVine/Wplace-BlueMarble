@@ -1,4 +1,26 @@
 
+/** Halts execution of this specific userscript, for the specified time.
+ * This will not block the thread.
+ * @param {number} - Time to wait in milliseconds
+ * @since 0.88.483
+ * @returns {Promise} Promise of a setTimeout()
+ */
+export function sleep(time) {
+  return new Promise(resolve => setTimeout(resolve, time));
+}
+
+/** View the canvas in a new tab.
+ * @param {HTMLCanvasElement | OffscreenCanvas} canvas - The canvas to view
+ * @param {number} [lifeDuration=60_000] - (Optional) The lifetime of the URL blob in milliseconds
+ * @since 0.88.484
+ */
+export async function viewCanvasInNewTab(canvas, lifeDuration = 60_000) {
+  const final = await canvas.convertToBlob({ type: 'image/png' });
+  const url = URL.createObjectURL(final); // Creates a blob URL
+  window.open(url, '_blank'); // Opens a new tab with blob
+  setTimeout(() => URL.revokeObjectURL(url), lifeDuration); // Destroys the blob after this time (default of 1 minute)
+}
+
 /** Returns the localized number format.
  * @param {number} number - The number to localize
  * @since 0.88.472
@@ -92,9 +114,9 @@ export function escapeHTML(text) {
 }
 
 /** Converts the server tile-pixel coordinate system to the displayed tile-pixel coordinate system.
- * @param {string[]} tile - The tile to convert (as an array like ["12", "124"])
- * @param {string[]} pixel - The pixel to convert (as an array like ["12", "124"])
- * @returns {number[]} [tile, pixel]
+ * @param {Array<string, string>} tile - The tile to convert
+ * @param {Array<string, string>} pixel - The pixel to convert
+ * @returns {Array<number, number>} Tile and pixel coordinate pair
  * @since 0.42.4
  * @example
  * console.log(serverTPtoDisplayTP(['12', '123'], ['34', '567'])); // [34, 3567]
@@ -423,4 +445,3 @@ export const colorpalette = [
   { "id": 62, "premium": true,  "name": "Stone",            "rgb": [148, 140, 107] },
   { "id": 63, "premium": true,  "name": "Light Stone",      "rgb": [205, 197, 158] }
 ];
-// All entries include fixed id (index-based) and premium flag by design.
