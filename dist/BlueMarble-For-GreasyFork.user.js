@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.525
+// @version         0.88.533
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -1475,6 +1475,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const dragbar = button.closest(".bm-dragbar");
       const header = window2.querySelector("h1");
       const windowContent = window2.querySelector(".bm-window-content");
+      window2.parentElement.append(window2);
       if (button.dataset["buttonStatus"] == "expanded") {
         windowContent.style.height = windowContent.scrollHeight + "px";
         window2.style.width = window2.scrollWidth + "px";
@@ -1513,13 +1514,13 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     /** Handles dragging of the overlay.
      * Uses requestAnimationFrame for smooth animations and GPU-accelerated transforms.
      * Make sure to use the appropriate CSS selectors.
-     * @param {string} moveMe - The element to be moved
-     * @param {string} iMoveThings - The drag handle element
+     * @param {string} moveMeSelector - The element to be moved
+     * @param {string} iMoveThingsSelector - The drag handle element
      * @since 0.8.2
     */
-    handleDrag(moveMe, iMoveThings) {
-      moveMe = document.querySelector(moveMe);
-      iMoveThings = document.querySelector(iMoveThings);
+    handleDrag(moveMeSelector, iMoveThingsSelector) {
+      const moveMe = document.querySelector(moveMeSelector);
+      const iMoveThings = document.querySelector(iMoveThingsSelector);
       if (!moveMe || !iMoveThings) {
         this.handleDisplayError(`Can not drag! ${!moveMe ? "moveMe" : ""} ${!moveMe && !iMoveThings ? "and " : ""}${!iMoveThings ? "iMoveThings " : ""}was not found!`);
         return;
@@ -1736,7 +1737,14 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       if (!document.querySelector(`#bm-window-main`)) {
         style = style.concat("z-index: 9001;").trim();
       }
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": style }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Template Wizard"', "data-button-status": "expanded" }, (instance, button) => {
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": style }, (instance, div) => {
+        div.onclick = (event) => {
+          if (event.target.closest("button, a, input, select")) {
+            return;
+          }
+          div.parentElement.appendChild(div);
+        };
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Template Wizard"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
           button.click();
@@ -2635,7 +2643,14 @@ Did you try clicking the canvas first?`);
         this.handleDisplayError("Color Filter window already exists!");
         return;
       }
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }, (instance, div) => {
+        div.onclick = (event) => {
+          if (event.target.closest("button, a, input, select")) {
+            return;
+          }
+          div.parentElement.appendChild(div);
+        };
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
           button.click();
@@ -2860,7 +2875,14 @@ Did you try clicking the canvas first?`);
         this.handleDisplayError("Main window already exists!");
         return;
       }
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": "top: 10px; left: unset; right: 75px;" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": "top: 10px; left: unset; right: 75px;" }, (instance, div) => {
+        div.onclick = (event) => {
+          if (event.target.closest("button, a, input, select")) {
+            return;
+          }
+          div.parentElement.appendChild(div);
+        };
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
           button.click();

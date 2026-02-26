@@ -51,8 +51,12 @@ export default class WindowFilter extends Overlay {
     }
     
     // Creates a new color filter window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window'})
-      .addDragbar()
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window'}, (instance, div) => {
+      div.onclick = (event) => {
+        if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
+        div.parentElement.appendChild(div); // When the window is clicked on, bring to top
+      }
+    }).addDragbar()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Color Filter"', 'data-button-status': 'expanded'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);
           button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar

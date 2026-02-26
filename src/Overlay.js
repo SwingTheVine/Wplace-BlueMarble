@@ -1198,6 +1198,8 @@ export default class Overlay {
     const header = window.querySelector('h1'); // Get the header
     const windowContent = window.querySelector('.bm-window-content'); // Get the window content container
 
+    window.parentElement.append(window); // Moves the window to the top
+
     // If window content is open...
     if (button.dataset['buttonStatus'] == 'expanded') {
       // ...we want to close it
@@ -1250,15 +1252,15 @@ export default class Overlay {
   /** Handles dragging of the overlay.
    * Uses requestAnimationFrame for smooth animations and GPU-accelerated transforms.
    * Make sure to use the appropriate CSS selectors.
-   * @param {string} moveMe - The element to be moved
-   * @param {string} iMoveThings - The drag handle element
+   * @param {string} moveMeSelector - The element to be moved
+   * @param {string} iMoveThingsSelector - The drag handle element
    * @since 0.8.2
   */
-  handleDrag(moveMe, iMoveThings) {
+  handleDrag(moveMeSelector, iMoveThingsSelector) {
 
-    // Retrieves the elements (allows either '#id' or 'id' to be passed in)
-    moveMe = document.querySelector(moveMe);
-    iMoveThings = document.querySelector(iMoveThings);
+    // Retrieves the elements
+    const moveMe = document.querySelector(moveMeSelector);
+    const iMoveThings = document.querySelector(iMoveThingsSelector);
     
     // What to do when one of the two elements are not found
     if (!moveMe || !iMoveThings) {
