@@ -58,10 +58,10 @@ export default class WindowWizard extends Overlay {
 
     // Creates a new template wizard window
     this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': style}, (instance, div) => {
-      div.onclick = (event) => {
-        if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
-        div.parentElement.appendChild(div); // When the window is clicked on, bring to top
-      }
+      // div.onclick = (event) => {
+      //   if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
+      //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top
+      // }
     }).addDragbar()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Template Wizard"', 'data-button-status': 'expanded'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);
