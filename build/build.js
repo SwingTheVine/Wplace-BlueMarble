@@ -94,7 +94,7 @@ let resultTerser = await terser.minify(resultEsbuildJS.text, {
     properties: {
       // regex: /.*/, // Yes, I am aware I should be using a RegEx. Yes, like you, I am also suprised the userscript still functions
       keep_quoted: true, // Should names in quotes be preserved?
-      reserved: [] // What properties should be preserved?
+      reserved: ['willReadFrequently'] // What properties should be preserved?
     },
   },
   format: {
@@ -103,7 +103,7 @@ let resultTerser = await terser.minify(resultEsbuildJS.text, {
   compress: {
     dead_code: isGitHub, // Should unreachable code be removed?
     drop_console: isGitHub, // Should console code be removed?
-    drop_debugger: isGitHub, // SHould debugger code be removed?
+    drop_debugger: isGitHub, // Should debugger code be removed?
     passes: 2 // How many times terser will compress the code
   }
 });
