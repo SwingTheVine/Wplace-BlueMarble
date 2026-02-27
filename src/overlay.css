@@ -285,6 +285,11 @@ input[type="file"] {
   width: 100%;
 }
 
+/* Anchor/Links with no children */
+.bm-window a:not(:has(*)) {
+  text-decoration: underline;
+}
+
 /* Small elements */
 .bm-window small {
   font-size: x-small;
