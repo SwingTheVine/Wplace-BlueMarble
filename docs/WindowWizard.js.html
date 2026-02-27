@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>WindowWizard.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <li class="nav-link nav-home-link"><a href="index.html">Home</a></li><li class="nav-heading">Classes</li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="ApiManager.html">ApiManager</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="ConfettiManager.html">ConfettiManager</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="Observers.html">Observers</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="Overlay.html">Overlay</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="Template.html">Template</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="TemplateManager.html">TemplateManager</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="WindowFilter.html">WindowFilter</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="WindowMain.html">WindowMain</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="WindowTelemetry.html">WindowTelemetry</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="WindowWizard.html">WindowWizard</a></span></li><li class="nav-heading"><span class="nav-item-type type-class">C</span><span class="nav-item-name"><a href="module.exports_module.exports.html">exports</a></span></li><li class="nav-heading"><a href="global.html">Globals</a></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addBr">addBr</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addButton">addButton</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addButtonHelp">addButtonHelp</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addCaption">addCaption</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addCheckbox">addCheckbox</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addDetails">addDetails</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addDiv">addDiv</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addDragbar">addDragbar</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addFieldset">addFieldset</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addForm">addForm</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addHeader">addHeader</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addHr">addHr</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addImg">addImg</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addInput">addInput</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addInputFile">addInputFile</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addLegend">addLegend</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addLi">addLi</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addMenu">addMenu</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addOl">addOl</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addOption">addOption</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addP">addP</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addSelect">addSelect</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addSmall">addSmall</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addSpan">addSpan</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addSummary">addSummary</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTable">addTable</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTbody">addTbody</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTd">addTd</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTextarea">addTextarea</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTfoot">addTfoot</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTh">addTh</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addThead">addThead</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTimer">addTimer</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addTr">addTr</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#addUl">addUl</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#base64ToUint8">base64ToUint8</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#buildElement">buildElement</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#buildOverlay">buildOverlay</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#buildWindow">buildWindow</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#calculateCoordsFromChunked">calculateCoordsFromChunked</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#calculateRelativeLuminance">calculateRelativeLuminance</a></span></li><li class="nav-item"><span class="nav-item-type type-member">M</span><span class="nav-item-name"><a href="global.html#colorpalette">colorpalette</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#colorpaletteForBlueMarble">colorpaletteForBlueMarble</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#consoleError">consoleError</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#consoleLog">consoleLog</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#consoleWarn">consoleWarn</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#convertTemplateToBlob">convertTemplateToBlob</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#createConfetti">createConfetti</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#createJSON">createJSON</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#createObserverBody">createObserverBody</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#createTemplate">createTemplate</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#createTemplateTiles">createTemplateTiles</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#deleteTemplate">deleteTemplate</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#disableTemplate">disableTemplate</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#downloadAllTemplates">downloadAllTemplates</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#downloadAllTemplatesFromStorage">downloadAllTemplatesFromStorage</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#downloadTemplate">downloadTemplate</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#drawTemplateOnTile">drawTemplateOnTile</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#encodedToNumber">encodedToNumber</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#escapeHTML">escapeHTML</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#getClipboardData">getClipboardData</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#getObserverBody">getObserverBody</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#handleDisplayError">handleDisplayError</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#handleDisplayStatus">handleDisplayStatus</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#handleDrag">handleDrag</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#handleMinimization">handleMinimization</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#importJSON">importJSON</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#inject">inject</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#localizeDate">localizeDate</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#localizeDuration">localizeDuration</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#localizeNumber">localizeNumber</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#localizePercent">localizePercent</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#negativeSafeModulo">negativeSafeModulo</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#numberToEncoded">numberToEncoded</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#observe">observe</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#observeBlack">observeBlack</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#selectAllCoordinateInputs">selectAllCoordinateInputs</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#serverTPtoDisplayTP">serverTPtoDisplayTP</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#setApiManager">setApiManager</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#setTemplatesShouldBeDrawn">setTemplatesShouldBeDrawn</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#sleep">sleep</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#spontaneousResponseListener">spontaneousResponseListener</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#uint8ToBase64">uint8ToBase64</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#updateInnerHTML">updateInnerHTML</a></span></li><li class="nav-item"><span class="nav-item-type type-function">F</span><span class="nav-item-name"><a href="global.html#viewCanvasInNewTab">viewCanvasInNewTab</a></span></li>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">WindowWizard.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import Overlay from "./Overlay";
+import Template from "./Template";
+import TemplateManager from "./templateManager";
+import { encodedToNumber, escapeHTML, localizeNumber, sleep } from "./utils";
+
+/** Wizard that manages template updates &amp; recovery
+ * @class WindowWizard
+ * @since 0.88.434
+ * @see {@link Overlay} for examples
+ */
+export default class WindowWizard extends Overlay {
+
+  /** Constructor for the Template Wizard window
+   * @param {string} name - The name of the userscript
+   * @param {string} version - The version of the userscript
+   * @param {string} schemaVersionBleedingEdge - The bleeding edge of schema versions for Blue Marble
+   * @param {TemplateManager} [templateManager=undefined] - (Optional) The TemplateManager class instance
+   * @since 0.88.434
+   * @see {@link Overlay#constructor} for examples
+   */
+  constructor(name, version, schemaVersionBleedingEdge, templateManager = undefined) {
+    super(name, version); // Executes the code in the Overlay constructor
+    this.window = null; // Contains the *window* DOM tree
+    this.windowID = 'bm-window-wizard'; // The ID attribute for this window
+    this.windowParent = document.body; // The parent of the window DOM tree
+
+    // Retrieves data from storage
+    this.currentJSON = JSON.parse(GM_getValue('bmTemplates', '{}')); // The current Blue Marble storage
+    this.scriptVersion = this.currentJSON?.scriptVersion; // Script version when template was created
+    this.schemaVersion = this.currentJSON?.schemaVersion; // Schema version when template was created
+
+    this.schemaHealth = undefined; // Current schema health. This is: 'Good', 'Poor', 'Bad', or 'Dead' for full match, MINOR mismatch, MAJOR mismatch, and unknown, respectively.
+    this.schemaVersionBleedingEdge = schemaVersionBleedingEdge; // Latest schema version
+
+    this.templateManager = templateManager;
+  }
+
+  /** Spawns a Template Wizard window.
+   * If another template wizard window already exists, we DON'T spawn another!
+   * Parent/child relationships in the DOM structure below are indicated by indentation.
+   * @since 0.88.434
+   */
+  buildWindow() {
+
+    // If a template wizard window already exists, close it
+    if (document.querySelector(`#${this.windowID}`)) {
+      document.querySelector(`#${this.windowID}`).remove();
+      return;
+    }
+
+    let style = ''; // Window style
+
+    // If the main window does not exist yet...
+    if (!document.querySelector(`#bm-window-main`)) {
+      style = style.concat('z-index: 9001;').trim();
+    }
+    // Forces the Wizard window to show above the main window if and only if the schema is bad when Blue Marble loads for the first time this session
+
+    // Creates a new template wizard window
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': style}, (instance, div) => {
+      // div.onclick = (event) => {
+      //   if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
+      //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top
+      // }
+    }).addDragbar()
+        .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Template Wizard"', 'data-button-status': 'expanded'}, (instance, button) => {
+          button.onclick = () => instance.handleMinimization(button);
+          button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar
+        }).buildElement()
+        .addDiv().buildElement() // Contains the minimized h1 element
+        .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Template Wizard"'}, (instance, button) => {
+          button.onclick = () => {document.querySelector(`#${this.windowID}`)?.remove();};
+          button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
+        }).buildElement()
+      .buildElement()
+      .addDiv({'class': 'bm-window-content'})
+        .addDiv({'class': 'bm-container bm-center-vertically'})
+          .addHeader(1, {'textContent': 'Template Wizard'}).buildElement()
+        .buildElement()
+        .addHr().buildElement()
+        .addDiv({'class': 'bm-container'})
+          .addHeader(2, {'textContent': 'Status'}).buildElement()
+          .addP({'id': 'bm-wizard-status', 'textContent': 'Loading template storage status...'}).buildElement()
+        .buildElement()
+        .addDiv({'class': 'bm-container bm-scrollable'})
+          .addHeader(2, {'textContent': 'Detected templates:'}).buildElement()
+          // Detected templates will show up here
+        .buildElement()
+      .buildElement()
+    .buildElement().buildOverlay(this.windowParent);
+
+    // Creates dragging capability on the drag bar for dragging the window
+    this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+
+    this.#displaySchemaHealth(); // Displays template storage health to the user
+    this.#displayTemplateList(); // Displays a list of all templates in the template storage
+  }
+
+  /** Determines how "healthy" the template storage is.
+   * @since 0.88.436
+   */
+  #displaySchemaHealth() {
+
+    // SemVer -> string[]
+    const schemaVersionArray = this.schemaVersion.split(/[-\.\+]/);
+    const schemaVersionBleedingEdgeArray = this.schemaVersionBleedingEdge.split(/[-\.\+]/);
+
+    // Calculates the health that is displayed as a banner
+    let schemaHealthBanner = '';
+    // If the MAJOR version is up-to-date...
+    if (schemaVersionArray[0] == schemaVersionBleedingEdgeArray[0]) {
+
+      // ...AND IF the MINOR version is up-to-date...
+      if (schemaVersionArray[1] == schemaVersionBleedingEdgeArray[1]) {
+        schemaHealthBanner = 'Template storage health: &lt;b style="color:#0f0;">Healthy!&lt;/b>&lt;br>No futher action required. (Reason: Semantic version matches)';
+        this.schemaHealth = 'Good';
+      } else { // ...else, the MINOR version is out-of-date
+        schemaHealthBanner = 'Template storage health: &lt;b style="color:#ff0;">Poor!&lt;/b>&lt;br>You can still use your template, but some features may not work. It is recommended that you update Blue Marble\'s template storage. (Reason: MINOR version mismatch)';
+        this.schemaHealth = 'Poor';
+      }
+    } else if (schemaVersionArray[0] &lt; schemaVersionBleedingEdgeArray[0]) {
+      // ...ELSE IF the MAJOR version is out-of-date
+      
+      schemaHealthBanner = 'Template storage health: &lt;b style="color:#f00;">Bad!&lt;/b>&lt;br>It is guaranteed that some features are broken. You &lt;em>might&lt;/em> still be able to use the template. It is HIGHLY recommended that you download all templates and update Blue Marble\'s template storage before continuing. (Reason: MAJOR version mismatch)';
+      this.schemaHealth = 'Bad';
+    } else {
+      // ...ELSE the Semantic version is unknown
+
+      schemaHealthBanner = 'Template storage health: &lt;b style="color:#f00">Dead!&lt;/b>&lt;br>Blue Marble can not load the template storage. (Reason: MAJOR version unknown)';
+      this.schemaHealth = 'Dead';
+    }
+
+    // Further recovery directions (only displayed if health is NOT 'Good')
+    const recoveryInstructions = `&lt;hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.&lt;br>If you don't want to update the template storage, then downgrade Blue Marble to version &lt;b>${escapeHTML(this.scriptVersion)}&lt;/b> to continue using your templates.&lt;br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`;
+
+    // Display schema health to user
+    this.updateInnerHTML('#bm-wizard-status', `${schemaHealthBanner}&lt;br>Your templates were created during Blue Marble version &lt;b>${escapeHTML(this.scriptVersion)}&lt;/b> with schema version &lt;b>${escapeHTML(this.schemaVersion)}&lt;/b>.&lt;br>The current Blue Marble version is &lt;b>${escapeHTML(this.version)}&lt;/b> and requires schema version &lt;b>${escapeHTML(this.schemaVersionBleedingEdge)}&lt;/b>.${(this.schemaHealth != 'Good') ? recoveryInstructions : ''}`);
+    
+    // Create button options (only if schema is not 'Dead')
+    const buttonOptions = new Overlay(this.name, this.version);
+    if (this.schemaHealth != 'Dead') {
+      buttonOptions.addDiv({'class': 'bm-container bm-flex-center bm-center-vertically', 'style': 'gap: 1.5ch;'})
+        buttonOptions.addButton({'textContent': 'Download all templates'}, (instance, button) => {
+          button.onclick = () => {
+            button.disabled = true;
+            this.templateManager.downloadAllTemplatesFromStorage().then(() => {
+              button.disabled = false;
+            })
+          };
+        }).buildElement();
+      // Leave the container open for the next button to be added
+    }
+    // If the schema health is Poor or Bad, then show update option
+    if ((this.schemaHealth == 'Poor') || (this.schemaHealth == 'Bad')) {
+      buttonOptions.addButton({'textContent': `Update template storage to ${this.schemaVersionBleedingEdge}`}, (instance, button) => {
+        button.onclick = () => {
+
+          button.disabled = true; // Disables the button
+
+          // Converts the template schema from 1.x.x to 2.x.x
+          this.#convertSchema_1_x_x_To_2_x_x(true);
+        };
+      }).buildElement();
+    }
+
+    // Add the button options DOM tree to the actual DOM tree
+    buttonOptions.buildElement().buildOverlay(document.querySelector('#bm-wizard-status').parentNode);
+  }
+
+  /** Displays loaded templates to the user.
+   * @since 0.88.441
+   */
+  #displayTemplateList() {
+
+    const templates = this.currentJSON?.templates; // Templates in user storage
+
+    // If there is at least one template loaded...
+    if (Object.keys(templates).length > 0) {
+
+      // Obtains the parent element for the template list
+      const templateListParentElement = document.querySelector(`#${this.windowID} .bm-scrollable`);
+
+      // Creates the template list DOM tree
+      const templateList = new Overlay(this.name, this.version);
+      templateList.addDiv({'id': 'bm-wizard-tlist', 'class': 'bm-container'})
+
+      // For each template...
+      for (const template in templates) {
+
+        const templateKey = template; // The identification key for the template. E.g., "0 $Z"
+        const templateValue = templates[template]; // The actual content of the template
+
+        // If the template is a direct child of the templates Object...
+        if (templates.hasOwnProperty(template)) {
+
+          // Obtain template information
+          const templateKeyArray = templateKey.split(' '); // E.g., "0 $Z" -> ["0", "$Z"]
+          const sortID = Number(templateKeyArray?.[0]); // Sort ID of the template
+          const authorID = encodedToNumber(templateKeyArray?.[1] || '0', this.templateManager.encodingBase); // User ID of the person who exported the template
+          const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
+          const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
+          const totalPixelCount = templateValue.pixels?.total ?? undefined;
+          const templateImage = undefined; // TODO: Add template image
+
+          // Localization of information to display to the user
+          const sortIDLocalized = (typeof sortID == 'number') ? localizeNumber(sortID) : '???';
+          const authorIDLocalized = (typeof authorID == 'number') ? localizeNumber(authorID) : '???';
+          const totalPixelCountLocalized = (typeof totalPixelCount == 'number') ? localizeNumber(totalPixelCount) : '???';
+
+          templateList.addDiv({'class': 'bm-container bm-flex-center'})
+            .addDiv({'class': 'bm-flex-center', 'style': 'flex-direction: column; gap: 0;'})
+              .addDiv({'class': 'bm-wizard-template-container-image', 'textContent': templateImage || '🖼️'})
+                // TODO: Add image element and SVG fallback
+              .buildElement()
+              .addSmall({'textContent': `#${sortIDLocalized}`}).buildElement()
+            .buildElement()
+            .addDiv({'class': 'bm-flex-center bm-wizard-template-container-flavor'})
+              .addHeader(3, {'textContent': displayName}).buildElement()
+              .addSpan({'textContent': `Uploaded by user #${authorIDLocalized}`}).buildElement()
+              .addSpan({'textContent': `Coordinates: ${coords.join(', ')}`}).buildElement()
+              .addSpan({'textContent': `Total Pixels: ${totalPixelCountLocalized}`}).buildElement()
+            .buildElement()
+          .buildElement()
+        }
+      }
+
+      // Adds the template list to the real DOM tree
+      templateList.buildElement().buildOverlay(templateListParentElement);
+    }
+  }
+
+  /** Converts schema version 1.0.0 to schema version 2.0.0.
+   * @param {boolean} shouldWindowWizardOpen - Should we open a new Template Wizard window after schema conversion? This will close any Template Wizard already open.
+   * @since 0.88.504
+   */
+  async #convertSchema_1_x_x_To_2_x_x(shouldWindowWizardOpen) {
+
+    // Creates loading screen
+    if (shouldWindowWizardOpen) {
+      
+      // Obtains the Template Wizard window content container
+      const windowContent = document.querySelector(`#${this.windowID} .bm-window-content`);
+
+      // Deletes all content in the Template Wizard window content container
+      windowContent.innerHTML = '';
+
+      const loadingScreen = new Overlay(this.name, this.version);
+      loadingScreen.addDiv({'class': 'bm-container'})
+        .addDiv({'class': 'bm-container bm-center-vertically'})
+          .addHeader(1, {'textContent': 'Template Wizard'}).buildElement()
+        .buildElement()
+        .addHr().buildElement()
+        .addDiv({'class': 'bm-container'})
+          .addHeader(2, {'textContent': 'Status'}).buildElement()
+          .addP({'textContent': 'Updating template storage. Please wait...'}).buildElement()
+        .buildElement()
+      .buildElement().buildOverlay(windowContent);
+    }
+
+    // Deletes the bmCoords value set in 1.0.0 which is unused in 2.0.0
+    GM_deleteValue('bmCoords');
+
+    // Obtains the templates from JSON storage
+    const templates = this.currentJSON?.templates;
+
+    // If there is at least one template loaded...
+    if (Object.keys(templates).length > 0) {
+
+      // For each template loaded...
+      for (const [key, template] of Object.entries(templates)) {
+
+        // If the template is a direct child of the templates Object...
+        if (templates.hasOwnProperty(key)) {
+
+          // Creates a dummy Template class instance
+          const _template = new Template({
+            displayName: template.name,
+            chunked: template.tiles
+          });
+
+          _template.calculateCoordsFromChunked(); // Updates `Template.coords`
+
+          // Converts the template to a Blob
+          const blob = await this.templateManager.convertTemplateToBlob(_template);
+
+          // Uses the information from the dummy Template class instance to make the actual Template
+          await this.templateManager.createTemplate(blob, _template.displayName, _template.coords);
+        }
+      }
+    }
+
+    // If it has been requested that we open a new Template Wizard window, we do so
+    if (shouldWindowWizardOpen) {
+      console.log(`Restarting Template Wizard...`);
+      document.querySelector(`#${this.windowID}`).remove();
+      new WindowWizard(this.name, this.version, this.schemaVersionBleedingEdge, this.templateManager).buildWindow();
+    }
+  }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Fri Feb 27 2026 13:40:34 GMT+0000 (Coordinated Universal Time) using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
