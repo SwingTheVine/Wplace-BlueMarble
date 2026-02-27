@@ -70,7 +70,7 @@
 }
 
 /* Filter window hide color button */
-.bm-filter-container-rgb button {
+#bm-window-filter .bm-filter-container-rgb button {
   padding: 0.75em 0.5ch;
 }
 
