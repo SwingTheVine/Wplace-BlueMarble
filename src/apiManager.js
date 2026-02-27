@@ -59,7 +59,7 @@ export default class ApiManager {
           if (dataJSON['status'] && dataJSON['status']?.toString()[0] != '2') {
             // The server is probably down (NOT a 2xx status)
             
-            overlay.handleDisplayError(`You are not logged in!\nCould not fetch userdata.`);
+            overlay.handleDisplayError(`You are not logged in or Wplace is offline!\nCould not fetch userdata.`);
             return; // Kills itself before attempting to display null userdata
           }
 
@@ -132,7 +132,7 @@ export default class ApiManager {
           }
           break;
         
-        case 'tiles':
+        case 'tile' || 'tiles':
 
           let tileCoordsTile = data['endpoint'].split('/');
           tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace('.png', ''))];

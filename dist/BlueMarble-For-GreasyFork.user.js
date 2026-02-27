@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.88.536
+// @version         0.88.537
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -2427,7 +2427,7 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
         switch (endpointText) {
           case "me":
             if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
-              overlay.handleDisplayError(`You are not logged in!
+              overlay.handleDisplayError(`You are not logged in or Wplace is offline!
 Could not fetch userdata.`);
               return;
             }
@@ -2478,7 +2478,7 @@ Did you try clicking the canvas first?`);
               }
             }
             break;
-          case "tiles":
+          case "tile":
             let tileCoordsTile = data["endpoint"].split("/");
             tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace(".png", ""))];
             const blobUUID = data["blobID"];
