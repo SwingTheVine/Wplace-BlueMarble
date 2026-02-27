@@ -55,8 +55,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Rust for tokei
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
       - name: Install tokei
-        run: sudo apt-get update && sudo apt-get install -y tokei jq
+        run: cargo install tokei --locked
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
 
       - name: Update userscript version
         run: |
