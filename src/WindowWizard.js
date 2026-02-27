@@ -42,9 +42,9 @@ export default class WindowWizard extends Overlay {
    */
   buildWindow() {
 
-    // If a template wizard window already exists, throw an error and return early
+    // If a template wizard window already exists, close it
     if (document.querySelector(`#${this.windowID}`)) {
-      this.handleDisplayError('Template Wizard window already exists!');
+      document.querySelector(`#${this.windowID}`).remove();
       return;
     }
 

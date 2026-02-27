@@ -44,9 +44,9 @@ export default class WindowFilter extends Overlay {
    */
   buildWindow() {
 
-    // If a color filter window already exists, throw an error and return early
+    // If a color filter wizard window already exists, close it
     if (document.querySelector(`#${this.windowID}`)) {
-      this.handleDisplayError('Color Filter window already exists!');
+      document.querySelector(`#${this.windowID}`).remove();
       return;
     }
     
