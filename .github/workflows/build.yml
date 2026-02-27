@@ -57,8 +57,20 @@ jobs:
 
       - name: Install tokei
         run: |
-          curl -L https://github.com/XAMPPRocky/tokei/releases/latest/download/tokei-x86_64-unknown-linux-gnu.tar.gz \
-          | tar xz
+          set -e
+
+          ASSET_URL=$(curl -s https://api.github.com/repos/XAMPPRocky/tokei/releases/latest \
+            | grep browser_download_url \
+            | grep x86_64-unknown-linux-gnu.tar.gz \
+            | cut -d '"' -f 4)
+
+          if [ -z "$ASSET_URL" ]; then
+            echo "Failed to find tokei release asset"
+            exit 1
+          fi
+
+          curl -L "$ASSET_URL" -o tokei.tar.gz
+          tar -xzf tokei.tar.gz
           sudo mv tokei /usr/local/bin/
 
       - name: Update userscript version
