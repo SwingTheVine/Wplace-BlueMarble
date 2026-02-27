@@ -132,7 +132,8 @@ export default class ApiManager {
           }
           break;
         
-        case 'tile' || 'tiles':
+        case 'tile':
+        case 'tiles':
 
           let tileCoordsTile = data['endpoint'].split('/');
           tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace('.png', ''))];
