@@ -95,5 +95,8 @@ export default class WindowCredts extends Overlay {
         .buildElement()
       .buildElement()
     .buildElement().buildOverlay(this.windowParent);
+
+    // Creates dragging capability on the drag bar for dragging the window
+    this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
   }
 }
