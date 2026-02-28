@@ -173,6 +173,8 @@ export default class WindowFilter extends Overlay {
     // Obtains the scrollable container to put the color filter in
     const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
 
+    // Calculates the pixel statistics
+    // E.g. correct pixels per color
     this.#calculatePixelStatistics();
 
     // Displays some template statistics to the user
@@ -184,7 +186,7 @@ export default class WindowFilter extends Overlay {
 
     // These run when the user opens the Color Filter window
     this.#buildColorList(scrollableContainer);
-    this.#sortColorList('id', 'ascending', false);
+    this.#sortColorList(this.sortPrimary, this.sortSecondary, this.showUnused);
   }
 
   /** Spawns a windowed Color Filter window.
@@ -209,10 +211,10 @@ export default class WindowFilter extends Overlay {
         }).buildElement()
         .addDiv().buildElement() // Contains the minimized h1 element
         .addDiv({'class': 'bm-flex-center'})
-          .addButton({'class': 'bm-button-circle', 'textContent': '🗗', 'aria-label': 'Switch to windowed mode for "Color Filter"'}, (instance, button) => {
+          .addButton({'class': 'bm-button-circle', 'textContent': '🗖', 'aria-label': 'Switch to fullscreen mode for "Color Filter"'}, (instance, button) => {
             button.onclick = () => {
               document.querySelector(`#${this.windowID}`)?.remove();
-              this.buildWindowed();
+              this.buildWindow();
             };
             button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
           }).buildElement()
@@ -223,9 +225,40 @@ export default class WindowFilter extends Overlay {
         .buildElement()
       .buildElement()
       .addDiv({'class': 'bm-window-content'})
-
+        .addDiv({'class': 'bm-container bm-center-vertically'})
+          .addHeader(1, {'textContent': 'Color Filter'}).buildElement()
+        .buildElement()
+        .addHr().buildElement()
+        .addDiv({'class': 'bm-container bm-flex-between bm-center-vertically', 'style': 'gap: 1.5ch;'})
+          .addButton({'textContent': 'None'}, (instance, button) => {
+            button.onclick = () => this.#selectColorList(false);
+          }).buildElement()
+          .addButton({'textContent': 'Refresh'}, (instance, button) => {
+            button.onclick = () => {};
+          }).buildElement()
+          .addButton({'textContent': 'All'}, (instance, button) => {
+            button.onclick = () => this.#selectColorList(true);
+          }).buildElement()
+        .buildElement()
+        .addDiv({'class': 'bm-container bm-scrollable'})
+          // Color list will appear here
+        .buildElement()
       .buildElement()
     .buildElement().buildOverlay(this.windowParent);
+
+    // Creates dragging capability on the drag bar for dragging the window
+    this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+
+    // Obtains the scrollable container to put the color filter in
+    const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
+
+    // Calculates the pixel statistics
+    // E.g. correct pixels per color
+    this.#calculatePixelStatistics();
+    
+    // These run when the user opens the Color Filter window
+    this.#buildColorList(scrollableContainer);
+    this.#sortColorList(this.sortPrimary, this.sortSecondary, this.showUnused);
   }
 
   /** Creates the color list container.
@@ -233,6 +266,12 @@ export default class WindowFilter extends Overlay {
    * @since 0.88.222
    */
   #buildColorList(parentElement) {
+
+    // Figures out if this window is fullscreen or windowed mode
+    const isWindowedMode = parentElement.closest(`#${this.windowID}`)?.classList.contains('bm-windowed');
+    // Note: `undefined` is expected to behave as if `false`
+    
+    console.log(`Is Windowed Mode: ${isWindowedMode}`);
 
     const colorList = new Overlay(this.name, this.version);
     colorList.addDiv({'class': 'bm-filter-flex'})
@@ -292,60 +331,115 @@ export default class WindowFilter extends Overlay {
 
       const isColorHidden = !!(this.templateManager.shouldFilterColor.get(color.id) || false);
 
-      // Construct the DOM tree for color in color list
-      colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between',
-        'data-id': color.id,
-        'data-name': color.name,
-        'data-premium': +color.premium,
-        'data-correct': !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : '0',
-        'data-total': colorTotal,
-        'data-percent': (colorPercent.slice(-1) == '%') ? colorPercent.slice(0, -1) : '0',
-        'data-incorrect': colorIncorrect || 0
-      })
-      .addDiv({'class': 'bm-flex-center', 'style': 'flex-direction: column;'})
-        .addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
-          .addButton({
-            'class': 'bm-button-trans ' + bgEffectForButtons,
-            'data-state': isColorHidden ? 'hidden' : 'shown',
-            'aria-label': isColorHidden ? `Show the color ${color.name || ''} on templates.` : `Hide the color ${color.name || ''} on templates.`,
-            'innerHTML': isColorHidden ? this.eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`)},
-            (instance, button) => {
+      // Add the color to the color list DOM
+      if (isWindowedMode) {
 
-              // When the button is clicked
-              button.onclick = () => {
-                button.style.textDecoration = 'none';
-                button.disabled = true;
-                if (button.dataset['state'] == 'shown') {
-                  button.innerHTML = this.eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
-                  button.dataset['state'] = 'hidden';
-                  button.ariaLabel = `Show the color ${color.name || ''} on templates.`;
-                  this.templateManager.shouldFilterColor.set(color.id, true);
-                } else {
-                  button.innerHTML = this.eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
-                  button.dataset['state'] = 'shown';
-                  button.ariaLabel = `Hide the color ${color.name || ''} on templates.`;
-                  this.templateManager.shouldFilterColor.delete(color.id);
+        // The star pattern for premium colors
+        const styleBackgroundStar = `background-size: auto 100%; background-repeat: repeat-x; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50,5L79,91L2,39L98,39L21,91' fill='${textColorForPaletteColorBackground}' fill-opacity='.1'/></svg>");`;
+
+        // Add windowed mode color DOM to color list
+        colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between',
+          // Dataset
+          'data-id': color.id,
+          'data-name': color.name,
+          'data-premium': +color.premium,
+          'data-correct': !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : '0',
+          'data-total': colorTotal,
+          'data-percent': (colorPercent.slice(-1) == '%') ? colorPercent.slice(0, -1) : '0',
+          'data-incorrect': colorIncorrect || 0
+        }).addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});${color.premium ? styleBackgroundStar : ''}`})
+            .addButton({
+              'class': 'bm-button-trans ' + bgEffectForButtons,
+              'data-state': isColorHidden ? 'hidden' : 'shown',
+              'aria-label': isColorHidden ? `Show the color ${color.name || ''} on templates.` : `Hide the color ${color.name || ''} on templates.`,
+              'innerHTML': isColorHidden ? this.eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`)},
+              (instance, button) => {
+
+                // When the button is clicked
+                button.onclick = () => {
+                  button.style.textDecoration = 'none';
+                  button.disabled = true;
+                  if (button.dataset['state'] == 'shown') {
+                    button.innerHTML = this.eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
+                    button.dataset['state'] = 'hidden';
+                    button.ariaLabel = `Show the color ${color.name || ''} on templates.`;
+                    this.templateManager.shouldFilterColor.set(color.id, true);
+                  } else {
+                    button.innerHTML = this.eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
+                    button.dataset['state'] = 'shown';
+                    button.ariaLabel = `Hide the color ${color.name || ''} on templates.`;
+                    this.templateManager.shouldFilterColor.delete(color.id);
+                  }
+                  button.disabled = false;
+                  button.style.textDecoration = '';
                 }
-                button.disabled = false;
-                button.style.textDecoration = '';
-              }
 
-              // Disables the "hide color" button if the color is "Transparent" (or no ID exists)
-              if (!color.id) {button.disabled = true;}
-            }
-          ).buildElement()
-        .buildElement()
-        .addSmall({'textContent': (color.id == -2) ? '???????' : colorValueHex}).buildElement()
-      .buildElement()
-      .addDiv({'class': 'bm-flex-between'})
-        .addHeader(2, {'textContent': (color.premium ? '★ ' : '') + color.name}).buildElement()
-        .addDiv({'class': 'bm-flex-between', 'style': 'gap: 1.5ch;'})
-          .addSmall({'textContent': `#${color.id}`}).buildElement()
-          .addSmall({'textContent': `${colorCorrectLocalized} / ${colorTotalLocalized}`}).buildElement()
-        .buildElement()
-        .addP({'textContent': `${((typeof colorIncorrect == 'number') && !isNaN(colorIncorrect)) ? colorIncorrect : '???'} incorrect pixels. Completed: ${colorPercent}`}).buildElement()
-      .buildElement()
-    .buildElement()
+                // Disables the "hide color" button if the color is "Transparent" (or no ID exists)
+                if (!color.id) {button.disabled = true;}
+              }
+            ).buildElement()
+            .addSmall({'textContent': `#${color.id.toString().padStart(2, 0)}`, 'style': `color: ${((color.id == -1) || (color.id == 0)) ? 'white' : textColorForPaletteColorBackground}`}).buildElement()
+            .addHeader(2, {'textContent': color.name, 'style': `color: ${((color.id == -1) || (color.id == 0)) ? 'white' : textColorForPaletteColorBackground}`}).buildElement()
+            .addSmall({'textContent': `${colorCorrectLocalized} / ${colorTotalLocalized}`, 'style': `color: ${((color.id == -1) || (color.id == 0)) ? 'white' : textColorForPaletteColorBackground}; flex: 1 1 auto; text-align: right;`}).buildElement()
+          .buildElement()
+        .buildElement();
+      } else {
+        // Else we are in fullscreen mode.
+
+        // Add fullscreen mode color DOM to color list
+        colorList.addDiv({'class': 'bm-container bm-filter-color bm-flex-between',
+          'data-id': color.id,
+          'data-name': color.name,
+          'data-premium': +color.premium,
+          'data-correct': !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : '0',
+          'data-total': colorTotal,
+          'data-percent': (colorPercent.slice(-1) == '%') ? colorPercent.slice(0, -1) : '0',
+          'data-incorrect': colorIncorrect || 0
+        }).addDiv({'class': 'bm-flex-center', 'style': 'flex-direction: column;'})
+            .addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
+              .addButton({
+                'class': 'bm-button-trans ' + bgEffectForButtons,
+                'data-state': isColorHidden ? 'hidden' : 'shown',
+                'aria-label': isColorHidden ? `Show the color ${color.name || ''} on templates.` : `Hide the color ${color.name || ''} on templates.`,
+                'innerHTML': isColorHidden ? this.eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`)},
+                (instance, button) => {
+
+                  // When the button is clicked
+                  button.onclick = () => {
+                    button.style.textDecoration = 'none';
+                    button.disabled = true;
+                    if (button.dataset['state'] == 'shown') {
+                      button.innerHTML = this.eyeClosed.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
+                      button.dataset['state'] = 'hidden';
+                      button.ariaLabel = `Show the color ${color.name || ''} on templates.`;
+                      this.templateManager.shouldFilterColor.set(color.id, true);
+                    } else {
+                      button.innerHTML = this.eyeOpen.replace('<svg', `<svg fill="${textColorForPaletteColorBackground}"`);
+                      button.dataset['state'] = 'shown';
+                      button.ariaLabel = `Hide the color ${color.name || ''} on templates.`;
+                      this.templateManager.shouldFilterColor.delete(color.id);
+                    }
+                    button.disabled = false;
+                    button.style.textDecoration = '';
+                  }
+
+                  // Disables the "hide color" button if the color is "Transparent" (or no ID exists)
+                  if (!color.id) {button.disabled = true;}
+                }
+              ).buildElement()
+            .buildElement()
+            .addSmall({'textContent': (color.id == -2) ? '???????' : colorValueHex}).buildElement()
+          .buildElement()
+          .addDiv({'class': 'bm-flex-between'})
+            .addHeader(2, {'textContent': (color.premium ? '★ ' : '') + color.name}).buildElement()
+            .addDiv({'class': 'bm-flex-between', 'style': 'gap: 1.5ch;'})
+              .addSmall({'textContent': `#${color.id.toString().padStart(2, 0)}`}).buildElement()
+              .addSmall({'textContent': `${colorCorrectLocalized} / ${colorTotalLocalized}`}).buildElement()
+            .buildElement()
+            .addP({'textContent': `${((typeof colorIncorrect == 'number') && !isNaN(colorIncorrect)) ? colorIncorrect : '???'} incorrect pixels. Completed: ${colorPercent}`}).buildElement()
+          .buildElement()
+        .buildElement();
+      }
     }
 
     // Adds the colors to the color container in the filter window

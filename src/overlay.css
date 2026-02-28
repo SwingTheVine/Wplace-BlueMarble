@@ -339,3 +339,15 @@ input[type="file"] {
   font-size: 1.6em;
   font-family: monospace;
 }
+
+/* WINDOWED MODE */
+
+/* Containers for "sections" of elements in windowed mode */
+.bm-container {
+  margin: 0.25em 0;
+}
+
+/* Header 1 in windowed mode */
+.bm-windowed h1 {
+  font-size: 1em;
+}

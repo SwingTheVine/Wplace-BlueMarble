@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.90.38
+// @version         0.90.59
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2775,7 +2775,7 @@ Did you try clicking the canvas first?`);
       this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0))} (${localizePercent(((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0)) / (this.allPixelsTotal || 1))})`);
       this.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${this.timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${this.timeRemainingLocalized}</time>`);
       __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
-      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, "id", "ascending", false);
+      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
     }
     /** Spawns a windowed Color Filter window.
      * If another color filter window already exists, we DON'T spawn another!
@@ -2792,10 +2792,10 @@ Did you try clicking the canvas first?`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D7}", "aria-label": 'Switch to windowed mode for "Color Filter"' }, (instance, button) => {
+      }).buildElement().addDiv().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D6}", "aria-label": 'Switch to fullscreen mode for "Color Filter"' }, (instance, button) => {
         button.onclick = () => {
           document.querySelector(`#${this.windowID}`)?.remove();
-          this.buildWindowed();
+          this.buildWindow();
         };
         button.ontouchend = () => {
           button.click();
@@ -2807,7 +2807,19 @@ Did you try clicking the canvas first?`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "None" }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
+      }).buildElement().addButton({ "textContent": "Refresh" }, (instance, button) => {
+        button.onclick = () => {
+        };
+      }).buildElement().addButton({ "textContent": "All" }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
+      }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+      const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
+      __privateMethod(this, _WindowFilter_instances, calculatePixelStatistics_fn).call(this);
+      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
+      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
     }
   };
   _WindowFilter_instances = new WeakSet();
@@ -2816,6 +2828,8 @@ Did you try clicking the canvas first?`);
    * @since 0.88.222
    */
   buildColorList_fn = function(parentElement) {
+    const isWindowedMode = parentElement.closest(`#${this.windowID}`)?.classList.contains("bm-windowed");
+    console.log(`Is Windowed Mode: ${isWindowedMode}`);
     const colorList = new Overlay(this.name, this.version);
     colorList.addDiv({ "class": "bm-filter-flex" });
     for (const color of this.palette) {
@@ -2841,45 +2855,89 @@ Did you try clicking the canvas first?`);
       }
       const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
       const isColorHidden = !!(this.templateManager.shouldFilterColor.get(color.id) || false);
-      colorList.addDiv({
-        "class": "bm-container bm-filter-color bm-flex-between",
-        "data-id": color.id,
-        "data-name": color.name,
-        "data-premium": +color.premium,
-        "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
-        "data-total": colorTotal,
-        "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
-        "data-incorrect": colorIncorrect || 0
-      }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column;" }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
-        {
-          "class": "bm-button-trans " + bgEffectForButtons,
-          "data-state": isColorHidden ? "hidden" : "shown",
-          "aria-label": isColorHidden ? `Show the color ${color.name || ""} on templates.` : `Hide the color ${color.name || ""} on templates.`,
-          "innerHTML": isColorHidden ? this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`)
-        },
-        (instance, button) => {
-          button.onclick = () => {
-            button.style.textDecoration = "none";
-            button.disabled = true;
-            if (button.dataset["state"] == "shown") {
-              button.innerHTML = this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
-              button.dataset["state"] = "hidden";
-              button.ariaLabel = `Show the color ${color.name || ""} on templates.`;
-              this.templateManager.shouldFilterColor.set(color.id, true);
-            } else {
-              button.innerHTML = this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
-              button.dataset["state"] = "shown";
-              button.ariaLabel = `Hide the color ${color.name || ""} on templates.`;
-              this.templateManager.shouldFilterColor.delete(color.id);
+      if (isWindowedMode) {
+        const styleBackgroundStar = `background-size: auto 100%; background-repeat: repeat-x; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50,5L79,91L2,39L98,39L21,91' fill='${textColorForPaletteColorBackground}' fill-opacity='.1'/></svg>");`;
+        colorList.addDiv({
+          "class": "bm-container bm-filter-color bm-flex-between",
+          // Dataset
+          "data-id": color.id,
+          "data-name": color.name,
+          "data-premium": +color.premium,
+          "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
+          "data-total": colorTotal,
+          "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
+          "data-incorrect": colorIncorrect || 0
+        }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});${color.premium ? styleBackgroundStar : ""}` }).addButton(
+          {
+            "class": "bm-button-trans " + bgEffectForButtons,
+            "data-state": isColorHidden ? "hidden" : "shown",
+            "aria-label": isColorHidden ? `Show the color ${color.name || ""} on templates.` : `Hide the color ${color.name || ""} on templates.`,
+            "innerHTML": isColorHidden ? this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`)
+          },
+          (instance, button) => {
+            button.onclick = () => {
+              button.style.textDecoration = "none";
+              button.disabled = true;
+              if (button.dataset["state"] == "shown") {
+                button.innerHTML = this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "hidden";
+                button.ariaLabel = `Show the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.set(color.id, true);
+              } else {
+                button.innerHTML = this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "shown";
+                button.ariaLabel = `Hide the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.delete(color.id);
+              }
+              button.disabled = false;
+              button.style.textDecoration = "";
+            };
+            if (!color.id) {
+              button.disabled = true;
             }
-            button.disabled = false;
-            button.style.textDecoration = "";
-          };
-          if (!color.id) {
-            button.disabled = true;
           }
-        }
-      ).buildElement().buildElement().addSmall({ "textContent": color.id == -2 ? "???????" : colorValueHex }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+        ).buildElement().addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addHeader(2, { "textContent": color.name, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}; flex: 1 1 auto; text-align: right;` }).buildElement().buildElement().buildElement();
+      } else {
+        colorList.addDiv({
+          "class": "bm-container bm-filter-color bm-flex-between",
+          "data-id": color.id,
+          "data-name": color.name,
+          "data-premium": +color.premium,
+          "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
+          "data-total": colorTotal,
+          "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
+          "data-incorrect": colorIncorrect || 0
+        }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column;" }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
+          {
+            "class": "bm-button-trans " + bgEffectForButtons,
+            "data-state": isColorHidden ? "hidden" : "shown",
+            "aria-label": isColorHidden ? `Show the color ${color.name || ""} on templates.` : `Hide the color ${color.name || ""} on templates.`,
+            "innerHTML": isColorHidden ? this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`)
+          },
+          (instance, button) => {
+            button.onclick = () => {
+              button.style.textDecoration = "none";
+              button.disabled = true;
+              if (button.dataset["state"] == "shown") {
+                button.innerHTML = this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "hidden";
+                button.ariaLabel = `Show the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.set(color.id, true);
+              } else {
+                button.innerHTML = this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "shown";
+                button.ariaLabel = `Hide the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.delete(color.id);
+              }
+              button.disabled = false;
+              button.style.textDecoration = "";
+            };
+            if (!color.id) {
+              button.disabled = true;
+            }
+          }
+        ).buildElement().buildElement().addSmall({ "textContent": color.id == -2 ? "???????" : colorValueHex }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+      }
     }
     colorList.buildOverlay(parentElement);
   };

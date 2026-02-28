@@ -277,6 +277,12 @@ input[type=file] {
   font-size: 1.6em;
   font-family: monospace;
 }
+.bm-container {
+  margin: 0.25em 0;
+}
+.bm-windowed h1 {
+  font-size: 1em;
+}
 
 /* src/WindowFilter.css */
 #bm-window-filter p svg {
@@ -348,6 +354,33 @@ input[type=file] {
 }
 #bm-window-filter .bm-filter-color.bm-color-hide {
   display: none;
+}
+.bm-windowed .bm-filter-flex {
+  flex-direction: column;
+  gap: 0.25em;
+}
+.bm-windowed .bm-filter-color {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+.bm-windowed .bm-filter-container-rgb {
+  display: flex;
+  width: 100%;
+  gap: 0.5ch;
+  align-items: center;
+  padding: 0.1em 0.5ch;
+  border: none;
+  border-radius: 1em;
+}
+#bm-window-filter.bm-windowed .bm-filter-container-rgb button {
+  padding: 0.5em 0.25ch;
+}
+.bm-windowed .bm-filter-container-rgb svg {
+  width: 3ch;
+}
+.bm-windowed .bm-filter-color h2 {
+  font-size: 0.75em;
 }
 
 /* src/WindowWizard.css */
