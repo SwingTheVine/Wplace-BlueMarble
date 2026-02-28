@@ -32,4 +32,15 @@ Special Thanks:
 * [BullStein](https://github.com/BullStein), [allanf181](https://github.com/allanf181) for being early beta testers!
 * guidu_ and [Nick-machado](https://github.com/Nick-machado) for the "Minimize" original Button code!
 * Nomad and [Gustav](https://www.youtube.com/@gustav_vv) for the tutorials!
+* [cfp](https://github.com/cfpwastaken) for creating the template overlay that Blue Marble was based on!
+* [ForceNetwork](https://forcenetwork.cloud/) for hosting the [telemetry server](https://github.com/SwingTheVine/Wplace-TelemetryServer)!
 * TheBlueCorner for getting me interested in online pixel canvases!
+
+[Donators](https://ko-fi.com/swingthevine):
+* Espresso
+* BEST FAN
+* Jack
+* raiken_au
+* Jacob
+* StupidOne
+* 1 Anonymous Supporter
