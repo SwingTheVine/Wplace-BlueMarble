@@ -267,6 +267,13 @@ input[type=file] {
   align-items: center;
   gap: 0.5ch;
 }
+.bm-ascii {
+  white-space: pre;
+  letter-spacing: 0;
+  line-height: 1 !important;
+  font-size: 1.6em;
+  font-family: monospace;
+}
 
 /* src/WindowFilter.css */
 #bm-window-filter p svg {

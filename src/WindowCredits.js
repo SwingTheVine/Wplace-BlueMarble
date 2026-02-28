@@ -70,7 +70,7 @@ export default class WindowCredts extends Overlay {
         .buildElement()
         .addHr().buildElement()
         .addDiv({'class': 'bm-container bm-scrollable'})
-          .addSpan({'innerHTML': ascii, 'style': 'white-space: pre;'}).buildElement()
+          .addSpan({'innerHTML': ascii, 'class': 'bm-ascii'}).buildElement()
           .addBr().buildElement()
           .addHr().buildElement()
           .addBr().buildElement()
