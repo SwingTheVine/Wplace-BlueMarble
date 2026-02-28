@@ -13,7 +13,7 @@
   border: 0;
 }
 
-/* The Blue Marble window(s) */
+/* The Blue Marble windows */
 .bm-window {
   position: fixed;
   background-color: rgba(21, 48, 99, 0.9);
@@ -36,6 +36,11 @@
    * Last resort (Arial) */
   font-family: 'Roboto Mono', 'Courier New', 'Monaco', 'DejaVu Sans Mono', monospace, 'Arial';
   letter-spacing: 0.05em;
+}
+
+/* The Blue Marble windowed windows */
+.bm-window.bm-windowed {
+  max-width: 300px;
 }
 
 /* The drag bar */

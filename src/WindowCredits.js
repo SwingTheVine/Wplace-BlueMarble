@@ -59,7 +59,7 @@ export default class WindowCredts extends Overlay {
           button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar
         }).buildElement()
         .addDiv().buildElement() // Contains the minimized h1 element
-        .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Credits"'}, (instance, button) => {
+        .addButton({'class': 'bm-button-circle', 'textContent': '✖', 'aria-label': 'Close window "Credits"'}, (instance, button) => {
           button.onclick = () => {document.querySelector(`#${this.windowID}`)?.remove();};
           button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
         }).buildElement()

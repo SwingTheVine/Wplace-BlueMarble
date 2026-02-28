@@ -39,7 +39,7 @@ export default class WindowMain extends Overlay {
     }
 
     // Creates the window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': 'top: 10px; left: unset; right: 75px;'}, (instance, div) => {
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': 'top: 10px; left: unset; right: 75px;'}, (instance, div) => {
       // div.onclick = (event) => {
       //   if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
       //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top

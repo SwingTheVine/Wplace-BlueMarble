@@ -75,10 +75,19 @@ export default class WindowFilter extends Overlay {
           button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar
         }).buildElement()
         .addDiv().buildElement() // Contains the minimized h1 element
-        .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Color Filter"'}, (instance, button) => {
-          button.onclick = () => {document.querySelector(`#${this.windowID}`)?.remove();};
-          button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
-        }).buildElement()
+        .addDiv({'class': 'bm-flex-center'})
+          .addButton({'class': 'bm-button-circle', 'textContent': '🗗', 'aria-label': 'Switch to windowed mode for "Color Filter"'}, (instance, button) => {
+            button.onclick = () => {
+              document.querySelector(`#${this.windowID}`)?.remove();
+              this.buildWindowed();
+            };
+            button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
+          }).buildElement()
+          .addButton({'class': 'bm-button-circle', 'textContent': '✖', 'aria-label': 'Close window "Color Filter"'}, (instance, button) => {
+            button.onclick = () => {document.querySelector(`#${this.windowID}`)?.remove();};
+            button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
+          }).buildElement()
+        .buildElement()
       .buildElement()
       .addDiv({'class': 'bm-window-content'})
         .addDiv({'class': 'bm-container bm-center-vertically'})
@@ -176,6 +185,47 @@ export default class WindowFilter extends Overlay {
     // These run when the user opens the Color Filter window
     this.#buildColorList(scrollableContainer);
     this.#sortColorList('id', 'ascending', false);
+  }
+
+  /** Spawns a windowed Color Filter window.
+   * If another color filter window already exists, we DON'T spawn another!
+   * Parent/child relationships in the DOM structure below are indicated by indentation.
+   * @since 0.90.35
+   */
+  buildWindowed() {
+
+    // If a color filter wizard window already exists, close it
+    if (document.querySelector(`#${this.windowID}`)) {
+      document.querySelector(`#${this.windowID}`).remove();
+      return;
+    }
+
+    // Creates a new windowed color filter window
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed'})
+      .addDragbar()
+        .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Color Filter"', 'data-button-status': 'expanded'}, (instance, button) => {
+          button.onclick = () => instance.handleMinimization(button);
+          button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar
+        }).buildElement()
+        .addDiv().buildElement() // Contains the minimized h1 element
+        .addDiv({'class': 'bm-flex-center'})
+          .addButton({'class': 'bm-button-circle', 'textContent': '🗗', 'aria-label': 'Switch to windowed mode for "Color Filter"'}, (instance, button) => {
+            button.onclick = () => {
+              document.querySelector(`#${this.windowID}`)?.remove();
+              this.buildWindowed();
+            };
+            button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
+          }).buildElement()
+          .addButton({'class': 'bm-button-circle', 'textContent': '✖', 'aria-label': 'Close window "Color Filter"'}, (instance, button) => {
+            button.onclick = () => {document.querySelector(`#${this.windowID}`)?.remove();};
+            button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
+          }).buildElement()
+        .buildElement()
+      .buildElement()
+      .addDiv({'class': 'bm-window-content'})
+
+      .buildElement()
+    .buildElement().buildOverlay(this.windowParent);
   }
 
   /** Creates the color list container.
