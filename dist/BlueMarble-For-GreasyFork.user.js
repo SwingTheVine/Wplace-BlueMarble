@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.90.59
+// @version         0.90.65
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2701,6 +2701,7 @@ Did you try clicking the canvas first?`);
       __privateAdd(this, _WindowFilter_instances);
       this.window = null;
       this.windowID = "bm-window-filter";
+      this.colorListID = "bm-filter-flex";
       this.windowParent = document.body;
       this.templateManager = executor.apiManager?.templateManager;
       this.eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
@@ -2752,6 +2753,12 @@ Did you try clicking the canvas first?`);
         };
       }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "Hide All Colors" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
+      }).buildElement().addButton({ "textContent": "Refresh Data" }, (instance, button) => {
+        button.onclick = () => {
+          button.disabled = true;
+          this.updateColorList();
+          button.disabled = false;
+        };
       }).buildElement().addButton({ "textContent": "Show All Colors" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
       }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-filter-tile-load", "innerHTML": "<b>Tiles Loaded:</b> 0 / ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-correct", "innerHTML": "<b>Correct Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-total", "innerHTML": "<b>Total Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-remaining", "innerHTML": "<b>Complete:</b> ??? (???)" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-completed", "innerHTML": "??? ???" }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addP({ "innerHTML": `Colors with the icon ${this.eyeOpen.replace("<svg", '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace("<svg", '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Hide All Colors" and "Show All Colors" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how many tiles of the template you have loaded since you last opened Wplace.live. If all tiles have been loaded, then the "correct pixel" count is accurate.` }).buildElement().buildElement().addHr().buildElement().addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Sort Colors", "type": "submit" }, (instance, button) => {
@@ -2768,14 +2775,13 @@ Did you try clicking the canvas first?`);
       }).buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
-      __privateMethod(this, _WindowFilter_instances, calculatePixelStatistics_fn).call(this);
+      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
+      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
       this.updateInnerHTML("#bm-filter-tile-load", `<b>Tiles Loaded:</b> ${localizeNumber(this.tilesLoadedTotal)} / ${localizeNumber(this.tilesTotal)}`);
       this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber(this.allPixelsCorrectTotal)}`);
       this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber(this.allPixelsTotal)}`);
       this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0))} (${localizePercent(((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0)) / (this.allPixelsTotal || 1))})`);
       this.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${this.timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${this.timeRemainingLocalized}</time>`);
-      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
-      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
     }
     /** Spawns a windowed Color Filter window.
      * If another color filter window already exists, we DON'T spawn another!
@@ -2811,14 +2817,86 @@ Did you try clicking the canvas first?`);
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
       }).buildElement().addButton({ "textContent": "Refresh" }, (instance, button) => {
         button.onclick = () => {
+          button.disabled = true;
+          this.updateColorList();
+          button.disabled = false;
         };
       }).buildElement().addButton({ "textContent": "All" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
       }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
-      __privateMethod(this, _WindowFilter_instances, calculatePixelStatistics_fn).call(this);
       __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
+      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
+    }
+    /** Updates the information inside the colors in the color list.
+     * If the color list does not exist yet, it returns the color information instead.
+     * This assumes the information inside each element is the same between fullscreen and windowed mode.
+     * @since 0.90.60
+     * @returns {Object<number, {
+     *   colorTotal: number | string,
+     *   colorTotalLocalized: string,
+     *   colorCorrect: number | string,
+     *   colorCorrectLocalized: string,
+     *   colorPercent: string,
+     *   colorIncorrect: number
+     * }}
+     */
+    updateColorList() {
+      __privateMethod(this, _WindowFilter_instances, calculatePixelStatistics_fn).call(this);
+      const colorList = document.querySelector(`#${this.colorListID}`);
+      const colorStatistics = {};
+      for (const color of this.palette) {
+        const colorTotal = this.allPixelsColor.get(color.id) ?? 0;
+        const colorTotalLocalized = localizeNumber(colorTotal);
+        let colorCorrect = 0;
+        let colorCorrectLocalized = "0";
+        let colorPercent = localizePercent(1);
+        if (colorTotal != 0) {
+          colorCorrect = this.allPixelsCorrect.get(color.id) ?? "???";
+          if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
+            colorCorrect = 0;
+          }
+          colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : localizeNumber(colorCorrect);
+          colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent(colorCorrect / colorTotal);
+        }
+        const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
+        colorStatistics[color.id] = {
+          colorTotal,
+          colorTotalLocalized,
+          colorCorrect,
+          colorCorrectLocalized,
+          colorPercent,
+          colorIncorrect
+        };
+      }
+      if (!colorList) {
+        return colorStatistics;
+      }
+      const colors = Array.from(colorList.children);
+      for (const color of colors) {
+        const colorID = parseInt(color.dataset["id"]);
+        const {
+          colorCorrect,
+          colorCorrectLocalized,
+          colorPercent,
+          colorTotal,
+          colorTotalLocalized,
+          colorIncorrect
+        } = colorStatistics[colorID];
+        color.dataset["correct"] = !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0";
+        color.dataset["total"] = colorTotal;
+        color.dataset["percent"] = colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0";
+        color.dataset["incorrect"] = colorIncorrect || 0;
+        const pixelCount = document.querySelector(`#${this.windowID} .bm-filter-color[data-id="${colorID}"] .bm-filter-color-pxl-cnt`);
+        if (pixelCount) {
+          pixelCount.textContent = `${colorCorrectLocalized} / ${colorTotalLocalized}`;
+        }
+        const pixelDesc = document.querySelector(`#${this.windowID} .bm-filter-color[data-id="${colorID}"] .bm-filter-color-pxl-desc`);
+        if (pixelDesc) {
+          pixelDesc.textContent = `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}`;
+        }
+      }
       __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
     }
   };
@@ -2831,7 +2909,8 @@ Did you try clicking the canvas first?`);
     const isWindowedMode = parentElement.closest(`#${this.windowID}`)?.classList.contains("bm-windowed");
     console.log(`Is Windowed Mode: ${isWindowedMode}`);
     const colorList = new Overlay(this.name, this.version);
-    colorList.addDiv({ "class": "bm-filter-flex" });
+    colorList.addDiv({ "id": this.colorListID });
+    const colorStatistics = this.updateColorList();
     for (const color of this.palette) {
       const colorValueHex = "#" + rgbToHex(color.rgb).toUpperCase();
       const lumin = calculateRelativeLuminance(color.rgb);
@@ -2840,20 +2919,14 @@ Did you try clicking the canvas first?`);
         textColorForPaletteColorBackground = "transparent";
       }
       const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
-      const colorTotal = this.allPixelsColor.get(color.id) ?? 0;
-      const colorTotalLocalized = localizeNumber(colorTotal);
-      let colorCorrect = 0;
-      let colorCorrectLocalized = "0";
-      let colorPercent = localizePercent(1);
-      if (colorTotal != 0) {
-        colorCorrect = this.allPixelsCorrect.get(color.id) ?? "???";
-        if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
-          colorCorrect = 0;
-        }
-        colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : localizeNumber(colorCorrect);
-        colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent(colorCorrect / colorTotal);
-      }
-      const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
+      const {
+        colorCorrect,
+        colorCorrectLocalized,
+        colorPercent,
+        colorTotal,
+        colorTotalLocalized,
+        colorIncorrect
+      } = colorStatistics[color.id];
       const isColorHidden = !!(this.templateManager.shouldFilterColor.get(color.id) || false);
       if (isWindowedMode) {
         const styleBackgroundStar = `background-size: auto 100%; background-repeat: repeat-x; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50,5L79,91L2,39L98,39L21,91' fill='${textColorForPaletteColorBackground}' fill-opacity='.1'/></svg>");`;
@@ -2896,7 +2969,7 @@ Did you try clicking the canvas first?`);
               button.disabled = true;
             }
           }
-        ).buildElement().addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addHeader(2, { "textContent": color.name, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}; flex: 1 1 auto; text-align: right;` }).buildElement().buildElement().buildElement();
+        ).buildElement().addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addHeader(2, { "textContent": color.name, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addSmall({ "class": "bm-filter-color-pxl-cnt", "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}; flex: 1 1 auto; text-align: right;` }).buildElement().buildElement().buildElement();
       } else {
         colorList.addDiv({
           "class": "bm-container bm-filter-color bm-flex-between",
@@ -2936,7 +3009,7 @@ Did you try clicking the canvas first?`);
               button.disabled = true;
             }
           }
-        ).buildElement().buildElement().addSmall({ "textContent": color.id == -2 ? "???????" : colorValueHex }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+        ).buildElement().buildElement().addSmall({ "textContent": color.id == -2 ? "???????" : colorValueHex }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}` }).buildElement().addSmall({ "class": "bm-filter-color-pxl-cnt", "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "class": "bm-filter-color-pxl-desc", "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
       }
     }
     colorList.buildOverlay(parentElement);
@@ -2951,7 +3024,7 @@ Did you try clicking the canvas first?`);
     this.sortPrimary = sortPrimary;
     this.sortSecondary = sortSecondary;
     this.showUnused = showUnused;
-    const colorList = document.querySelector(".bm-filter-flex");
+    const colorList = document.querySelector(`#${this.colorListID}`);
     const colors = Array.from(colorList.children);
     colors.sort((index, nextIndex) => {
       const indexValue = index.getAttribute("data-" + sortPrimary);
@@ -2982,7 +3055,7 @@ Did you try clicking the canvas first?`);
    * @since 0.88.222
    */
   selectColorList_fn = function(userWantsUnselect) {
-    const colorList = document.querySelector(".bm-filter-flex");
+    const colorList = document.querySelector(`#${this.colorListID}`);
     const colors = Array.from(colorList.children);
     for (const color of colors) {
       if (color.classList?.contains("bm-color-hide")) {
@@ -3022,7 +3095,7 @@ Did you try clicking the canvas first?`);
         for (const [colorID, correctPixels] of map) {
           const _correctPixels = Number(correctPixels) || 0;
           this.allPixelsCorrectTotal += _correctPixels;
-          const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0;
+          const allPixelsCorrectSoFar = this.allPixelsCorrect.get(colorID) ?? 0;
           this.allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
         }
       }

@@ -162,6 +162,7 @@
 /* All window buttons when disabled */
 .bm-window button:disabled, .bm-window button:disabled {
   text-decoration: line-through;
+  cursor: not-allowed;
 }
 
 /* Icon buttons (single character text content buttons) */

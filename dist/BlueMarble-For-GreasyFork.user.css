@@ -148,6 +148,7 @@ confetti-piece {
 .bm-window button:disabled,
 .bm-window button:disabled {
   text-decoration: line-through;
+  cursor: not-allowed;
 }
 .bm-button-circle {
   border: white 1px solid;
@@ -290,7 +291,7 @@ input[type=file] {
   height: 1em;
   fill: white;
 }
-.bm-filter-flex {
+#bm-filter-flex {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -355,7 +356,7 @@ input[type=file] {
 #bm-window-filter .bm-filter-color.bm-color-hide {
   display: none;
 }
-.bm-windowed .bm-filter-flex {
+.bm-windowed #bm-filter-flex {
   flex-direction: column;
   gap: 0.25em;
 }

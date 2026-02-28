@@ -8,7 +8,7 @@
 }
 
 /* Filter flex */
-.bm-filter-flex {
+#bm-filter-flex {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -99,7 +99,7 @@
 /* WINDOWED MODE */
 
 /* Filter flex in windowed mode */
-.bm-windowed .bm-filter-flex {
+.bm-windowed #bm-filter-flex {
   flex-direction: column;
   gap: 0.25em;
 }
