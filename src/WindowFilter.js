@@ -35,6 +35,19 @@ export default class WindowFilter extends Overlay {
     // Tile quantity information
     this.tilesLoadedTotal = 0; // Number of tiles that have been loaded in this session
     this.tilesTotal = 0; // Number of tiles total, across all templates
+
+    // Pixel statistics
+    this.allPixelsColor = new Map(); // The amount of pixels total per color as a Map
+    this.allPixelsCorrect = new Map(); // The amount of correct pixels per color as a Map
+    this.allPixelsCorrectTotal = 0; // Sums the pixels placed as "correct" per everything
+    this.allPixelsTotal = 0; // Sums the pixels placed as "total" per everything
+    this.timeRemaining = 0; // Calculates the date & time the user will complete the templates
+    this.timeRemainingLocalized = ''; // The date & time the user will complete the templates in the date-time format of the user's device, as a string
+
+    // Color list display settings
+    this.sortPrimary = 'id'; // The last used primary sort option
+    this.sortSecondary = 'ascending'; // The last used secondary sort option
+    this.showUnused = false; // Were unused colors shown the last time the user sorted the color list?
   }
 
   /** Spawns a Color Filter window.
@@ -151,79 +164,25 @@ export default class WindowFilter extends Overlay {
     // Obtains the scrollable container to put the color filter in
     const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
 
-    // Pixel totals
-    let allPixelsTotal = 0;
-    let allPixelsCorrectTotal = 0;
-    const allPixelsCorrect = new Map();
-    const allPixelsColor = new Map();
-
-    // Sum the pixel totals across all templates.
-    // If there is no total for a template, it defaults to zero
-    for (const template of this.templateManager.templatesArray) {
-
-      const total = template.pixelCount?.total ?? 0;
-      allPixelsTotal += total ?? 0; // Sums the pixels placed as "total" per everything
-
-      const colors = template.pixelCount?.colors ?? new Map();
-
-      // Sums the color pixels placed as "total" per color ID
-      for (const [colorID, colorPixels] of colors) {
-        const _colorPixels = Number(colorPixels) || 0; // Boilerplate
-        const allPixelsColorSoFar = allPixelsColor.get(colorID) ?? 0; // The total color pixels for this color ID so far, or zero if none counted so far
-        allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
-      }
-
-      // Object that contains the tiles which contain Maps as correct pixels per tile as the value in the key-value pair
-      const correctObject = template.pixelCount?.correct ?? {};
-
-      this.tilesLoadedTotal += Object.keys(correctObject).length; // Sums the total loaded tiles per template
-      this.tilesTotal += Object.keys(template.chunked).length; // Sums the total tiles per template
-
-      // Sums the pixels placed as "correct" per color ID
-      for (const map of Object.values(correctObject)) { // Per (loaded) tile per template
-        for (const [colorID, correctPixels] of map) { // Per color per (loaded) tile per template
-          const _correctPixels = Number(correctPixels) || 0; // Boilerplate
-          allPixelsCorrectTotal += _correctPixels; // Sums the pixels placed as "correct" per everything
-          const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0; // The total correct pixels for this color ID so far, or zero if none counted so far
-          allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
-        }
-      }
-    }
-
-    console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
-
-    // If the template is complete, and the pixel count is non-zero, and at least 1 template exists, and all template tiles have been loaded this session...
-    if ((allPixelsCorrectTotal >= allPixelsTotal) && !!allPixelsTotal && (this.tilesLoadedTotal == this.tilesTotal)) {
-      // Basically, only run if Blue Marble can confirm with 100% certanty that all (>0) templates are complete.
-      
-      // Create confetti in the color filter window
-      const confettiManager = new ConfettiManager();
-      confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
-    }
-
-    // Calculates the date & time the user will complete the templates
-    const timeRemaining = new Date(((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1000) + Date.now());
-    const timeRemainingLocalized = localizeDate(timeRemaining);
+    this.#calculatePixelStatistics();
 
     // Displays some template statistics to the user
     this.updateInnerHTML('#bm-filter-tile-load', `<b>Tiles Loaded:</b> ${localizeNumber(this.tilesLoadedTotal)} / ${localizeNumber(this.tilesTotal)}`);
-    this.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${localizeNumber(allPixelsCorrectTotal)}`);
-    this.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${localizeNumber(allPixelsTotal)}`);
-    this.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${localizeNumber((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
-    this.updateInnerHTML('#bm-filter-tot-completed', `<b>Completed at:</b> <time datetime="${timeRemaining.toISOString().replace(/\.\d{3}Z$/, 'Z')}">${timeRemainingLocalized}</time>`);
+    this.updateInnerHTML('#bm-filter-tot-correct', `<b>Correct Pixels:</b> ${localizeNumber(this.allPixelsCorrectTotal)}`);
+    this.updateInnerHTML('#bm-filter-tot-total', `<b>Total Pixels:</b> ${localizeNumber(this.allPixelsTotal)}`);
+    this.updateInnerHTML('#bm-filter-tot-remaining', `<b>Remaining:</b> ${localizeNumber((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0))} (${localizePercent(((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0)) / (this.allPixelsTotal || 1))})`);
+    this.updateInnerHTML('#bm-filter-tot-completed', `<b>Completed at:</b> <time datetime="${this.timeRemaining.toISOString().replace(/\.\d{3}Z$/, 'Z')}">${this.timeRemainingLocalized}</time>`);
 
     // These run when the user opens the Color Filter window
-    this.#buildColorList(scrollableContainer, allPixelsCorrect, allPixelsColor);
+    this.#buildColorList(scrollableContainer);
     this.#sortColorList('id', 'ascending', false);
   }
 
   /** Creates the color list container.
    * @param {HTMLElement} parentElement - Parent element to add the color list to as a child
-   * @param {Map<number, number>} allPixelsCorrect - All pixels that are considered correct per color for all templates
-   * @param {Map<number, number>} allPixelsColor - All pixels that are considered that color, totaled across all templates
    * @since 0.88.222
    */
-  #buildColorList(parentElement, allPixelsCorrect, allPixelsColor) {
+  #buildColorList(parentElement) {
 
     const colorList = new Overlay(this.name, this.version);
     colorList.addDiv({'class': 'bm-filter-flex'})
@@ -252,7 +211,7 @@ export default class WindowFilter extends Overlay {
       const bgEffectForButtons = (textColorForPaletteColorBackground == 'white') ? 'bm-button-hover-white' : 'bm-button-hover-black';
       
       // Turns "total" color into a string of a number; "0" if unknown
-      const colorTotal = allPixelsColor.get(color.id) ?? 0
+      const colorTotal = this.allPixelsColor.get(color.id) ?? 0
       const colorTotalLocalized = localizeNumber(colorTotal);
       
       // This will be displayed if the total pixels for this color is zero
@@ -264,7 +223,7 @@ export default class WindowFilter extends Overlay {
       if (colorTotal != 0) {
 
         // Determines the correct pixels, or the proper fallback
-        colorCorrect = allPixelsCorrect.get(color.id) ?? '???';
+        colorCorrect = this.allPixelsCorrect.get(color.id) ?? '???';
         if ((typeof colorCorrect != 'number') && (this.tilesLoadedTotal == this.tilesTotal) && !!color.id) {
           colorCorrect = 0;
         }
@@ -351,6 +310,11 @@ export default class WindowFilter extends Overlay {
    */
   #sortColorList(sortPrimary, sortSecondary, showUnused) {
 
+    // Update memorised sort settings
+    this.sortPrimary = sortPrimary;
+    this.sortSecondary = sortSecondary;
+    this.showUnused = showUnused;
+
     const colorList = document.querySelector('.bm-filter-flex');
 
     const colors = Array.from(colorList.children);
@@ -416,5 +380,65 @@ export default class WindowFilter extends Overlay {
       
       button.click(); // If the button is not in its proper state, then we click it
     }
+  }
+
+  /** Calculates all pixel statistics used in the color filter.
+   * @since 0.90.34
+   */
+  #calculatePixelStatistics() {
+
+    // Resets pixel totals to 0
+    this.allPixelsTotal = 0;
+    this.allPixelsCorrectTotal = 0;
+    this.allPixelsCorrect = new Map();
+    this.allPixelsColor = new Map();
+
+    // Sum the pixel totals across all templates.
+    // If there is no total for a template, it defaults to zero
+    for (const template of this.templateManager.templatesArray) {
+
+      const total = template.pixelCount?.total ?? 0;
+      this.allPixelsTotal += total ?? 0; // Sums the pixels placed as "total" per everything
+
+      const colors = template.pixelCount?.colors ?? new Map();
+
+      // Sums the color pixels placed as "total" per color ID
+      for (const [colorID, colorPixels] of colors) {
+        const _colorPixels = Number(colorPixels) || 0; // Boilerplate
+        const allPixelsColorSoFar = this.allPixelsColor.get(colorID) ?? 0; // The total color pixels for this color ID so far, or zero if none counted so far
+        this.allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
+      }
+
+      // Object that contains the tiles which contain Maps as correct pixels per tile as the value in the key-value pair
+      const correctObject = template.pixelCount?.correct ?? {};
+
+      this.tilesLoadedTotal += Object.keys(correctObject).length; // Sums the total loaded tiles per template
+      this.tilesTotal += Object.keys(template.chunked).length; // Sums the total tiles per template
+
+      // Sums the pixels placed as "correct" per color ID
+      for (const map of Object.values(correctObject)) { // Per (loaded) tile per template
+        for (const [colorID, correctPixels] of map) { // Per color per (loaded) tile per template
+          const _correctPixels = Number(correctPixels) || 0; // Boilerplate
+          this.allPixelsCorrectTotal += _correctPixels; // Sums the pixels placed as "correct" per everything
+          const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0; // The total correct pixels for this color ID so far, or zero if none counted so far
+          this.allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
+        }
+      }
+    }
+
+    console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
+
+    // If the template is complete, and the pixel count is non-zero, and at least 1 template exists, and all template tiles have been loaded this session...
+    if ((this.allPixelsCorrectTotal >= this.allPixelsTotal) && !!this.allPixelsTotal && (this.tilesLoadedTotal == this.tilesTotal)) {
+      // Basically, only run if Blue Marble can confirm with 100% certanty that all (>0) templates are complete.
+      
+      // Create confetti in the color filter window
+      const confettiManager = new ConfettiManager();
+      confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
+    }
+
+    // Calculates the date & time the user will complete the templates
+    this.timeRemaining = new Date(((this.allPixelsTotal - this.allPixelsCorrectTotal) * 30 * 1000) + Date.now());
+    this.timeRemainingLocalized = localizeDate(this.timeRemaining);
   }
 }

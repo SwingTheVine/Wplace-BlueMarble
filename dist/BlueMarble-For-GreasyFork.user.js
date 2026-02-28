@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.90.33
+// @version         0.90.34
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2689,7 +2689,7 @@ Did you try clicking the canvas first?`);
   };
 
   // src/WindowFilter.js
-  var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn;
+  var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn, calculatePixelStatistics_fn;
   var WindowFilter = class extends Overlay {
     /** Constructor for the color filter window
      * @param {*} executor - The executing class
@@ -2709,6 +2709,15 @@ Did you try clicking the canvas first?`);
       this.palette = palette;
       this.tilesLoadedTotal = 0;
       this.tilesTotal = 0;
+      this.allPixelsColor = /* @__PURE__ */ new Map();
+      this.allPixelsCorrect = /* @__PURE__ */ new Map();
+      this.allPixelsCorrectTotal = 0;
+      this.allPixelsTotal = 0;
+      this.timeRemaining = 0;
+      this.timeRemainingLocalized = "";
+      this.sortPrimary = "id";
+      this.sortSecondary = "ascending";
+      this.showUnused = false;
     }
     /** Spawns a Color Filter window.
      * If another color filter window already exists, we DON'T spawn another!
@@ -2751,55 +2760,22 @@ Did you try clicking the canvas first?`);
       }).buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
-      let allPixelsTotal = 0;
-      let allPixelsCorrectTotal = 0;
-      const allPixelsCorrect = /* @__PURE__ */ new Map();
-      const allPixelsColor = /* @__PURE__ */ new Map();
-      for (const template of this.templateManager.templatesArray) {
-        const total = template.pixelCount?.total ?? 0;
-        allPixelsTotal += total ?? 0;
-        const colors = template.pixelCount?.colors ?? /* @__PURE__ */ new Map();
-        for (const [colorID, colorPixels] of colors) {
-          const _colorPixels = Number(colorPixels) || 0;
-          const allPixelsColorSoFar = allPixelsColor.get(colorID) ?? 0;
-          allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
-        }
-        const correctObject = template.pixelCount?.correct ?? {};
-        this.tilesLoadedTotal += Object.keys(correctObject).length;
-        this.tilesTotal += Object.keys(template.chunked).length;
-        for (const map of Object.values(correctObject)) {
-          for (const [colorID, correctPixels] of map) {
-            const _correctPixels = Number(correctPixels) || 0;
-            allPixelsCorrectTotal += _correctPixels;
-            const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0;
-            allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
-          }
-        }
-      }
-      console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
-      if (allPixelsCorrectTotal >= allPixelsTotal && !!allPixelsTotal && this.tilesLoadedTotal == this.tilesTotal) {
-        const confettiManager = new ConfettiManager();
-        confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
-      }
-      const timeRemaining = new Date((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
-      const timeRemainingLocalized = localizeDate(timeRemaining);
+      __privateMethod(this, _WindowFilter_instances, calculatePixelStatistics_fn).call(this);
       this.updateInnerHTML("#bm-filter-tile-load", `<b>Tiles Loaded:</b> ${localizeNumber(this.tilesLoadedTotal)} / ${localizeNumber(this.tilesTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber(allPixelsCorrectTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber(allPixelsTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
-      this.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${timeRemainingLocalized}</time>`);
-      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer, allPixelsCorrect, allPixelsColor);
+      this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber(this.allPixelsCorrectTotal)}`);
+      this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber(this.allPixelsTotal)}`);
+      this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0))} (${localizePercent(((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0)) / (this.allPixelsTotal || 1))})`);
+      this.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${this.timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${this.timeRemainingLocalized}</time>`);
+      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
       __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, "id", "ascending", false);
     }
   };
   _WindowFilter_instances = new WeakSet();
   /** Creates the color list container.
    * @param {HTMLElement} parentElement - Parent element to add the color list to as a child
-   * @param {Map<number, number>} allPixelsCorrect - All pixels that are considered correct per color for all templates
-   * @param {Map<number, number>} allPixelsColor - All pixels that are considered that color, totaled across all templates
    * @since 0.88.222
    */
-  buildColorList_fn = function(parentElement, allPixelsCorrect, allPixelsColor) {
+  buildColorList_fn = function(parentElement) {
     const colorList = new Overlay(this.name, this.version);
     colorList.addDiv({ "class": "bm-filter-flex" });
     for (const color of this.palette) {
@@ -2810,13 +2786,13 @@ Did you try clicking the canvas first?`);
         textColorForPaletteColorBackground = "transparent";
       }
       const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
-      const colorTotal = allPixelsColor.get(color.id) ?? 0;
+      const colorTotal = this.allPixelsColor.get(color.id) ?? 0;
       const colorTotalLocalized = localizeNumber(colorTotal);
       let colorCorrect = 0;
       let colorCorrectLocalized = "0";
       let colorPercent = localizePercent(1);
       if (colorTotal != 0) {
-        colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
+        colorCorrect = this.allPixelsCorrect.get(color.id) ?? "???";
         if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
           colorCorrect = 0;
         }
@@ -2874,6 +2850,12 @@ Did you try clicking the canvas first?`);
    * @since 0.88.222
    */
   sortColorList_fn = function(sortPrimary, sortSecondary, showUnused) {
+    this.sortPrimary = sortPrimary;
+    this.sortSecondary = sortSecondary;
+    this.showUnused = showUnused;
+    console.log(this.sortPrimary);
+    console.log(this.sortSecondary);
+    console.log(this.showUnused);
     const colorList = document.querySelector(".bm-filter-flex");
     const colors = Array.from(colorList.children);
     colors.sort((index, nextIndex) => {
@@ -2920,6 +2902,43 @@ Did you try clicking the canvas first?`);
       }
       button.click();
     }
+  };
+  /** Calculates all pixel statistics used in the color filter.
+   * @since 0.90.34
+   */
+  calculatePixelStatistics_fn = function() {
+    this.allPixelsTotal = 0;
+    this.allPixelsCorrectTotal = 0;
+    this.allPixelsCorrect = /* @__PURE__ */ new Map();
+    this.allPixelsColor = /* @__PURE__ */ new Map();
+    for (const template of this.templateManager.templatesArray) {
+      const total = template.pixelCount?.total ?? 0;
+      this.allPixelsTotal += total ?? 0;
+      const colors = template.pixelCount?.colors ?? /* @__PURE__ */ new Map();
+      for (const [colorID, colorPixels] of colors) {
+        const _colorPixels = Number(colorPixels) || 0;
+        const allPixelsColorSoFar = this.allPixelsColor.get(colorID) ?? 0;
+        this.allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
+      }
+      const correctObject = template.pixelCount?.correct ?? {};
+      this.tilesLoadedTotal += Object.keys(correctObject).length;
+      this.tilesTotal += Object.keys(template.chunked).length;
+      for (const map of Object.values(correctObject)) {
+        for (const [colorID, correctPixels] of map) {
+          const _correctPixels = Number(correctPixels) || 0;
+          this.allPixelsCorrectTotal += _correctPixels;
+          const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0;
+          this.allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
+        }
+      }
+    }
+    console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
+    if (this.allPixelsCorrectTotal >= this.allPixelsTotal && !!this.allPixelsTotal && this.tilesLoadedTotal == this.tilesTotal) {
+      const confettiManager = new ConfettiManager();
+      confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
+    }
+    this.timeRemaining = new Date((this.allPixelsTotal - this.allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
+    this.timeRemainingLocalized = localizeDate(this.timeRemaining);
   };
 
   // src/WindowMain.js
