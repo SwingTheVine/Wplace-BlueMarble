@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.90.24
+// @version         0.90.25
 // @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
 // @author          SwingTheVine
@@ -90,6 +90,14 @@
   };
 
   // src/utils.js
+  function getWplaceVersion() {
+    const wplaceVersionElement = [...document.querySelectorAll(`body > div > .hidden`)].filter((match) => /version:/i.test(match.textContent));
+    if (wplaceVersionElement[0]) {
+      const wplaceUpdateTime = wplaceVersionElement[0].textContent?.match(/\d+/);
+      return wplaceUpdateTime ? new Date(Number(wplaceUpdateTime[0])) : void 0;
+    }
+    return void 0;
+  }
   function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
   }
@@ -1780,12 +1788,8 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.schemaHealth = "Dead";
     }
     const recoveryInstructions = `<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`;
-    let wplaceUpdateTimeLocalized = "???";
-    const wplaceVersionElement = [...document.querySelectorAll(`body > div > .hidden`)].filter((match) => /version:/i.test(match.textContent));
-    if (wplaceVersionElement[0]) {
-      const wplaceUpdateTime = wplaceVersionElement[0].textContent?.match(/\d+/);
-      wplaceUpdateTimeLocalized = wplaceUpdateTime ? localizeDate(new Date(Number(wplaceUpdateTime[0]))) : wplaceUpdateTimeLocalized;
-    }
+    const wplaceUpdateTime = getWplaceVersion();
+    let wplaceUpdateTimeLocalized = wplaceUpdateTime ? localizeDate(wplaceUpdateTime) : "???";
     this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<br>Wplace was last updated on <b>${wplaceUpdateTimeLocalized}</b>.${this.schemaHealth != "Good" ? recoveryInstructions : ""}`);
     const buttonOptions = new Overlay(this.name, this.version);
     if (this.schemaHealth != "Dead") {

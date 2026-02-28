@@ -1,4 +1,18 @@
 
+/** Returns a Date of when Wplace was last updated.
+ * This is obtained from a certain DOM element which contains the version of Wplace.
+ * @since 0.90.25
+ * @returns {Date | undefined} - The date that Wplace was last updated, as a Date.
+ */
+export function getWplaceVersion() {
+  const wplaceVersionElement = [...document.querySelectorAll(`body > div > .hidden`)].filter(match => /version:/i.test(match.textContent));
+  if (wplaceVersionElement[0]) { // If there is at least one match...
+    const wplaceUpdateTime = wplaceVersionElement[0].textContent?.match(/\d+/); // Obtain the last update time, which is Unix Epoch in milliseconds
+    return wplaceUpdateTime ? new Date(Number(wplaceUpdateTime[0])) : undefined; // Return the time as a Date, or undefined
+  }
+  return undefined;
+}
+
 /** Halts execution of this specific userscript, for the specified time.
  * This will not block the thread.
  * @param {number} - Time to wait in milliseconds
