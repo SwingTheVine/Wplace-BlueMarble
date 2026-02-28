@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.90.30
+// @version         0.90.33
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -216,6 +216,12 @@
       return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
     });
     return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  }
+  function rgbToHex(red, green, blue) {
+    if (Array.isArray(red)) {
+      [red, green, blue] = red;
+    }
+    return (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1);
   }
   function colorpaletteForBlueMarble(tolerance) {
     const colorpaletteBM = colorpalette;
@@ -2797,6 +2803,7 @@ Did you try clicking the canvas first?`);
     const colorList = new Overlay(this.name, this.version);
     colorList.addDiv({ "class": "bm-filter-flex" });
     for (const color of this.palette) {
+      const colorValueHex = "#" + rgbToHex(color.rgb).toUpperCase();
       const lumin = calculateRelativeLuminance(color.rgb);
       let textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
       if (!color.id) {
@@ -2827,7 +2834,7 @@ Did you try clicking the canvas first?`);
         "data-total": colorTotal,
         "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
         "data-incorrect": colorIncorrect || 0
-      }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
+      }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column;" }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
         {
           "class": "bm-button-trans " + bgEffectForButtons,
           "data-state": isColorHidden ? "hidden" : "shown",
@@ -2856,7 +2863,7 @@ Did you try clicking the canvas first?`);
             button.disabled = true;
           }
         }
-      ).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+      ).buildElement().buildElement().addSmall({ "textContent": color.id == -2 ? "???????" : colorValueHex }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
     }
     colorList.buildOverlay(parentElement);
   };

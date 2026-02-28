@@ -315,6 +315,31 @@ export function calculateRelativeLuminance(array) {
   return (0.2126 * srgb[0]) + (0.7152 * srgb[1]) + (0.0722 * srgb[2]);
 }
 
+/** Converts an RGB color to hexdecimal color.
+ * Octothorpe not included.
+ * @param {number | Array<number, number, number>} red - The Red channel of the RGB color, or all three channels as an Array
+ * @param {number} [green] - The Green channel of the RGB color
+ * @param {number} [blue] - The Blue channel of the RGB color
+ * @returns {string} Hex color code as string
+ * @since 0.90.31
+ */
+export function rgbToHex(red, green, blue) {
+  if (Array.isArray(red)) {[red, green, blue] = red;} // Deconstruct the Array if an Array was passed in
+  return ((1 << 24) | (red << 16) | (green << 8) | blue).toString(16).slice(1); // Packs it into a 24-bit integer, then converts it to base16.
+}
+
+/** Converts a hexdecimal color to an RGB color.
+ * Alpha channel not supported.
+ * @param {string} hex - Hex color code as string
+ * @returns {Array<number, number, number>} RGB color as an Array
+ * @since 0.90.31
+ */
+export function hexToRGB(hex) {
+  hex = (hex[0] == '#') ? hex.slice(1) : hex; // Removes the octothorpe, if any
+  const packedIntRGB = parseInt(hex, 16); // Converts (base16) into an integer
+  return [(packedIntRGB >> 16 & 255), (packedIntRGB >> 8 & 255), (packedIntRGB & 255)]; // Unpacks the integer into the RGB channels
+}
+
 /** Returns the coordinate input fields
  * @returns {Element[]} The 4 coordinate Inputs
  * @since 0.74.0

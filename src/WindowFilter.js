@@ -1,6 +1,6 @@
 import ConfettiManager from "./confetttiManager";
 import Overlay from "./Overlay";
-import { calculateRelativeLuminance, localizeDate, localizeNumber, localizePercent } from "./utils";
+import { calculateRelativeLuminance, localizeDate, localizeNumber, localizePercent, rgbToHex } from "./utils";
 
 /** The overlay builder for the color filter Blue Marble window.
  * @description This class handles the overlay UI for the color filter window of the Blue Marble userscript.
@@ -232,6 +232,9 @@ export default class WindowFilter extends Overlay {
     // For each color in the palette...
     for (const color of this.palette) {
 
+      // Converts the RGB color to hexdecimal
+      const colorValueHex = '#' + rgbToHex(color.rgb).toUpperCase();
+
       // Relative Luminance
       const lumin = calculateRelativeLuminance(color.rgb);
 
@@ -289,7 +292,9 @@ export default class WindowFilter extends Overlay {
         'data-total': colorTotal,
         'data-percent': (colorPercent.slice(-1) == '%') ? colorPercent.slice(0, -1) : '0',
         'data-incorrect': colorIncorrect || 0
-      }).addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
+      })
+      .addDiv({'class': 'bm-flex-center', 'style': 'flex-direction: column;'})
+        .addDiv({'class': 'bm-filter-container-rgb', 'style': `background-color: rgb(${color.rgb?.map(channel => Number(channel) || 0).join(',')});`})
           .addButton({
             'class': 'bm-button-trans ' + bgEffectForButtons,
             'data-state': isColorHidden ? 'hidden' : 'shown',
@@ -321,15 +326,17 @@ export default class WindowFilter extends Overlay {
             }
           ).buildElement()
         .buildElement()
-        .addDiv({'class': 'bm-flex-between'})
-          .addHeader(2, {'textContent': (color.premium ? '★ ' : '') + color.name}).buildElement()
-          .addDiv({'class': 'bm-flex-between', 'style': 'gap: 1.5ch;'})
-            .addSmall({'textContent': `#${color.id}`}).buildElement()
-            .addSmall({'textContent': `${colorCorrectLocalized} / ${colorTotalLocalized}`}).buildElement()
-          .buildElement()
-          .addP({'textContent': `${((typeof colorIncorrect == 'number') && !isNaN(colorIncorrect)) ? colorIncorrect : '???'} incorrect pixels. Completed: ${colorPercent}`}).buildElement()
-        .buildElement()
+        .addSmall({'textContent': (color.id == -2) ? '???????' : colorValueHex}).buildElement()
       .buildElement()
+      .addDiv({'class': 'bm-flex-between'})
+        .addHeader(2, {'textContent': (color.premium ? '★ ' : '') + color.name}).buildElement()
+        .addDiv({'class': 'bm-flex-between', 'style': 'gap: 1.5ch;'})
+          .addSmall({'textContent': `#${color.id}`}).buildElement()
+          .addSmall({'textContent': `${colorCorrectLocalized} / ${colorTotalLocalized}`}).buildElement()
+        .buildElement()
+        .addP({'textContent': `${((typeof colorIncorrect == 'number') && !isNaN(colorIncorrect)) ? colorIncorrect : '???'} incorrect pixels. Completed: ${colorPercent}`}).buildElement()
+      .buildElement()
+    .buildElement()
     }
 
     // Adds the colors to the color container in the filter window
