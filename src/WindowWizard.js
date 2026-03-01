@@ -1,7 +1,7 @@
 import Overlay from "./Overlay";
 import Template from "./Template";
 import TemplateManager from "./templateManager";
-import { encodedToNumber, escapeHTML, localizeNumber, sleep } from "./utils";
+import { encodedToNumber, escapeHTML, getWplaceVersion, localizeDate, localizeNumber, sleep } from "./utils";
 
 /** Wizard that manages template updates & recovery
  * @class WindowWizard
@@ -68,7 +68,7 @@ export default class WindowWizard extends Overlay {
           button.ontouchend = () => {button.click()}; // Needed only to negate weird interaction with dragbar
         }).buildElement()
         .addDiv().buildElement() // Contains the minimized h1 element
-        .addButton({'class': 'bm-button-circle', 'textContent': '🞪', 'aria-label': 'Close window "Template Wizard"'}, (instance, button) => {
+        .addButton({'class': 'bm-button-circle', 'textContent': '✖', 'aria-label': 'Close window "Template Wizard"'}, (instance, button) => {
           button.onclick = () => {document.querySelector(`#${this.windowID}`)?.remove();};
           button.ontouchend = () => {button.click();}; // Needed only to negate weird interaction with dragbar
         }).buildElement()
@@ -133,8 +133,12 @@ export default class WindowWizard extends Overlay {
     // Further recovery directions (only displayed if health is NOT 'Good')
     const recoveryInstructions = `<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`;
 
+    // Obtains the last time Wplace was updated
+    const wplaceUpdateTime = getWplaceVersion();
+    let wplaceUpdateTimeLocalized = wplaceUpdateTime ? localizeDate(wplaceUpdateTime) : '???';
+
     // Display schema health to user
-    this.updateInnerHTML('#bm-wizard-status', `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.${(this.schemaHealth != 'Good') ? recoveryInstructions : ''}`);
+    this.updateInnerHTML('#bm-wizard-status', `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<br>Wplace was last updated on <b>${wplaceUpdateTimeLocalized}</b>.${(this.schemaHealth != 'Good') ? recoveryInstructions : ''}`);
     
     // Create button options (only if schema is not 'Dead')
     const buttonOptions = new Overlay(this.name, this.version);

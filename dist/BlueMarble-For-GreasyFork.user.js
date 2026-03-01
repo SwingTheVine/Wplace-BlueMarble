@@ -2,14 +2,14 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.90.0
-// @description     A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
-// @description:en  A userscript to automate and/or enhance the user experience on Wplace.live. Make sure to comply with the site's Terms of Service, and rules! This script is not affiliated with Wplace.live in any way, use at your own risk. This script is not affiliated with TamperMonkey. The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script. This script is provided "as is" under the MPL-2.0 license. The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The image is owned by NASA.
+// @version         0.90.68
+// @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
+// @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
 // @license         MPL-2.0
 // @supportURL      https://discord.gg/tpeBPy46hf
 // @homepageURL     https://bluemarble.lol/
-// @icon            https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/8921e33df8eb2958601b8a791d28bacc0bf5fa2d/dist/assets/Favicon.png
+// @icon            https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/ffa17bc9a7c2db10efc201437dbf1637e11a6f61/dist/assets/Favicon.png
 // @updateURL       https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @downloadURL     https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @match           https://wplace.live/*
@@ -21,7 +21,7 @@
 // @grant           GM_xmlhttpRequest
 // @grant           GM.download
 // @connect         telemetry.thebluecorner.net
-// @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/8921e33df8eb2958601b8a791d28bacc0bf5fa2d/dist/BlueMarble-For-GreasyFork.user.css
+// @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/ffa17bc9a7c2db10efc201437dbf1637e11a6f61/dist/BlueMarble-For-GreasyFork.user.css
 // @antifeature     tracking Anonymous opt-in telemetry data
 // @noframes
 // ==/UserScript==
@@ -29,6 +29,15 @@
 // Wplace  --> https://wplace.live
 // License --> https://www.mozilla.org/en-US/MPL/2.0/
 // Donate  --> https://ko-fi.com/swingthevine
+
+/*!
+  This script is not affiliated with Wplace.live in any way, use at your own risk.
+  This script is not affiliated with any userscript manager.
+  The author of this userscript is not responsible for any damages, issues, loss of data, or punishment that may occur as a result of using this script.
+  This script is provided "as is" under the MPL-2.0 license.
+  The "Blue Marble" icon is licensed under CC0 1.0 Universal (CC0 1.0) Public Domain Dedication.
+  The "Blue Marble" image is owned by NASA.
+*/
 
 (() => {
   var __typeError = (msg) => {
@@ -90,6 +99,14 @@
   };
 
   // src/utils.js
+  function getWplaceVersion() {
+    const wplaceVersionElement = [...document.querySelectorAll(`body > div > .hidden`)].filter((match) => /version:/i.test(match.textContent));
+    if (wplaceVersionElement[0]) {
+      const wplaceUpdateTime = wplaceVersionElement[0].textContent?.match(/\d+/);
+      return wplaceUpdateTime ? new Date(Number(wplaceUpdateTime[0])) : void 0;
+    }
+    return void 0;
+  }
   function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
   }
@@ -199,6 +216,12 @@
       return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
     });
     return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  }
+  function rgbToHex(red, green, blue) {
+    if (Array.isArray(red)) {
+      [red, green, blue] = red;
+    }
+    return (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1);
   }
   function colorpaletteForBlueMarble(tolerance) {
     const colorpaletteBM = colorpalette;
@@ -1743,7 +1766,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u{1F7AA}", "aria-label": 'Close window "Template Wizard"' }, (instance, button) => {
+      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Template Wizard"' }, (instance, button) => {
         button.onclick = () => {
           document.querySelector(`#${this.windowID}`)?.remove();
         };
@@ -1780,7 +1803,9 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.schemaHealth = "Dead";
     }
     const recoveryInstructions = `<hr style="margin:.5ch">If you want to continue using your current templates, then make sure the template storage (schema) is up-to-date.<br>If you don't want to update the template storage, then downgrade Blue Marble to version <b>${escapeHTML(this.scriptVersion)}</b> to continue using your templates.<br>Alternatively, if you don't care about corrupting the templates listed below, you can fix any issues with the template storage by uploading a new template.`;
-    this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.${this.schemaHealth != "Good" ? recoveryInstructions : ""}`);
+    const wplaceUpdateTime = getWplaceVersion();
+    let wplaceUpdateTimeLocalized = wplaceUpdateTime ? localizeDate(wplaceUpdateTime) : "???";
+    this.updateInnerHTML("#bm-wizard-status", `${schemaHealthBanner}<br>Your templates were created during Blue Marble version <b>${escapeHTML(this.scriptVersion)}</b> with schema version <b>${escapeHTML(this.schemaVersion)}</b>.<br>The current Blue Marble version is <b>${escapeHTML(this.version)}</b> and requires schema version <b>${escapeHTML(this.schemaVersionBleedingEdge)}</b>.<br>Wplace was last updated on <b>${wplaceUpdateTimeLocalized}</b>.${this.schemaHealth != "Good" ? recoveryInstructions : ""}`);
     const buttonOptions = new Overlay(this.name, this.version);
     if (this.schemaHealth != "Dead") {
       buttonOptions.addDiv({ "class": "bm-container bm-flex-center bm-center-vertically", "style": "gap: 1.5ch;" });
@@ -2606,8 +2631,65 @@ Did you try clicking the canvas first?`);
   };
   customElements.define("confetti-piece", BlueMarbleConfettiPiece);
 
+  // src/WindowCredits.js
+  var WindowCredts = class extends Overlay {
+    /** Constructor for the Credits window
+     * @param {string} name - The name of the userscript
+     * @param {string} version - The version of the userscript
+     * @since 0.90.9
+     * @see {@link Overlay#constructor} for examples
+     */
+    constructor(name2, version2) {
+      super(name2, version2);
+      this.window = null;
+      this.windowID = "bm-window-credits";
+      this.windowParent = document.body;
+    }
+    /** Spawns a Credits window.
+     * If another credits window already exists, we DON'T spawn another!
+     * Parent/child relationships in the DOM structure below are indicated by indentation.
+     * @since 0.90.9
+     */
+    buildWindow() {
+      const ascii = `
+\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557     \u2588\u2588\u2557   \u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D
+\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2557  
+\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255D  
+\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D
+
+\u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557     \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D
+\u2588\u2588\u2554\u2588\u2588\u2588\u2588\u2554\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2557  
+\u2588\u2588\u2551\u255A\u2588\u2588\u2554\u255D\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u255D  
+\u2588\u2588\u2551 \u255A\u2550\u255D \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u255A\u2550\u255D     \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D
+`;
+      if (document.querySelector(`#${this.windowID}`)) {
+        document.querySelector(`#${this.windowID}`).remove();
+        return;
+      }
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }, (instance, div) => {
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Credits"', "data-button-status": "expanded" }, (instance, button) => {
+        button.onclick = () => instance.handleMinimization(button);
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Credits"' }, (instance, button) => {
+        button.onclick = () => {
+          document.querySelector(`#${this.windowID}`)?.remove();
+        };
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Credits" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addSpan({ "role": "img", "aria-label": this.name }).addSpan({ "innerHTML": ascii, "class": "bm-ascii", "aria-hidden": "true" }).buildElement().buildElement().addBr().buildElement().addHr().buildElement().addBr().buildElement().addSpan({ "textContent": '"Blue Marble" userscript is made by SwingTheVine.' }).buildElement().addBr().buildElement().addSpan({ "innerHTML": 'The <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble Website</a> is made by <a href="https://github.com/crqch" target="_blank" rel="noopener noreferrer">crqch</a>.' }).buildElement().addBr().buildElement().addSpan({ "textContent": `The Blue Marble Website used until ${localizeDate(new Date(1756069320 * 1e3))} was made by Camille Daguin.` }).buildElement().addBr().buildElement().addSpan({ "textContent": 'The favicon "Blue Marble" is owned by NASA. (The image of the Earth is owned by NASA)' }).buildElement().addBr().buildElement().addSpan({ "textContent": "Special Thanks:" }).buildElement().addUl().addLi({ "textContent": "Espresso, Meqa, and Robot for moderating SwingTheVine's community." }).buildElement().addLi({ "innerHTML": 'nof, <a href="https://github.com/TouchedByDarkness" target="_blank" rel="noopener noreferrer">darkness</a> for creating similar userscripts!' }).buildElement().addLi({ "innerHTML": '<a href="https://wondapon.net/" target="_blank" rel="noopener noreferrer">Wonda</a> for the Blue Marble banner image!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/BullStein" target="_blank" rel="noopener noreferrer">BullStein</a>, <a href="https://github.com/allanf181" target="_blank" rel="noopener noreferrer">allanf181</a> for being early beta testers!' }).buildElement().addLi({ "innerHTML": 'guidu_ and <a href="https://github.com/Nick-machado" target="_blank" rel="noopener noreferrer">Nick-machado</a> for the original "Minimize" Button code!' }).buildElement().addLi({ "innerHTML": 'Nomad and <a href="https://www.youtube.com/@gustav_vv" target="_blank" rel="noopener noreferrer">Gustav</a> for the tutorials!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/cfpwastaken" target="_blank" rel="noopener noreferrer">cfp</a> for creating the template overlay that Blue Marble was based on!' }).buildElement().addLi({ "innerHTML": '<a href="https://forcenetwork.cloud/" target="_blank" rel="noopener noreferrer">Force Network</a> for hosting the <a href="https://github.com/SwingTheVine/Wplace-TelemetryServer" target="_blank" rel="noopener noreferrer">telemetry server</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://thebluecorner.net" target="_blank" rel="noopener noreferrer">TheBlueCorner</a> for getting me interested in online pixel canvases!' }).buildElement().buildElement().addBr().buildElement().addSpan({ "innerHTML": '<a href="https://ko-fi.com/swingthevine" target="_blank" rel="noopener noreferrer">Donators</a>:' }).buildElement().addUl().addLi({ "textContent": "Espresso" }).buildElement().addLi({ "textContent": "BEST FAN" }).buildElement().addLi({ "textContent": "Jack" }).buildElement().addLi({ "textContent": "raiken_au" }).buildElement().addLi({ "textContent": "Jacob" }).buildElement().addLi({ "textContent": "StupidOne" }).buildElement().addLi({ "textContent": "1 Anonymous Supporter" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+    }
+  };
+
   // src/WindowFilter.js
-  var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn;
+  var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn, calculatePixelStatistics_fn;
   var WindowFilter = class extends Overlay {
     /** Constructor for the color filter window
      * @param {*} executor - The executing class
@@ -2619,6 +2701,7 @@ Did you try clicking the canvas first?`);
       __privateAdd(this, _WindowFilter_instances);
       this.window = null;
       this.windowID = "bm-window-filter";
+      this.colorListID = "bm-filter-flex";
       this.windowParent = document.body;
       this.templateManager = executor.apiManager?.templateManager;
       this.eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
@@ -2627,6 +2710,15 @@ Did you try clicking the canvas first?`);
       this.palette = palette;
       this.tilesLoadedTotal = 0;
       this.tilesTotal = 0;
+      this.allPixelsColor = /* @__PURE__ */ new Map();
+      this.allPixelsCorrect = /* @__PURE__ */ new Map();
+      this.allPixelsCorrectTotal = 0;
+      this.allPixelsTotal = 0;
+      this.timeRemaining = 0;
+      this.timeRemainingLocalized = "";
+      this.sortPrimary = "id";
+      this.sortSecondary = "ascending";
+      this.showUnused = false;
     }
     /** Spawns a Color Filter window.
      * If another color filter window already exists, we DON'T spawn another!
@@ -2644,15 +2736,29 @@ Did you try clicking the canvas first?`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u{1F7AA}", "aria-label": 'Close window "Color Filter"' }, (instance, button) => {
+      }).buildElement().addDiv().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D7}", "aria-label": 'Switch to windowed mode for "Color Filter"' }, (instance, button) => {
+        button.onclick = () => {
+          document.querySelector(`#${this.windowID}`)?.remove();
+          this.buildWindowed();
+        };
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Color Filter"' }, (instance, button) => {
         button.onclick = () => {
           document.querySelector(`#${this.windowID}`)?.remove();
         };
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "Hide All Colors" }, (instance, button) => {
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "Hide All Colors" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
+      }).buildElement().addButton({ "textContent": "Refresh Data" }, (instance, button) => {
+        button.onclick = () => {
+          button.disabled = true;
+          this.updateColorList();
+          button.disabled = false;
+        };
       }).buildElement().addButton({ "textContent": "Show All Colors" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
       }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-filter-tile-load", "innerHTML": "<b>Tiles Loaded:</b> 0 / ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-correct", "innerHTML": "<b>Correct Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-total", "innerHTML": "<b>Total Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-remaining", "innerHTML": "<b>Complete:</b> ??? (???)" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-completed", "innerHTML": "??? ???" }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addP({ "innerHTML": `Colors with the icon ${this.eyeOpen.replace("<svg", '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace("<svg", '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Hide All Colors" and "Show All Colors" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how many tiles of the template you have loaded since you last opened Wplace.live. If all tiles have been loaded, then the "correct pixel" count is accurate.` }).buildElement().buildElement().addHr().buildElement().addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Sort Colors", "type": "submit" }, (instance, button) => {
@@ -2669,118 +2775,242 @@ Did you try clicking the canvas first?`);
       }).buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
-      let allPixelsTotal = 0;
-      let allPixelsCorrectTotal = 0;
-      const allPixelsCorrect = /* @__PURE__ */ new Map();
-      const allPixelsColor = /* @__PURE__ */ new Map();
-      for (const template of this.templateManager.templatesArray) {
-        const total = template.pixelCount?.total ?? 0;
-        allPixelsTotal += total ?? 0;
-        const colors = template.pixelCount?.colors ?? /* @__PURE__ */ new Map();
-        for (const [colorID, colorPixels] of colors) {
-          const _colorPixels = Number(colorPixels) || 0;
-          const allPixelsColorSoFar = allPixelsColor.get(colorID) ?? 0;
-          allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
-        }
-        const correctObject = template.pixelCount?.correct ?? {};
-        this.tilesLoadedTotal += Object.keys(correctObject).length;
-        this.tilesTotal += Object.keys(template.chunked).length;
-        for (const map of Object.values(correctObject)) {
-          for (const [colorID, correctPixels] of map) {
-            const _correctPixels = Number(correctPixels) || 0;
-            allPixelsCorrectTotal += _correctPixels;
-            const allPixelsCorrectSoFar = allPixelsCorrect.get(colorID) ?? 0;
-            allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
-          }
-        }
-      }
-      console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
-      if (allPixelsCorrectTotal >= allPixelsTotal && !!allPixelsTotal && this.tilesLoadedTotal == this.tilesTotal) {
-        const confettiManager = new ConfettiManager();
-        confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
-      }
-      const timeRemaining = new Date((allPixelsTotal - allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
-      const timeRemainingLocalized = localizeDate(timeRemaining);
+      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
+      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
       this.updateInnerHTML("#bm-filter-tile-load", `<b>Tiles Loaded:</b> ${localizeNumber(this.tilesLoadedTotal)} / ${localizeNumber(this.tilesTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber(allPixelsCorrectTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber(allPixelsTotal)}`);
-      this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0))} (${localizePercent(((allPixelsTotal || 0) - (allPixelsCorrectTotal || 0)) / (allPixelsTotal || 1))})`);
-      this.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${timeRemainingLocalized}</time>`);
-      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer, allPixelsCorrect, allPixelsColor);
-      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, "id", "ascending", false);
+      this.updateInnerHTML("#bm-filter-tot-correct", `<b>Correct Pixels:</b> ${localizeNumber(this.allPixelsCorrectTotal)}`);
+      this.updateInnerHTML("#bm-filter-tot-total", `<b>Total Pixels:</b> ${localizeNumber(this.allPixelsTotal)}`);
+      this.updateInnerHTML("#bm-filter-tot-remaining", `<b>Remaining:</b> ${localizeNumber((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0))} (${localizePercent(((this.allPixelsTotal || 0) - (this.allPixelsCorrectTotal || 0)) / (this.allPixelsTotal || 1))})`);
+      this.updateInnerHTML("#bm-filter-tot-completed", `<b>Completed at:</b> <time datetime="${this.timeRemaining.toISOString().replace(/\.\d{3}Z$/, "Z")}">${this.timeRemainingLocalized}</time>`);
+    }
+    /** Spawns a windowed Color Filter window.
+     * If another color filter window already exists, we DON'T spawn another!
+     * Parent/child relationships in the DOM structure below are indicated by indentation.
+     * @since 0.90.35
+     */
+    buildWindowed() {
+      if (document.querySelector(`#${this.windowID}`)) {
+        document.querySelector(`#${this.windowID}`).remove();
+        return;
+      }
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
+        button.onclick = () => instance.handleMinimization(button);
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().addDiv().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D6}", "aria-label": 'Switch to fullscreen mode for "Color Filter"' }, (instance, button) => {
+        button.onclick = () => {
+          document.querySelector(`#${this.windowID}`)?.remove();
+          this.buildWindow();
+        };
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Color Filter"' }, (instance, button) => {
+        button.onclick = () => {
+          document.querySelector(`#${this.windowID}`)?.remove();
+        };
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "None" }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
+      }).buildElement().addButton({ "textContent": "Refresh" }, (instance, button) => {
+        button.onclick = () => {
+          button.disabled = true;
+          this.updateColorList();
+          button.disabled = false;
+        };
+      }).buildElement().addButton({ "textContent": "All" }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
+      }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+      const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
+      __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
+      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
+    }
+    /** Updates the information inside the colors in the color list.
+     * If the color list does not exist yet, it returns the color information instead.
+     * This assumes the information inside each element is the same between fullscreen and windowed mode.
+     * @since 0.90.60
+     * @returns {Object<number, {
+     *   colorTotal: number | string,
+     *   colorTotalLocalized: string,
+     *   colorCorrect: number | string,
+     *   colorCorrectLocalized: string,
+     *   colorPercent: string,
+     *   colorIncorrect: number
+     * }}
+     */
+    updateColorList() {
+      __privateMethod(this, _WindowFilter_instances, calculatePixelStatistics_fn).call(this);
+      const colorList = document.querySelector(`#${this.colorListID}`);
+      const colorStatistics = {};
+      for (const color of this.palette) {
+        const colorTotal = this.allPixelsColor.get(color.id) ?? 0;
+        const colorTotalLocalized = localizeNumber(colorTotal);
+        let colorCorrect = 0;
+        let colorCorrectLocalized = "0";
+        let colorPercent = localizePercent(1);
+        if (colorTotal != 0) {
+          colorCorrect = this.allPixelsCorrect.get(color.id) ?? "???";
+          if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
+            colorCorrect = 0;
+          }
+          colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : localizeNumber(colorCorrect);
+          colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent(colorCorrect / colorTotal);
+        }
+        const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
+        colorStatistics[color.id] = {
+          colorTotal,
+          colorTotalLocalized,
+          colorCorrect,
+          colorCorrectLocalized,
+          colorPercent,
+          colorIncorrect
+        };
+      }
+      if (!colorList) {
+        return colorStatistics;
+      }
+      const colors = Array.from(colorList.children);
+      for (const color of colors) {
+        const colorID = parseInt(color.dataset["id"]);
+        const {
+          colorCorrect,
+          colorCorrectLocalized,
+          colorPercent,
+          colorTotal,
+          colorTotalLocalized,
+          colorIncorrect
+        } = colorStatistics[colorID];
+        color.dataset["correct"] = !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0";
+        color.dataset["total"] = colorTotal;
+        color.dataset["percent"] = colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0";
+        color.dataset["incorrect"] = colorIncorrect || 0;
+        const pixelCount = document.querySelector(`#${this.windowID} .bm-filter-color[data-id="${colorID}"] .bm-filter-color-pxl-cnt`);
+        if (pixelCount) {
+          pixelCount.textContent = `${colorCorrectLocalized} / ${colorTotalLocalized}`;
+        }
+        const pixelDesc = document.querySelector(`#${this.windowID} .bm-filter-color[data-id="${colorID}"] .bm-filter-color-pxl-desc`);
+        if (pixelDesc) {
+          pixelDesc.textContent = `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}`;
+        }
+      }
+      __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
     }
   };
   _WindowFilter_instances = new WeakSet();
   /** Creates the color list container.
    * @param {HTMLElement} parentElement - Parent element to add the color list to as a child
-   * @param {Map<number, number>} allPixelsCorrect - All pixels that are considered correct per color for all templates
-   * @param {Map<number, number>} allPixelsColor - All pixels that are considered that color, totaled across all templates
    * @since 0.88.222
    */
-  buildColorList_fn = function(parentElement, allPixelsCorrect, allPixelsColor) {
+  buildColorList_fn = function(parentElement) {
+    const isWindowedMode = parentElement.closest(`#${this.windowID}`)?.classList.contains("bm-windowed");
+    console.log(`Is Windowed Mode: ${isWindowedMode}`);
     const colorList = new Overlay(this.name, this.version);
-    colorList.addDiv({ "class": "bm-filter-flex" });
+    colorList.addDiv({ "id": this.colorListID });
+    const colorStatistics = this.updateColorList();
     for (const color of this.palette) {
+      const colorValueHex = "#" + rgbToHex(color.rgb).toUpperCase();
       const lumin = calculateRelativeLuminance(color.rgb);
       let textColorForPaletteColorBackground = 1.05 / (lumin + 0.05) > (lumin + 0.05) / 0.05 ? "white" : "black";
       if (!color.id) {
         textColorForPaletteColorBackground = "transparent";
       }
       const bgEffectForButtons = textColorForPaletteColorBackground == "white" ? "bm-button-hover-white" : "bm-button-hover-black";
-      const colorTotal = allPixelsColor.get(color.id) ?? 0;
-      const colorTotalLocalized = localizeNumber(colorTotal);
-      let colorCorrect = 0;
-      let colorCorrectLocalized = "0";
-      let colorPercent = localizePercent(1);
-      if (colorTotal != 0) {
-        colorCorrect = allPixelsCorrect.get(color.id) ?? "???";
-        if (typeof colorCorrect != "number" && this.tilesLoadedTotal == this.tilesTotal && !!color.id) {
-          colorCorrect = 0;
-        }
-        colorCorrectLocalized = typeof colorCorrect == "string" ? colorCorrect : localizeNumber(colorCorrect);
-        colorPercent = isNaN(colorCorrect / colorTotal) ? "???" : localizePercent(colorCorrect / colorTotal);
-      }
-      const colorIncorrect = parseInt(colorTotal) - parseInt(colorCorrect);
+      const {
+        colorCorrect,
+        colorCorrectLocalized,
+        colorPercent,
+        colorTotal,
+        colorTotalLocalized,
+        colorIncorrect
+      } = colorStatistics[color.id];
       const isColorHidden = !!(this.templateManager.shouldFilterColor.get(color.id) || false);
-      colorList.addDiv({
-        "class": "bm-container bm-filter-color bm-flex-between",
-        "data-id": color.id,
-        "data-name": color.name,
-        "data-premium": +color.premium,
-        "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
-        "data-total": colorTotal,
-        "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
-        "data-incorrect": colorIncorrect || 0
-      }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
-        {
-          "class": "bm-button-trans " + bgEffectForButtons,
-          "data-state": isColorHidden ? "hidden" : "shown",
-          "aria-label": isColorHidden ? `Show the color ${color.name || ""} on templates.` : `Hide the color ${color.name || ""} on templates.`,
-          "innerHTML": isColorHidden ? this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`)
-        },
-        (instance, button) => {
-          button.onclick = () => {
-            button.style.textDecoration = "none";
-            button.disabled = true;
-            if (button.dataset["state"] == "shown") {
-              button.innerHTML = this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
-              button.dataset["state"] = "hidden";
-              button.ariaLabel = `Show the color ${color.name || ""} on templates.`;
-              this.templateManager.shouldFilterColor.set(color.id, true);
-            } else {
-              button.innerHTML = this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
-              button.dataset["state"] = "shown";
-              button.ariaLabel = `Hide the color ${color.name || ""} on templates.`;
-              this.templateManager.shouldFilterColor.delete(color.id);
+      if (isWindowedMode) {
+        const styleBackgroundStar = `background-size: auto 100%; background-repeat: repeat-x; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50,5L79,91L2,39L98,39L21,91' fill='${textColorForPaletteColorBackground}' fill-opacity='.1'/></svg>");`;
+        colorList.addDiv({
+          "class": "bm-container bm-filter-color bm-flex-between",
+          // Dataset
+          "data-id": color.id,
+          "data-name": color.name,
+          "data-premium": +color.premium,
+          "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
+          "data-total": colorTotal,
+          "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
+          "data-incorrect": colorIncorrect || 0
+        }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});${color.premium ? styleBackgroundStar : ""}` }).addButton(
+          {
+            "class": "bm-button-trans " + bgEffectForButtons,
+            "data-state": isColorHidden ? "hidden" : "shown",
+            "aria-label": isColorHidden ? `Show the color ${color.name || ""} on templates.` : `Hide the color ${color.name || ""} on templates.`,
+            "innerHTML": isColorHidden ? this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`)
+          },
+          (instance, button) => {
+            button.onclick = () => {
+              button.style.textDecoration = "none";
+              button.disabled = true;
+              if (button.dataset["state"] == "shown") {
+                button.innerHTML = this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "hidden";
+                button.ariaLabel = `Show the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.set(color.id, true);
+              } else {
+                button.innerHTML = this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "shown";
+                button.ariaLabel = `Hide the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.delete(color.id);
+              }
+              button.disabled = false;
+              button.style.textDecoration = "";
+            };
+            if (!color.id) {
+              button.disabled = true;
             }
-            button.disabled = false;
-            button.style.textDecoration = "";
-          };
-          if (!color.id) {
-            button.disabled = true;
           }
-        }
-      ).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id}` }).buildElement().addSmall({ "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+        ).buildElement().addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addHeader(2, { "textContent": color.name, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}` }).buildElement().addSmall({ "class": "bm-filter-color-pxl-cnt", "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}`, "style": `color: ${color.id == -1 || color.id == 0 ? "white" : textColorForPaletteColorBackground}; flex: 1 1 auto; text-align: right;` }).buildElement().buildElement().buildElement();
+      } else {
+        colorList.addDiv({
+          "class": "bm-container bm-filter-color bm-flex-between",
+          "data-id": color.id,
+          "data-name": color.name,
+          "data-premium": +color.premium,
+          "data-correct": !Number.isNaN(parseInt(colorCorrect)) ? colorCorrect : "0",
+          "data-total": colorTotal,
+          "data-percent": colorPercent.slice(-1) == "%" ? colorPercent.slice(0, -1) : "0",
+          "data-incorrect": colorIncorrect || 0
+        }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column;" }).addDiv({ "class": "bm-filter-container-rgb", "style": `background-color: rgb(${color.rgb?.map((channel) => Number(channel) || 0).join(",")});` }).addButton(
+          {
+            "class": "bm-button-trans " + bgEffectForButtons,
+            "data-state": isColorHidden ? "hidden" : "shown",
+            "aria-label": isColorHidden ? `Show the color ${color.name || ""} on templates.` : `Hide the color ${color.name || ""} on templates.`,
+            "innerHTML": isColorHidden ? this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`) : this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`)
+          },
+          (instance, button) => {
+            button.onclick = () => {
+              button.style.textDecoration = "none";
+              button.disabled = true;
+              if (button.dataset["state"] == "shown") {
+                button.innerHTML = this.eyeClosed.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "hidden";
+                button.ariaLabel = `Show the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.set(color.id, true);
+              } else {
+                button.innerHTML = this.eyeOpen.replace("<svg", `<svg fill="${textColorForPaletteColorBackground}"`);
+                button.dataset["state"] = "shown";
+                button.ariaLabel = `Hide the color ${color.name || ""} on templates.`;
+                this.templateManager.shouldFilterColor.delete(color.id);
+              }
+              button.disabled = false;
+              button.style.textDecoration = "";
+            };
+            if (!color.id) {
+              button.disabled = true;
+            }
+          }
+        ).buildElement().buildElement().addSmall({ "textContent": color.id == -2 ? "???????" : colorValueHex }).buildElement().buildElement().addDiv({ "class": "bm-flex-between" }).addHeader(2, { "textContent": (color.premium ? "\u2605 " : "") + color.name }).buildElement().addDiv({ "class": "bm-flex-between", "style": "gap: 1.5ch;" }).addSmall({ "textContent": `#${color.id.toString().padStart(2, 0)}` }).buildElement().addSmall({ "class": "bm-filter-color-pxl-cnt", "textContent": `${colorCorrectLocalized} / ${colorTotalLocalized}` }).buildElement().buildElement().addP({ "class": "bm-filter-color-pxl-desc", "textContent": `${typeof colorIncorrect == "number" && !isNaN(colorIncorrect) ? colorIncorrect : "???"} incorrect pixels. Completed: ${colorPercent}` }).buildElement().buildElement().buildElement();
+      }
     }
     colorList.buildOverlay(parentElement);
   };
@@ -2791,7 +3021,10 @@ Did you try clicking the canvas first?`);
    * @since 0.88.222
    */
   sortColorList_fn = function(sortPrimary, sortSecondary, showUnused) {
-    const colorList = document.querySelector(".bm-filter-flex");
+    this.sortPrimary = sortPrimary;
+    this.sortSecondary = sortSecondary;
+    this.showUnused = showUnused;
+    const colorList = document.querySelector(`#${this.colorListID}`);
     const colors = Array.from(colorList.children);
     colors.sort((index, nextIndex) => {
       const indexValue = index.getAttribute("data-" + sortPrimary);
@@ -2822,7 +3055,7 @@ Did you try clicking the canvas first?`);
    * @since 0.88.222
    */
   selectColorList_fn = function(userWantsUnselect) {
-    const colorList = document.querySelector(".bm-filter-flex");
+    const colorList = document.querySelector(`#${this.colorListID}`);
     const colors = Array.from(colorList.children);
     for (const color of colors) {
       if (color.classList?.contains("bm-color-hide")) {
@@ -2837,6 +3070,43 @@ Did you try clicking the canvas first?`);
       }
       button.click();
     }
+  };
+  /** Calculates all pixel statistics used in the color filter.
+   * @since 0.90.34
+   */
+  calculatePixelStatistics_fn = function() {
+    this.allPixelsTotal = 0;
+    this.allPixelsCorrectTotal = 0;
+    this.allPixelsCorrect = /* @__PURE__ */ new Map();
+    this.allPixelsColor = /* @__PURE__ */ new Map();
+    for (const template of this.templateManager.templatesArray) {
+      const total = template.pixelCount?.total ?? 0;
+      this.allPixelsTotal += total ?? 0;
+      const colors = template.pixelCount?.colors ?? /* @__PURE__ */ new Map();
+      for (const [colorID, colorPixels] of colors) {
+        const _colorPixels = Number(colorPixels) || 0;
+        const allPixelsColorSoFar = this.allPixelsColor.get(colorID) ?? 0;
+        this.allPixelsColor.set(colorID, allPixelsColorSoFar + _colorPixels);
+      }
+      const correctObject = template.pixelCount?.correct ?? {};
+      this.tilesLoadedTotal += Object.keys(correctObject).length;
+      this.tilesTotal += Object.keys(template.chunked).length;
+      for (const map of Object.values(correctObject)) {
+        for (const [colorID, correctPixels] of map) {
+          const _correctPixels = Number(correctPixels) || 0;
+          this.allPixelsCorrectTotal += _correctPixels;
+          const allPixelsCorrectSoFar = this.allPixelsCorrect.get(colorID) ?? 0;
+          this.allPixelsCorrect.set(colorID, allPixelsCorrectSoFar + _correctPixels);
+        }
+      }
+    }
+    console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
+    if (this.allPixelsCorrectTotal >= this.allPixelsTotal && !!this.allPixelsTotal && this.tilesLoadedTotal == this.tilesTotal) {
+      const confettiManager = new ConfettiManager();
+      confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
+    }
+    this.timeRemaining = new Date((this.allPixelsTotal - this.allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
+    this.timeRemainingLocalized = localizeDate(this.timeRemaining);
   };
 
   // src/WindowMain.js
@@ -2864,7 +3134,7 @@ Did you try clicking the canvas first?`);
         this.handleDisplayError("Main window already exists!");
         return;
       }
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": "top: 10px; left: unset; right: 75px;" }, (instance, div) => {
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": "top: 10px; left: unset; right: 75px;" }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
@@ -2959,7 +3229,7 @@ Did you try clicking the canvas first?`);
       }).buildElement().addButton({ "textContent": "Filter" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowMain_instances, buildWindowFilter_fn).call(this);
       }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addTextarea({ "id": this.outputStatusId, "placeholder": `Status: Sleeping...
-Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0;" }).addDiv({ "class": "bm-flex-between" }).addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F9D9}", "title": "Template Wizard" }, (instance, button) => {
+Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between", "style": "margin-bottom: 0; flex-direction: column;" }).addDiv({ "class": "bm-flex-between" }).addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F9D9}", "title": "Template Wizard" }, (instance, button) => {
         button.onclick = () => {
           const templateManager2 = instance.apiManager?.templateManager;
           const wizard = new WindowWizard(this.name, this.version, templateManager2?.schemaVersion, templateManager2);
@@ -2977,7 +3247,12 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         button.onclick = () => {
           window.open("https://ko-fi.com/swingthevine", "_blank", "noopener noreferrer");
         };
-      }).buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F91D}", "title": "Credits" }, (instance, button) => {
+        button.onclick = () => {
+          const credits = new WindowCredts(this.name, this.version);
+          credits.buildWindow();
+        };
+      }).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
     }
   };

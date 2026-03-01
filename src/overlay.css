@@ -13,7 +13,7 @@
   border: 0;
 }
 
-/* The Blue Marble window(s) */
+/* The Blue Marble windows */
 .bm-window {
   position: fixed;
   background-color: rgba(21, 48, 99, 0.9);
@@ -36,6 +36,11 @@
    * Last resort (Arial) */
   font-family: 'Roboto Mono', 'Courier New', 'Monaco', 'DejaVu Sans Mono', monospace, 'Arial';
   letter-spacing: 0.05em;
+}
+
+/* The Blue Marble windowed windows */
+.bm-window.bm-windowed {
+  max-width: 300px;
 }
 
 /* The drag bar */
@@ -157,6 +162,7 @@
 /* All window buttons when disabled */
 .bm-window button:disabled, .bm-window button:disabled {
   text-decoration: line-through;
+  cursor: not-allowed;
 }
 
 /* Icon buttons (single character text content buttons) */
@@ -285,6 +291,11 @@ input[type="file"] {
   width: 100%;
 }
 
+/* Anchor/Links with no children */
+.bm-window a:not(:has(*)) {
+  text-decoration: underline;
+}
+
 /* Small elements */
 .bm-window small {
   font-size: x-small;
@@ -319,4 +330,27 @@ input[type="file"] {
   justify-content: center;
   align-items: center;
   gap: 0.5ch;
+}
+
+/* ASCII Art */
+.bm-ascii {
+  white-space: pre;
+  letter-spacing: 0;
+  line-height: 1 !important;
+  font-size: 1.6em;
+  font-family: monospace;
+}
+
+/* WINDOWED MODE */
+
+/* Containers for "sections" of elements in windowed mode */
+/* Does not apply to the main window */
+.bm-container:not(#bm-window-main .bm-container) {
+  margin: 0.25em 0;
+}
+
+/* Header 1 in windowed mode */
+/* Does not apply to the main window */
+.bm-windowed h1:not(#bm-window-main h1) {
+  font-size: 1em;
 }

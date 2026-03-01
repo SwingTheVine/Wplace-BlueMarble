@@ -1,6 +1,7 @@
 import ConfettiManager from "./confetttiManager";
 import Overlay from "./Overlay";
 import { getClipboardData } from "./utils";
+import WindowCredts from "./WindowCredits";
 import WindowFilter from "./WindowFilter";
 import WindowWizard from "./WindowWizard";
 
@@ -38,7 +39,7 @@ export default class WindowMain extends Overlay {
     }
 
     // Creates the window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': 'top: 10px; left: unset; right: 75px;'}, (instance, div) => {
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': 'top: 10px; left: unset; right: 75px;'}, (instance, div) => {
       // div.onclick = (event) => {
       //   if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
       //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top
@@ -159,7 +160,7 @@ export default class WindowMain extends Overlay {
           .addDiv({'class': 'bm-container'})
             .addTextarea({'id': this.outputStatusId, 'placeholder': `Status: Sleeping...\nVersion: ${this.version}`, 'readOnly': true}).buildElement()
           .buildElement()
-          .addDiv({'class': 'bm-container bm-flex-between', 'style': 'margin-bottom: 0;'})
+          .addDiv({'class': 'bm-container bm-flex-between', 'style': 'margin-bottom: 0; flex-direction: column;'})
             .addDiv({'class': 'bm-flex-between'})
               // .addButton({'class': 'bm-button-circle', 'innerHTML': '🖌'}).buildElement()
               .addButton({'class': 'bm-button-circle', 'innerHTML': '🧙', 'title': 'Template Wizard'}, (instance, button) => {
@@ -183,7 +184,13 @@ export default class WindowMain extends Overlay {
                 button.onclick = () => {
                   window.open('https://ko-fi.com/swingthevine', '_blank', 'noopener noreferrer');
                 }
-              })
+              }).buildElement()
+              .addButton({'class': 'bm-button-circle', 'innerHTML': '🤝', 'title': 'Credits'}, (instance, button) => {
+                button.onclick = () => {
+                  const credits = new WindowCredts(this.name, this.version);
+                  credits.buildWindow();
+                }
+              }).buildElement()
             .buildElement()
             .addSmall({'textContent': 'Made by SwingTheVine', 'style': 'margin-top: auto;'}).buildElement()
           .buildElement()

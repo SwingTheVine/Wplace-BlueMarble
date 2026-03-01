@@ -8,7 +8,7 @@
 }
 
 /* Filter flex */
-.bm-filter-flex {
+#bm-filter-flex {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -70,7 +70,7 @@
 }
 
 /* Filter window hide color button */
-.bm-filter-container-rgb button {
+#bm-window-filter .bm-filter-container-rgb button {
   padding: 0.75em 0.5ch;
 }
 
@@ -94,4 +94,45 @@
 /* Filter window hide unused colors */
 #bm-window-filter .bm-filter-color.bm-color-hide {
   display: none;
+}
+
+/* WINDOWED MODE */
+
+/* Filter flex in windowed mode */
+.bm-windowed #bm-filter-flex {
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+/* Filter color in windowed mode */
+.bm-windowed .bm-filter-color {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Filter window container for RGB color display in windowed mode */
+.bm-windowed .bm-filter-container-rgb {
+  display: flex;
+  width: 100%;
+  gap: 0.5ch;
+  align-items: center;
+  padding: 0.1em 0.5ch;
+  border: none;
+  border-radius: 1em;
+}
+
+/* Filter window hide color button */
+#bm-window-filter.bm-windowed .bm-filter-container-rgb button {
+  padding: 0.5em 0.25ch;
+}
+
+/* Filter window hide color button SVG in windowed mode */
+.bm-windowed .bm-filter-container-rgb svg {
+  width: 3ch;
+}
+
+/* Filter window header 2 in windowed mode */
+.bm-windowed .bm-filter-color h2 {
+  font-size: 0.75em;
 }

@@ -1,4 +1,18 @@
 
+/** Returns a Date of when Wplace was last updated.
+ * This is obtained from a certain DOM element which contains the version of Wplace.
+ * @since 0.90.25
+ * @returns {Date | undefined} - The date that Wplace was last updated, as a Date.
+ */
+export function getWplaceVersion() {
+  const wplaceVersionElement = [...document.querySelectorAll(`body > div > .hidden`)].filter(match => /version:/i.test(match.textContent));
+  if (wplaceVersionElement[0]) { // If there is at least one match...
+    const wplaceUpdateTime = wplaceVersionElement[0].textContent?.match(/\d+/); // Obtain the last update time, which is Unix Epoch in milliseconds
+    return wplaceUpdateTime ? new Date(Number(wplaceUpdateTime[0])) : undefined; // Return the time as a Date, or undefined
+  }
+  return undefined;
+}
+
 /** Halts execution of this specific userscript, for the specified time.
  * This will not block the thread.
  * @param {number} - Time to wait in milliseconds
@@ -299,6 +313,31 @@ export function calculateRelativeLuminance(array) {
 
   // https://en.wikipedia.org/wiki/Relative_luminance#Relative_luminance_and_%22gamma_encoded%22_colorspaces
   return (0.2126 * srgb[0]) + (0.7152 * srgb[1]) + (0.0722 * srgb[2]);
+}
+
+/** Converts an RGB color to hexdecimal color.
+ * Octothorpe not included.
+ * @param {number | Array<number, number, number>} red - The Red channel of the RGB color, or all three channels as an Array
+ * @param {number} [green] - The Green channel of the RGB color
+ * @param {number} [blue] - The Blue channel of the RGB color
+ * @returns {string} Hex color code as string
+ * @since 0.90.31
+ */
+export function rgbToHex(red, green, blue) {
+  if (Array.isArray(red)) {[red, green, blue] = red;} // Deconstruct the Array if an Array was passed in
+  return ((1 << 24) | (red << 16) | (green << 8) | blue).toString(16).slice(1); // Packs it into a 24-bit integer, then converts it to base16.
+}
+
+/** Converts a hexdecimal color to an RGB color.
+ * Alpha channel not supported.
+ * @param {string} hex - Hex color code as string
+ * @returns {Array<number, number, number>} RGB color as an Array
+ * @since 0.90.31
+ */
+export function hexToRGB(hex) {
+  hex = (hex[0] == '#') ? hex.slice(1) : hex; // Removes the octothorpe, if any
+  const packedIntRGB = parseInt(hex, 16); // Converts (base16) into an integer
+  return [(packedIntRGB >> 16 & 255), (packedIntRGB >> 8 & 255), (packedIntRGB & 255)]; // Unpacks the integer into the RGB channels
 }
 
 /** Returns the coordinate input fields
