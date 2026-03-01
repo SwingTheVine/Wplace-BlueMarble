@@ -278,10 +278,10 @@ input[type=file] {
   font-size: 1.6em;
   font-family: monospace;
 }
-.bm-container {
+.bm-container:not(#bm-window-main .bm-container) {
   margin: 0.25em 0;
 }
-.bm-windowed h1 {
+.bm-windowed h1:not(#bm-window-main h1) {
   font-size: 1em;
 }
 

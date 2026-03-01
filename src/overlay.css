@@ -344,11 +344,13 @@ input[type="file"] {
 /* WINDOWED MODE */
 
 /* Containers for "sections" of elements in windowed mode */
-.bm-container {
+/* Does not apply to the main window */
+.bm-container:not(#bm-window-main .bm-container) {
   margin: 0.25em 0;
 }
 
 /* Header 1 in windowed mode */
-.bm-windowed h1 {
+/* Does not apply to the main window */
+.bm-windowed h1:not(#bm-window-main h1) {
   font-size: 1em;
 }
