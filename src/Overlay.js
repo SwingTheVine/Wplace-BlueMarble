@@ -1,3 +1,5 @@
+import { consoleLog } from "./utils";
+
 /** The overlay builder for the Blue Marble script.
  * @description This class handles the overlay UI for the Blue Marble script.
  * @class Overlay
@@ -531,8 +533,10 @@ export default class Overlay {
 
       // Store the information, then delete it from additionalProperties
       labelContent['innerHTML'] = additionalProperties['innerHTML'];
-      delete additionalProperties['textContent'];
+      delete additionalProperties['innerHTML']; // Deletes 'innerHTML' DOM property before adding the properties to the checkbox. This prevents the label text from being added as a child of the checkbox element.
     }
+
+    consoleLog(additionalProperties);
 
     const label = this.#createElement('label', labelContent); // Creates the label element
     const checkbox = this.#createElement('input', properties, additionalProperties); // Creates the checkbox element

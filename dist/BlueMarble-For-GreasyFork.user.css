@@ -1,192 +1,3 @@
-/* src/WindowFilter.css */
-#bm-window-filter p svg {
-  display: inline;
-  height: 1em;
-  fill: white;
-}
-#bm-filter-flex {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1em 3ch;
-}
-#bm-window-filter .bm-filter-color {
-  width: fit-content;
-  max-width: 35ch;
-  background-color: rgba(21, 48, 99, 0.9);
-  border-radius: 1em;
-  padding: 0.5em;
-  gap: 1ch;
-  transition: background-color 0.3s ease;
-}
-#bm-window-filter .bm-filter-color:hover,
-#bm-window-filter.bm-filter-color:focus-within {
-  background-color: rgba(17, 40, 85, 0.9);
-}
-#bm-window-filter .bm-filter-container-rgb {
-  display: block;
-  border: thick double darkslategray;
-  width: fit-content;
-  height: fit-content;
-  padding: 1ch;
-}
-#bm-window-filter .bm-filter-color[data-id="-2"] .bm-filter-container-rgb {
-  background:
-    conic-gradient(
-      #aa0000 0%,
-      #aaaa00 16.6%,
-      #00aa00 33.3%,
-      #00aaaa 50%,
-      #0000aa 66.6%,
-      #aa00aa 83.3%,
-      #aa0000 100%);
-}
-#bm-window-filter .bm-filter-color[data-id="-1"] .bm-filter-container-rgb {
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 8 8" width="1em" height="1em"><path d="M0,0V8H16V16H8V0" fill="rgba(0,0,0,0.5)"/></svg>') repeat;
-  background-color: transparent !important;
-}
-#bm-window-filter .bm-filter-color[data-id="-1"] .bm-filter-container-rgb svg {
-  fill: white !important;
-}
-#bm-window-filter .bm-filter-color[data-id="0"] .bm-filter-container-rgb {
-  background-color: transparent !important;
-}
-#bm-window-filter .bm-filter-container-rgb button {
-  padding: 0.75em 0.5ch;
-}
-#bm-window-filter .bm-filter-container-rgb svg {
-  width: 4ch;
-}
-#bm-window-filter .bm-filter-color > .bm-flex-between {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-}
-#bm-window-filter .bm-filter-color small {
-  font-size: 0.75em;
-}
-#bm-window-filter .bm-filter-color.bm-color-hide {
-  display: none;
-}
-#bm-window-filter.bm-windowed #bm-filter-flex {
-  flex-direction: column;
-  gap: 0.25em;
-}
-#bm-window-filter.bm-windowed .bm-filter-color {
-  width: auto;
-  margin: 0;
-  padding: 0;
-}
-#bm-window-filter.bm-windowed .bm-filter-container-rgb {
-  display: flex;
-  width: 100%;
-  gap: 0.5ch;
-  align-items: center;
-  padding: 0.1em 0.5ch;
-  border: none;
-  border-radius: 1em;
-}
-#bm-window-filter.bm-windowed .bm-filter-container-rgb button {
-  padding: 0.5em 0.25ch;
-}
-#bm-window-filter.bm-windowed .bm-filter-container-rgb svg {
-  width: 3ch;
-}
-#bm-window-filter.bm-windowed .bm-filter-color h2 {
-  font-size: 0.75em;
-}
-#bm-window-filter #bm-filter-windowed-color-totals {
-  font-size: 1em;
-}
-
-/* src/WindowSettings.css */
-#bm-window-settings div:has(> .bm-highlight-preset-container) {
-  width: fit-content;
-  justify-content: flex-start;
-}
-#bm-window-settings .bm-highlight-preset-container {
-  display: flex;
-  flex-direction: column;
-  width: 13%;
-}
-#bm-window-settings .bm-highlight-preset-container span {
-  width: fit-content;
-  margin: auto;
-  font-size: 0.7em;
-}
-#bm-window-settings .bm-highlight-preset-container button {
-  width: fit-content;
-  padding: 0;
-  border-radius: 0;
-}
-#bm-window-settings .bm-highlight-preset-container svg {
-  stroke: #333;
-  stroke-width: 0.02px;
-  width: 100%;
-  min-width: 1.5ch;
-  max-width: 14.5ch;
-}
-#bm-window-settings .bm-highlight-preset-container button:hover svg,
-#bm-window-settings .bm-highlight-preset-container button:focus svg {
-  opacity: 0.9;
-}
-#bm-window-settings .bm-highlight-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  width: 25%;
-  min-width: 3ch;
-  max-width: 15ch;
-}
-#bm-window-settings .bm-highlight-grid > button {
-  width: 100%;
-  padding: 0;
-  aspect-ratio: 1 / 1;
-  background-color: white;
-  border: #333 1px solid;
-  border-radius: 0;
-  box-sizing: border-box;
-}
-#bm-window-settings .bm-highlight-grid > button[data-status=Incorrect] {
-  background-color: brown;
-}
-#bm-window-settings .bm-highlight-grid > button[data-status=Template] {
-  background-color: darkslategray;
-}
-#bm-window-settings .bm-highlight-grid > button:hover,
-#bm-window-settings .bm-highlight-grid > button:focus {
-  opacity: 0.8;
-}
-
-/* src/WindowWizard.css */
-#bm-wizard-tlist {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-}
-#bm-wizard-tlist > .bm-container {
-  width: 100%;
-  justify-content: flex-start;
-  background-color: rgba(21, 48, 99, 0.9);
-  border-radius: 1em;
-  padding: 0.5em;
-  transition: background-color 0.3s ease;
-}
-#bm-wizard-tlist > .bm-container:hover,
-#bm-wizard-tlist > .bm-container:focus-within {
-  background-color: rgba(17, 40, 85, 0.9);
-}
-#bm-wizard-tlist .bm-wizard-template-container-image {
-  height: 100%;
-  font-size: xxx-large;
-}
-#bm-wizard-tlist .bm-wizard-template-container-flavor {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-}
-
 /* src/confettiManager.css */
 div:has(> confetti-piece) {
   position: absolute;
@@ -474,6 +285,195 @@ input[type=file] {
 }
 .bm-windowed h1:not(#bm-window-main h1) {
   font-size: 1em;
+}
+
+/* src/WindowFilter.css */
+#bm-window-filter p svg {
+  display: inline;
+  height: 1em;
+  fill: white;
+}
+#bm-filter-flex {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1em 3ch;
+}
+#bm-window-filter .bm-filter-color {
+  width: fit-content;
+  max-width: 35ch;
+  background-color: rgba(21, 48, 99, 0.9);
+  border-radius: 1em;
+  padding: 0.5em;
+  gap: 1ch;
+  transition: background-color 0.3s ease;
+}
+#bm-window-filter .bm-filter-color:hover,
+#bm-window-filter.bm-filter-color:focus-within {
+  background-color: rgba(17, 40, 85, 0.9);
+}
+#bm-window-filter .bm-filter-container-rgb {
+  display: block;
+  border: thick double darkslategray;
+  width: fit-content;
+  height: fit-content;
+  padding: 1ch;
+}
+#bm-window-filter .bm-filter-color[data-id="-2"] .bm-filter-container-rgb {
+  background:
+    conic-gradient(
+      #aa0000 0%,
+      #aaaa00 16.6%,
+      #00aa00 33.3%,
+      #00aaaa 50%,
+      #0000aa 66.6%,
+      #aa00aa 83.3%,
+      #aa0000 100%);
+}
+#bm-window-filter .bm-filter-color[data-id="-1"] .bm-filter-container-rgb {
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 8 8" width="1em" height="1em"><path d="M0,0V8H16V16H8V0" fill="rgba(0,0,0,0.5)"/></svg>') repeat;
+  background-color: transparent !important;
+}
+#bm-window-filter .bm-filter-color[data-id="-1"] .bm-filter-container-rgb svg {
+  fill: white !important;
+}
+#bm-window-filter .bm-filter-color[data-id="0"] .bm-filter-container-rgb {
+  background-color: transparent !important;
+}
+#bm-window-filter .bm-filter-container-rgb button {
+  padding: 0.75em 0.5ch;
+}
+#bm-window-filter .bm-filter-container-rgb svg {
+  width: 4ch;
+}
+#bm-window-filter .bm-filter-color > .bm-flex-between {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+#bm-window-filter .bm-filter-color small {
+  font-size: 0.75em;
+}
+#bm-window-filter .bm-filter-color.bm-color-hide {
+  display: none;
+}
+#bm-window-filter.bm-windowed #bm-filter-flex {
+  flex-direction: column;
+  gap: 0.25em;
+}
+#bm-window-filter.bm-windowed .bm-filter-color {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+#bm-window-filter.bm-windowed .bm-filter-container-rgb {
+  display: flex;
+  width: 100%;
+  gap: 0.5ch;
+  align-items: center;
+  padding: 0.1em 0.5ch;
+  border: none;
+  border-radius: 1em;
+}
+#bm-window-filter.bm-windowed .bm-filter-container-rgb button {
+  padding: 0.5em 0.25ch;
+}
+#bm-window-filter.bm-windowed .bm-filter-container-rgb svg {
+  width: 3ch;
+}
+#bm-window-filter.bm-windowed .bm-filter-color h2 {
+  font-size: 0.75em;
+}
+#bm-window-filter #bm-filter-windowed-color-totals {
+  font-size: 1em;
+}
+
+/* src/WindowSettings.css */
+#bm-window-settings div:has(> .bm-highlight-preset-container) {
+  width: fit-content;
+  justify-content: flex-start;
+}
+#bm-window-settings .bm-highlight-preset-container {
+  display: flex;
+  flex-direction: column;
+  width: 13%;
+}
+#bm-window-settings .bm-highlight-preset-container span {
+  width: fit-content;
+  margin: auto;
+  font-size: 0.7em;
+}
+#bm-window-settings .bm-highlight-preset-container button {
+  width: fit-content;
+  padding: 0;
+  border-radius: 0;
+}
+#bm-window-settings .bm-highlight-preset-container svg {
+  stroke: #333;
+  stroke-width: 0.02px;
+  width: 100%;
+  min-width: 1.5ch;
+  max-width: 14.5ch;
+}
+#bm-window-settings .bm-highlight-preset-container button:hover svg,
+#bm-window-settings .bm-highlight-preset-container button:focus svg {
+  opacity: 0.9;
+}
+#bm-window-settings .bm-highlight-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  width: 25%;
+  min-width: 3ch;
+  max-width: 15ch;
+}
+#bm-window-settings .bm-highlight-grid > button {
+  width: 100%;
+  padding: 0;
+  aspect-ratio: 1 / 1;
+  background-color: white;
+  border: #333 1px solid;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+#bm-window-settings .bm-highlight-grid > button[data-status=Incorrect] {
+  background-color: brown;
+}
+#bm-window-settings .bm-highlight-grid > button[data-status=Template] {
+  background-color: darkslategray;
+}
+#bm-window-settings .bm-highlight-grid > button:hover,
+#bm-window-settings .bm-highlight-grid > button:focus {
+  opacity: 0.8;
+}
+
+/* src/WindowWizard.css */
+#bm-wizard-tlist {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+#bm-wizard-tlist > .bm-container {
+  width: 100%;
+  justify-content: flex-start;
+  background-color: rgba(21, 48, 99, 0.9);
+  border-radius: 1em;
+  padding: 0.5em;
+  transition: background-color 0.3s ease;
+}
+#bm-wizard-tlist > .bm-container:hover,
+#bm-wizard-tlist > .bm-container:focus-within {
+  background-color: rgba(17, 40, 85, 0.9);
+}
+#bm-wizard-tlist .bm-wizard-template-container-image {
+  height: 100%;
+  font-size: xxx-large;
+}
+#bm-wizard-tlist .bm-wizard-template-container-flavor {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
 
 /* src/main.css */
