@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.2
+// @version         0.92.3
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -693,7 +693,9 @@
     }
     /** Adds a checkbox to the overlay.
      * This checkbox element will have properties shared between all checkbox elements in the overlay.
-     * You can override the shared properties by using a callback. Note: the checkbox element is inside a label element.
+     * You can override the shared properties by using a callback.
+     * Note: The checkbox element is inside a label element.
+     * Note: The text content is contained within a `<span>` element.
      * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the checkbox that are NOT shared between all overlay checkbox elements. These should be camelCase.
      * @param {function(Overlay, HTMLLabelElement, HTMLInputElement):void} [callback=()=>{}] - Additional JS modification to the checkbox.
      * @returns {Overlay} Overlay class instance (this)
@@ -706,26 +708,28 @@
      * <body>
      *   <label>
      *     <input type="checkbox" id="foo" class="bar">
-     *     "Foobar."
+     *     <span>"Foobar."<span>
      *   </label>
      * </body>
      */
     addCheckbox(additionalProperties = {}, callback = () => {
     }) {
       const properties = { "type": "checkbox" };
-      const labelContent = {};
+      const labelTextContent = {};
       if (!!additionalProperties["textContent"]) {
-        labelContent["textContent"] = additionalProperties["textContent"];
+        labelTextContent["textContent"] = additionalProperties["textContent"];
         delete additionalProperties["textContent"];
       } else if (!!additionalProperties["innerHTML"]) {
-        labelContent["innerHTML"] = additionalProperties["innerHTML"];
+        labelTextContent["innerHTML"] = additionalProperties["innerHTML"];
         delete additionalProperties["innerHTML"];
       }
-      consoleLog(additionalProperties);
-      const label = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "label", labelContent);
+      const label = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "label");
       const checkbox = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "input", properties, additionalProperties);
-      label.insertBefore(checkbox, label.firstChild);
       this.buildElement();
+      label.appendChild(checkbox);
+      const span = __privateMethod(this, _Overlay_instances, createElement_fn).call(this, "span", labelTextContent);
+      this.buildElement();
+      label.appendChild(span);
       callback(this, label, checkbox);
       return this;
     }
