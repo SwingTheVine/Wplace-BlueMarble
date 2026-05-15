@@ -498,7 +498,9 @@ export default class Overlay {
 
   /** Adds a checkbox to the overlay.
    * This checkbox element will have properties shared between all checkbox elements in the overlay.
-   * You can override the shared properties by using a callback. Note: the checkbox element is inside a label element.
+   * You can override the shared properties by using a callback.
+   * Note: The checkbox element is inside a label element.
+   * Note: The text content is contained within a `<span>` element.
    * @param {Object.<string, any>} [additionalProperties={}] - The DOM properties of the checkbox that are NOT shared between all overlay checkbox elements. These should be camelCase.
    * @param {function(Overlay, HTMLLabelElement, HTMLInputElement):void} [callback=()=>{}] - Additional JS modification to the checkbox.
    * @returns {Overlay} Overlay class instance (this)
@@ -511,7 +513,7 @@ export default class Overlay {
    * <body>
    *   <label>
    *     <input type="checkbox" id="foo" class="bar">
-   *     "Foobar."
+   *     <span>"Foobar."<span>
    *   </label>
    * </body>
    */
@@ -519,29 +521,30 @@ export default class Overlay {
 
     const properties = {'type': 'checkbox'}; // Shared checkbox DOM properties
 
-    // Stores the label content from the additional property
-    const labelContent = {};
+    // Stores the text content from the additional property
+    const labelTextContent = {};
 
     // If the label content was passed in as 'textContent'...
     if (!!additionalProperties['textContent']) {
 
       // Store the information, then delete it from additionalProperties
-      labelContent['textContent'] = additionalProperties['textContent'];
+      labelTextContent['textContent'] = additionalProperties['textContent'];
       delete additionalProperties['textContent']; // Deletes 'textContent' DOM property before adding the properties to the checkbox
     } else if (!!additionalProperties['innerHTML']) {
       // Else if the label content was passed in as 'innerHTML'...
 
       // Store the information, then delete it from additionalProperties
-      labelContent['innerHTML'] = additionalProperties['innerHTML'];
+      labelTextContent['innerHTML'] = additionalProperties['innerHTML'];
       delete additionalProperties['innerHTML']; // Deletes 'innerHTML' DOM property before adding the properties to the checkbox. This prevents the label text from being added as a child of the checkbox element.
     }
 
-    consoleLog(additionalProperties);
-
-    const label = this.#createElement('label', labelContent); // Creates the label element
+    const label = this.#createElement('label'); // Creates the label element
     const checkbox = this.#createElement('input', properties, additionalProperties); // Creates the checkbox element
-    label.insertBefore(checkbox, label.firstChild); // Makes the checkbox the first child of the label (before the text content)
     this.buildElement(); // Signifies that we are done adding children to the checkbox
+    label.appendChild(checkbox); // Adds the checkbox element as a child of the <label>
+    const span = this.#createElement('span', labelTextContent); // Creates a span element, which contains the text label (undetermined number of children)
+    this.buildElement(); // Signifies that we are done adding children to the span
+    label.appendChild(span); // Adds the span element as a child of the <label>
     callback(this, label, checkbox); // Runs any script passed in through the callback
     return this;
   }
