@@ -314,7 +314,7 @@ export default class SettingsManager extends WindowSettings {
   buildTemplate() {
 
     this.window = this.addDiv({'class': 'bm-container'})
-      .addHeader(2, {'textContent': 'Pixel Highlight'}).buildElement()
+      .addHeader(2, {'textContent': 'Template'}).buildElement()
       .addHr().buildElement()
       .addDiv({'class': 'bm-container', 'style': 'margin-left: 1.5ch;'})
         .addCheckbox({'textContent': 'Template creation should skip transparent tiles'}, (instance, label, checkbox) => {
