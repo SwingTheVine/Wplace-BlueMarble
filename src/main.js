@@ -14,25 +14,11 @@ const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
 const consoleStyle = 'color: cornflowerblue;'; // The styling for the console logs
 
-/** Injects code into the client
- * This code will execute outside of TamperMonkey's sandbox
- * @param {*} callback - The code to execute
- * @since 0.11.15
- */
-function inject(callback) {
-    const script = document.createElement('script');
-    script.setAttribute('bm-name', name); // Passes in the name value
-    script.setAttribute('bm-cStyle', consoleStyle); // Passes in the console style value
-    script.textContent = `(${callback})();`;
-    document.documentElement?.appendChild(script);
-    script.remove();
-}
-
 /** What code to execute instantly in the client (webpage) to spy on fetch calls.
  * This code will execute outside of TamperMonkey's sandbox.
  * @since 0.11.15
  */
-inject(() => {
+const injectionCode = () => {
 
   const script = document.currentScript; // Gets the current script HTML Script Element
   const name = script?.getAttribute('bm-name') || 'Blue Marble'; // Gets the name value that was passed in. Defaults to "Blue Marble" if nothing was found
@@ -157,7 +143,33 @@ inject(() => {
 
     return response; // Returns the original response
   };
-});
+};
+
+/** Injects code into the client
+ * This code will execute outside of TamperMonkey's sandbox.
+ * @param {*} callback - The code to execute
+ * @since 0.11.15
+ */
+function inject(callback) {
+  const script = document.createElement('script');
+  script.setAttribute('bm-name', name); // Passes in the name value
+  script.setAttribute('bm-cStyle', consoleStyle); // Passes in the console style value
+  script.textContent = `(${callback})();`;
+  document.documentElement?.appendChild(script);
+  script.remove();
+}
+
+// Waits to inject until the DOM exists
+if (document.readyState === 'loading') {
+
+  // If the DOM is still loading, (when done) we inject the code using an event listener
+  consoleLog('DOM is still loading! Using an event listener to inject spying code...');
+  document.addEventListener('DOMContentLoaded', inject(injectionCode));
+} else {
+
+  // Else, the DOM is ready, so we inject directly
+  inject(injectionCode);
+}
 
 // ----- START OF BLUE MARBLE EXECUTION -----
 (async () => {
