@@ -36,10 +36,10 @@ export default class ApiManager {
       const data = event.data; // The data of the message
       const dataJSON = data['jsonData']; // The JSON response, if any
 
-      // Kills itself if the message was not intended for Blue Marble
+      // Returns early if the message was not intended for Blue Marble
       if (!(data && data['source'] === 'blue-marble')) {return;}
 
-      // Kills itself if the message has no endpoint (intended for Blue Marble, but not this function)
+      // Returns early if the message has no endpoint (intended for Blue Marble, but not this function)
       if (!data['endpoint']) {return;}
 
       // Trims endpoint to the second to last non-number, non-null directoy.
@@ -60,7 +60,7 @@ export default class ApiManager {
             // The server is probably down (NOT a 2xx status)
             
             overlay.handleDisplayError(`You are not logged in or Wplace is offline!\nCould not fetch userdata.`);
-            return; // Kills itself before attempting to display null userdata
+            return; // Returns early to avoid displaying null userdata
           }
 
           const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON['level']) * Math.pow(30, 0.65), (1/0.65)) - dataJSON['pixelsPainted']); // Calculates pixels to the next level
@@ -102,7 +102,7 @@ export default class ApiManager {
           // Don't save the coords if there are previous coords that could be used
           if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
             overlay.handleDisplayError(`Coordinates are malformed!\nDid you try clicking the canvas first?`);
-            return; // Kills itself
+            return; // Returns early
           }
           
           this.coordsTilePixel = [...coordsTile, ...coordsPixel]; // Combines the two arrays such that [x, y, x, y]

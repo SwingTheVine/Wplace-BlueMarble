@@ -146,7 +146,7 @@ export default class WindowMain extends Overlay {
                 const coordPxY = document.querySelector('#bm-input-py');
                 if (!coordPxY.checkValidity()) {coordPxY.reportValidity(); instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?'); return;}
 
-                // Kills itself if there is no file
+                // Returns early if there is no file
                 if (!input?.files[0]) {instance.handleDisplayError(`No file selected!`); return;}
 
                 instance?.apiManager?.templateManager.createTemplate(input.files[0], input.files[0]?.name.replace(/\.[^/.]+$/, ''), [Number(coordTlX.value), Number(coordTlY.value), Number(coordPxX.value), Number(coordPxY.value)]);

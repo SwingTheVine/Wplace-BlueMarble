@@ -1154,7 +1154,7 @@ export default class Overlay {
     // Creates the logic that keeps updating the timer
     setInterval(() => {
 
-      // Kills the timer logic if the timer element does not exist in the main DOM tree
+      // Refuses to execute timer logic if the timer element does not exist in the DOM tree
       if (!timer.isConnected) {/*clearInterval(timer);*/ return;}
 
       // Returns time remaining in seconds, or 0 seconds if timer has reached end time.
@@ -1196,7 +1196,7 @@ export default class Overlay {
 
     const element = document.getElementById(id.replace(/^#/, '')); // Retrieve the element from the 'id' (removed the '#')
     
-    if (!element) {return;} // Kills itself if the element does not exist
+    if (!element) {return;} // Returns early if the element does not exist
 
     // Input elements don't have innerHTML, so we modify the value attribute instead
     if (element instanceof HTMLInputElement) {
@@ -1294,7 +1294,7 @@ export default class Overlay {
     // What to do when one of the two elements are not found
     if (!moveMe || !iMoveThings) {
       this.handleDisplayError(`Can not drag! ${!moveMe ? 'moveMe' : ''} ${!moveMe && !iMoveThings ? 'and ' : ''}${!iMoveThings ? 'iMoveThings ' : ''}was not found!`);
-      return; // Kills itself
+      return; // Returns early
     }
 
     let isDragging = false;
