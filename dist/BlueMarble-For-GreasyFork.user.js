@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.10
+// @version         0.92.12
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -13,6 +13,7 @@
 // @updateURL       https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @downloadURL     https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @match           https://wplace.live/*
+// @run-at          document-start
 // @grant           GM.getResourceText
 // @grant           GM.addStyle
 // @grant           GM.setValue
@@ -3859,15 +3860,7 @@ Did you try clicking the canvas first?`);
   var name = GM_info.script.name.toString();
   var version = GM_info.script.version.toString();
   var consoleStyle = "color: cornflowerblue;";
-  function inject(callback) {
-    const script = document.createElement("script");
-    script.setAttribute("bm-name", name);
-    script.setAttribute("bm-cStyle", consoleStyle);
-    script.textContent = `(${callback})();`;
-    document.documentElement?.appendChild(script);
-    script.remove();
-  }
-  inject(() => {
+  var injectionCode = () => {
     const script = document.currentScript;
     const name2 = script?.getAttribute("bm-name") || "Blue Marble";
     const consoleStyle2 = script?.getAttribute("bm-cStyle") || "";
@@ -3941,7 +3934,21 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       }
       return response;
     };
-  });
+  };
+  function inject(callback) {
+    const script = document.createElement("script");
+    script.setAttribute("bm-name", name);
+    script.setAttribute("bm-cStyle", consoleStyle);
+    script.textContent = `(${callback})();`;
+    document.documentElement?.appendChild(script);
+    script.remove();
+  }
+  if (document.readyState === "loading") {
+    consoleLog("DOM is still loading! Using an event listener to inject spying code...");
+    document.addEventListener("DOMContentLoaded", inject(injectionCode));
+  } else {
+    inject(injectionCode);
+  }
   (async () => {
     const cssOverlay = await GM.getResourceText("CSS-BM-File");
     GM.addStyle(cssOverlay);
