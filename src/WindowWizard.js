@@ -24,15 +24,21 @@ export default class WindowWizard extends Overlay {
     this.windowID = 'bm-window-wizard'; // The ID attribute for this window
     this.windowParent = document.body; // The parent of the window DOM tree
 
-    // Retrieves data from storage
-    this.currentJSON = JSON.parse(GM_getValue('bmTemplates', '{}')); // The current Blue Marble storage
-    this.scriptVersion = this.currentJSON?.scriptVersion; // Script version when template was created
-    this.schemaVersion = this.currentJSON?.schemaVersion; // Schema version when template was created
-
     this.schemaHealth = undefined; // Current schema health. This is: 'Good', 'Poor', 'Bad', or 'Dead' for full match, MINOR mismatch, MAJOR mismatch, and unknown, respectively.
     this.schemaVersionBleedingEdge = schemaVersionBleedingEdge; // Latest schema version
 
     this.templateManager = templateManager;
+  }
+
+  /** Retrieves template data from the template manager's user storage.
+   * This should be called as soon as possible.
+   * All Template Wizard Windows share this function.
+   * @since 0.92.8
+   */
+  async #getTemplateDataFromStorage() {
+    this.currentJSON = JSON.parse(await GM.getValue('bmTemplates', '{}')); // The current Blue Marble storage
+    this.scriptVersion = this.currentJSON?.scriptVersion; // Script version when template was created
+    this.schemaVersion = this.currentJSON?.schemaVersion; // Schema version when template was created
   }
 
   /** Spawns a Template Wizard window.
@@ -40,7 +46,9 @@ export default class WindowWizard extends Overlay {
    * Parent/child relationships in the DOM structure below are indicated by indentation.
    * @since 0.88.434
    */
-  buildWindow() {
+  async buildWindow() {
+
+    await this.#getTemplateDataFromStorage();
 
     // If a template wizard window already exists, close it
     if (document.querySelector(`#${this.windowID}`)) {
@@ -262,7 +270,8 @@ export default class WindowWizard extends Overlay {
     }
 
     // Deletes the bmCoords value set in 1.0.0 which is unused in 2.0.0
-    GM_deleteValue('bmCoords');
+    GM.deleteValue('bmCoords');
+    // No await. We don't need to block the thread, because this value is unused, so there is no possibility of race condition
 
     // Obtains the templates from JSON storage
     const templates = this.currentJSON?.templates;

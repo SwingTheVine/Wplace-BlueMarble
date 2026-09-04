@@ -159,126 +159,131 @@ inject(() => {
   };
 });
 
-// Imports the CSS file from dist folder on github
-const cssOverlay = GM_getResourceText("CSS-BM-File");
-GM_addStyle(cssOverlay);
+// ----- START OF BLUE MARBLE EXECUTION -----
+(async () => {
+  // All `await` GM calls must be inside this annon async function
 
-// Injection point for the Roboto Mono font file (only if this is the Standalone version)
-const robotoMonoInjectionPoint = 'robotoMonoInjectionPoint';
+  // Imports the CSS file from dist folder on github
+  const cssOverlay = await GM.getResourceText("CSS-BM-File");
+  GM.addStyle(cssOverlay);
 
-// If the Roboto Mono injection point contains '@font-face'...
-if (!!(robotoMonoInjectionPoint.indexOf('@font-face') + 1)) {
-  // A very hacky way of doing truthy/falsy logic
-  
-  console.log(`Loading Roboto Mono as a file...`);
-  GM_addStyle(robotoMonoInjectionPoint); // Add the Roboto Mono font-faces that were injected.
-} else {
-  // Else, no Roboto Mono was found. We need to use a stylesheet.
-  
-  // Imports the Roboto Mono font family as a stylesheet
-  var stylesheetLink = document.createElement('link');
-  stylesheetLink.href = 'https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap';
-  stylesheetLink.rel = 'preload';
-  stylesheetLink.as = 'style';
-  stylesheetLink.onload = function () {
-    this.onload = null;
-    this.rel = 'stylesheet';
-  };
-  document.head?.appendChild(stylesheetLink);
-}
+  // Injection point for the Roboto Mono font file (only if this is the Standalone version)
+  const robotoMonoInjectionPoint = 'robotoMonoInjectionPoint';
 
-const userSettings = JSON.parse(GM_getValue('bmUserSettings', '{}')); // Loads the user settings
+  // If the Roboto Mono injection point contains '@font-face'...
+  if (!!(robotoMonoInjectionPoint.indexOf('@font-face') + 1)) {
+    // A very hacky way of doing truthy/falsy logic
+    
+    console.log(`Loading Roboto Mono as a file...`);
+    GM.addStyle(robotoMonoInjectionPoint); // Add the Roboto Mono font-faces that were injected.
+  } else {
+    // Else, no Roboto Mono was found. We need to use a stylesheet.
+    
+    // Imports the Roboto Mono font family as a stylesheet
+    var stylesheetLink = document.createElement('link');
+    stylesheetLink.href = 'https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap';
+    stylesheetLink.rel = 'preload';
+    stylesheetLink.as = 'style';
+    stylesheetLink.onload = function () {
+      this.onload = null;
+      this.rel = 'stylesheet';
+    };
+    document.head?.appendChild(stylesheetLink);
+  }
 
-// CONSTRUCTORS
-const observers = new Observers(); // Constructs a new Observers object
-const windowMain = new WindowMain(name, version); // Constructs a new Overlay object for the main overlay
-const templateManager = new TemplateManager(name, version); // Constructs a new TemplateManager object
-const apiManager = new ApiManager(templateManager); // Constructs a new ApiManager object
-const settingsManager = new SettingsManager(name, version, userSettings); // Constructs a new SettingsManager
+  const userSettings = JSON.parse(await GM.getValue('bmUserSettings', '{}')); // Loads the user settings
 
-windowMain.setSettingsManager(settingsManager); // Sets the settings manager
-windowMain.setApiManager(apiManager); // Sets the API manager
+  // CONSTRUCTORS
+  const observers = new Observers(); // Constructs a new Observers object
+  const windowMain = new WindowMain(name, version); // Constructs a new Overlay object for the main overlay
+  const templateManager = new TemplateManager(name, version); // Constructs a new TemplateManager object
+  const apiManager = new ApiManager(templateManager); // Constructs a new ApiManager object
+  const settingsManager = new SettingsManager(name, version, userSettings); // Constructs a new SettingsManager
 
-templateManager.setWindowMain(windowMain);
-templateManager.setSettingsManager(settingsManager); // Sets the settings manager
+  windowMain.setSettingsManager(settingsManager); // Sets the settings manager
+  windowMain.setApiManager(apiManager); // Sets the API manager
 
-const storageTemplates = JSON.parse(GM_getValue('bmTemplates', '{}'));
-console.log(storageTemplates);
-templateManager.importJSON(storageTemplates); // Loads the templates
+  templateManager.setWindowMain(windowMain);
+  templateManager.setSettingsManager(settingsManager); // Sets the settings manager
+
+  const storageTemplates = JSON.parse(await GM.getValue('bmTemplates', '{}'));
+  console.log(storageTemplates);
+  templateManager.importJSON(storageTemplates); // Loads the templates
 
 
-console.log(userSettings);
-console.log(Object.keys(userSettings).length);
+  console.log(userSettings);
+  console.log(Object.keys(userSettings).length);
 
-// If the user does not have a UUID yet, make a new one.
-if (Object.keys(userSettings).length == 0) {
-  const uuid = crypto.randomUUID(); // Generates a random UUID
-  console.log(uuid);
-  GM.setValue('bmUserSettings', JSON.stringify({
-    'uuid': uuid
-  }));
-}
+  // If the user does not have a UUID yet, make a new one.
+  if (Object.keys(userSettings).length == 0) {
+    const uuid = crypto.randomUUID(); // Generates a random UUID
+    console.log(uuid);
+    await GM.setValue('bmUserSettings', JSON.stringify({
+      'uuid': uuid
+    }));
+  }
 
-setInterval(() => apiManager.sendHeartbeat(version), 1000 * 60 * 30); // Sends a heartbeat every 30 minutes
+  setInterval(() => apiManager.sendHeartbeat(version), 1000 * 60 * 30); // Sends a heartbeat every 30 minutes
 
-// The current "version" of the data collection agreement
-// Increment by 1 to retrigger the telemetry window
-const currentTelemetryVersion = 1;
+  // The current "version" of the data collection agreement
+  // Increment by 1 to retrigger the telemetry window
+  const currentTelemetryVersion = 1;
 
-// The last "version" of the data collection agreement that the user agreed too
-const previousTelemetryVersion = userSettings?.telemetry;
-console.log(`Telemetry is ${!(previousTelemetryVersion == undefined)}`);
+  // The last "version" of the data collection agreement that the user agreed too
+  const previousTelemetryVersion = userSettings?.telemetry;
+  console.log(`Telemetry is ${!(previousTelemetryVersion == undefined)}`);
 
-// If the user has not agreed to the current data collection terms, we need to show the Telemetry window.
-if ((previousTelemetryVersion == undefined) || (previousTelemetryVersion > currentTelemetryVersion)) {
-  const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
-  windowTelemetry.setApiManager(apiManager);
-  windowTelemetry.buildWindow(); // Asks the user if they want to enable telemetry
-}
+  // If the user has not agreed to the current data collection terms, we need to show the Telemetry window.
+  if ((previousTelemetryVersion == undefined) || (previousTelemetryVersion > currentTelemetryVersion)) {
+    const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
+    windowTelemetry.setApiManager(apiManager);
+    windowTelemetry.buildWindow(); // Asks the user if they want to enable telemetry
+  }
 
-windowMain.buildWindow(); // Builds the main Blue Marble window
+  windowMain.buildWindow(); // Builds the main Blue Marble window
 
-apiManager.spontaneousResponseListener(windowMain); // Reads spontaneous fetch responces
+  apiManager.spontaneousResponseListener(windowMain); // Reads spontaneous fetch responces
 
-observeBlack(); // Observes the black palette color
+  observeBlack(); // Observes the black palette color
 
-consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
+  consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
 
-/** Observe the black color, and add the "Move" button.
- * @since 0.66.3
- */
-function observeBlack() {
-  const observer = new MutationObserver((mutations, observer) => {
+  /** Observe the black color, and add the "Move" button.
+   * @since 0.66.3
+   */
+  function observeBlack() {
+    const observer = new MutationObserver((mutations, observer) => {
 
-    const black = document.querySelector('#color-1'); // Attempt to retrieve the black color element for anchoring
+      const black = document.querySelector('#color-1'); // Attempt to retrieve the black color element for anchoring
 
-    if (!black) {return;} // Black color does not exist yet. Kills iteself
+      if (!black) {return;} // Black color does not exist yet. Kills iteself
 
-    let move = document.querySelector('#bm-button-move'); // Tries to find the move button
+      let move = document.querySelector('#bm-button-move'); // Tries to find the move button
 
-    // If the move button does not exist, we make a new one
-    if (!move) {
-      move = document.createElement('button');
-      move.id = 'bm-button-move';
-      move.textContent = 'Move ↑';
-      move.className = 'btn btn-soft';
-      move.onclick = function() {
-        const roundedBox = this.parentNode.parentNode.parentNode.parentNode; // Obtains the rounded box
-        const shouldMoveUp = (this.textContent == 'Move ↑');
-        roundedBox.parentNode.className = roundedBox.parentNode.className.replace(shouldMoveUp ? 'bottom' : 'top', shouldMoveUp ? 'top' : 'bottom'); // Moves the rounded box to the top
-        roundedBox.style.borderTopLeftRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
-        roundedBox.style.borderTopRightRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
-        roundedBox.style.borderBottomLeftRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
-        roundedBox.style.borderBottomRightRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
-        this.textContent = shouldMoveUp ? 'Move ↓' : 'Move ↑';
+      // If the move button does not exist, we make a new one
+      if (!move) {
+        move = document.createElement('button');
+        move.id = 'bm-button-move';
+        move.textContent = 'Move ↑';
+        move.className = 'btn btn-soft';
+        move.onclick = function() {
+          const roundedBox = this.parentNode.parentNode.parentNode.parentNode; // Obtains the rounded box
+          const shouldMoveUp = (this.textContent == 'Move ↑');
+          roundedBox.parentNode.className = roundedBox.parentNode.className.replace(shouldMoveUp ? 'bottom' : 'top', shouldMoveUp ? 'top' : 'bottom'); // Moves the rounded box to the top
+          roundedBox.style.borderTopLeftRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
+          roundedBox.style.borderTopRightRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
+          roundedBox.style.borderBottomLeftRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
+          roundedBox.style.borderBottomRightRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
+          this.textContent = shouldMoveUp ? 'Move ↓' : 'Move ↑';
+        }
+
+        // Attempts to find the "Paint Pixel" element for anchoring
+        const paintPixel = black.parentNode.parentNode.parentNode.parentNode.querySelector('h2');
+
+        paintPixel.parentNode?.appendChild(move); // Adds the move button
       }
+    });
 
-      // Attempts to find the "Paint Pixel" element for anchoring
-      const paintPixel = black.parentNode.parentNode.parentNode.parentNode.querySelector('h2');
-
-      paintPixel.parentNode?.appendChild(move); // Adds the move button
-    }
-  });
-
-  observer.observe(document.body, { childList: true, subtree: true });
-}
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+})();

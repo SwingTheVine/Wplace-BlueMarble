@@ -100,8 +100,8 @@ export default class WindowTelemetry extends Overlay {
    * @param {number} value - The value to set the telemetry to
    * @since 0.88.339
    */
-  #setTelemetryValue(value) {
-    const userSettings = JSON.parse(GM_getValue('bmUserSettings', '{}'));
+  async #setTelemetryValue(value) {
+    const userSettings = JSON.parse(await GM.getValue('bmUserSettings', '{}'));
     userSettings.telemetry = value;
     GM.setValue('bmUserSettings', JSON.stringify(userSettings));
   }
