@@ -237,7 +237,7 @@ export default class TemplateManager {
    * @since 0.72.7
    */
   async #storeTemplates() {
-    GM.setValue('bmTemplates', JSON.stringify(this.templatesJSON));
+    await GM.setValue('bmTemplates', JSON.stringify(this.templatesJSON));
   }
 
   /** Deletes a template from the JSON object.
@@ -258,7 +258,11 @@ export default class TemplateManager {
   }
 
   /** Downloads all templates loaded.
+   * Specifically, this downloads all templates LOADED in memory (hot storage).
+   * This is NOT the templates saved in user storage (cold storage).
+   * If a template is too big to store in user-storage, then this is the only way to download the template.
    * @since 0.88.499
+   * @see {@link downloadAllTemplatesFromStorage()}
    */
   async downloadAllTemplates() {
 
@@ -276,12 +280,15 @@ export default class TemplateManager {
   }
 
   /** Downloads all templates from Blue Marble's template storage.
+   * Specifically, it downloads all templates from cold storage.
+   * These templates may NOT be loaded in memory (hot storage).
    * @since 0.88.474
+   * @see {@link downloadAllTemplates()}
    */
   async downloadAllTemplatesFromStorage() {
 
     // Templates in user storage
-    const templates = JSON.parse(GM_getValue('bmTemplates', '{}'))?.templates;
+    const templates = JSON.parse(await GM.getValue('bmTemplates', '{}'))?.templates;
 
     console.log(templates);
 
@@ -686,7 +693,7 @@ export default class TemplateManager {
 
         // Spawns a new Template Wizard
         const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
-        windowWizard.buildWindow();
+        await windowWizard.buildWindow();
       }
 
       // Load using the latest schema loader. It will be fine, probably...
@@ -701,7 +708,7 @@ export default class TemplateManager {
 
       // Spawns a new Template Wizard
       const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
-      windowWizard.buildWindow();
+      await windowWizard.buildWindow();
     
     } else {
       // We don't know what the schema is. Unsupported?

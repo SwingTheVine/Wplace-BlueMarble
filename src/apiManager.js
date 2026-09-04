@@ -200,7 +200,7 @@ export default class ApiManager {
 
     console.log('Sending heartbeat to telemetry server...');
 
-    let userSettings = GM_getValue('bmUserSettings', '{}')
+    let userSettings = await GM.getValue('bmUserSettings', '{}')
     userSettings = JSON.parse(userSettings);
 
     if (!userSettings || !userSettings.telemetry || !userSettings.uuid) {
@@ -212,7 +212,8 @@ export default class ApiManager {
     let browser = await this.getBrowserFromUA(ua);
     let os = this.getOS(ua);
 
-    GM_xmlhttpRequest({
+    // No await. We are throwing data into the void, and we don't expect anything in return.
+    GM.xmlhttpRequest({
       method: 'POST',
       url: 'https://telemetry.thebluecorner.net/heartbeat',
       headers: {

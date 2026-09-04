@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.5
+// @version         0.92.8
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -13,12 +13,12 @@
 // @updateURL       https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @downloadURL     https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @match           https://wplace.live/*
-// @grant           GM_getResourceText
-// @grant           GM_addStyle
+// @grant           GM.getResourceText
+// @grant           GM.addStyle
 // @grant           GM.setValue
-// @grant           GM_getValue
-// @grant           GM_deleteValue
-// @grant           GM_xmlhttpRequest
+// @grant           GM.getValue
+// @grant           GM.deleteValue
+// @grant           GM.xmlhttpRequest
 // @grant           GM.download
 // @connect         telemetry.thebluecorner.net
 // @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/2cd51bf91944ae2acb253ea5bbd76f79b7a2edd3/dist/BlueMarble-For-GreasyFork.user.css
@@ -341,15 +341,15 @@
      * @param {ApiManager} apiManager - The apiManager class instance
      * @since 0.41.4
      */
-    setApiManager(apiManager2) {
-      this.apiManager = apiManager2;
+    setApiManager(apiManager) {
+      this.apiManager = apiManager;
     }
     /** Populates the settingsManager variable with the settingsManager class.
      * @param {SettingsManager} settingsManager - The settingsManager class instance
      * @since 0.91.11
      */
-    setSettingsManager(settingsManager2) {
-      this.settingsManager = settingsManager2;
+    setSettingsManager(settingsManager) {
+      this.settingsManager = settingsManager;
     }
     /** Finishes building an element.
      * Call this after you are finished adding children.
@@ -1626,11 +1626,11 @@
      * @param {Object} userSettings - The user settings as an object
      * @since 0.91.11
      */
-    constructor(name2, version2, userSettings2) {
+    constructor(name2, version2, userSettings) {
       var _a;
       super(name2, version2);
       __privateAdd(this, _SettingsManager_instances);
-      this.userSettings = userSettings2;
+      this.userSettings = userSettings;
       (_a = this.userSettings).flags ?? (_a.flags = []);
       this.userSettingsOld = structuredClone(this.userSettings);
       this.userSettingsSaveLocation = "bmUserSettings";
@@ -2659,7 +2659,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
   };
 
   // src/WindowWizard.js
-  var _WindowWizard_instances, displaySchemaHealth_fn, displayTemplateList_fn, convertSchema_1_x_x_To_2_x_x_fn;
+  var _WindowWizard_instances, getTemplateDataFromStorage_fn, displaySchemaHealth_fn, displayTemplateList_fn, convertSchema_1_x_x_To_2_x_x_fn;
   var _WindowWizard = class _WindowWizard extends Overlay {
     /** Constructor for the Template Wizard window
      * @param {string} name - The name of the userscript
@@ -2669,25 +2669,23 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
      * @since 0.88.434
      * @see {@link Overlay#constructor} for examples
      */
-    constructor(name2, version2, schemaVersionBleedingEdge, templateManager2 = void 0) {
+    constructor(name2, version2, schemaVersionBleedingEdge, templateManager = void 0) {
       super(name2, version2);
       __privateAdd(this, _WindowWizard_instances);
       this.window = null;
       this.windowID = "bm-window-wizard";
       this.windowParent = document.body;
-      this.currentJSON = JSON.parse(GM_getValue("bmTemplates", "{}"));
-      this.scriptVersion = this.currentJSON?.scriptVersion;
-      this.schemaVersion = this.currentJSON?.schemaVersion;
       this.schemaHealth = void 0;
       this.schemaVersionBleedingEdge = schemaVersionBleedingEdge;
-      this.templateManager = templateManager2;
+      this.templateManager = templateManager;
     }
     /** Spawns a Template Wizard window.
      * If another template wizard window already exists, we DON'T spawn another!
      * Parent/child relationships in the DOM structure below are indicated by indentation.
      * @since 0.88.434
      */
-    buildWindow() {
+    async buildWindow() {
+      await __privateMethod(this, _WindowWizard_instances, getTemplateDataFromStorage_fn).call(this);
       if (document.querySelector(`#${this.windowID}`)) {
         document.querySelector(`#${this.windowID}`).remove();
         return;
@@ -2716,6 +2714,11 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     }
   };
   _WindowWizard_instances = new WeakSet();
+  getTemplateDataFromStorage_fn = async function() {
+    this.currentJSON = JSON.parse(await GM.getValue("bmTemplates", "{}"));
+    this.scriptVersion = this.currentJSON?.scriptVersion;
+    this.schemaVersion = this.currentJSON?.schemaVersion;
+  };
   /** Determines how "healthy" the template storage is.
    * @since 0.88.436
    */
@@ -2800,7 +2803,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const loadingScreen = new Overlay(this.name, this.version);
       loadingScreen.addDiv({ "class": "bm-container" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Status" }).buildElement().addP({ "textContent": "Updating template storage. Please wait..." }).buildElement().buildElement().buildElement().buildOverlay(windowContent);
     }
-    GM_deleteValue("bmCoords");
+    GM.deleteValue("bmCoords");
     const templates = this.currentJSON?.templates;
     if (Object.keys(templates).length > 0) {
       for (const [key, template] of Object.entries(templates)) {
@@ -2949,8 +2952,8 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         };
       }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F9D9}", "title": "Template Wizard" }, (instance, button) => {
         button.onclick = () => {
-          const templateManager2 = instance.apiManager?.templateManager;
-          const wizard = new WindowWizard(this.name, this.version, templateManager2?.schemaVersion, templateManager2);
+          const templateManager = instance.apiManager?.templateManager;
+          const wizard = new WindowWizard(this.name, this.version, templateManager?.schemaVersion, templateManager);
           wizard.buildWindow();
         };
       }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" }, (instance, button) => {
@@ -3037,15 +3040,15 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
      * @param {WindowMain} windowMain - The main window instance
      * @since 0.91.54
      */
-    setWindowMain(windowMain2) {
-      this.windowMain = windowMain2;
+    setWindowMain(windowMain) {
+      this.windowMain = windowMain;
     }
     /** Updates the stored instance of the SettingsManager.
      * @param {SettingsManager} settingsManager - The settings manager instance
      * @since 0.91.54
      */
-    setSettingsManager(settingsManager2) {
-      this.settingsManager = settingsManager2;
+    setSettingsManager(settingsManager) {
+      this.settingsManager = settingsManager;
     }
     /** Creates the JSON object to store templates in
      * @returns {{ whoami: string, scriptVersion: string, schemaVersion: string, templates: Object }} The JSON object
@@ -3123,7 +3126,11 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
       }
     }
     /** Downloads all templates loaded.
+     * Specifically, this downloads all templates LOADED in memory (hot storage).
+     * This is NOT the templates saved in user storage (cold storage).
+     * If a template is too big to store in user-storage, then this is the only way to download the template.
      * @since 0.88.499
+     * @see {@link downloadAllTemplatesFromStorage()}
      */
     async downloadAllTemplates() {
       consoleLog(`Downloading all templates...`);
@@ -3134,10 +3141,13 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
       }
     }
     /** Downloads all templates from Blue Marble's template storage.
+     * Specifically, it downloads all templates from cold storage.
+     * These templates may NOT be loaded in memory (hot storage).
      * @since 0.88.474
+     * @see {@link downloadAllTemplates()}
      */
     async downloadAllTemplatesFromStorage() {
-      const templates = JSON.parse(GM_getValue("bmTemplates", "{}"))?.templates;
+      const templates = JSON.parse(await GM.getValue("bmTemplates", "{}"))?.templates;
       console.log(templates);
       if (Object.keys(templates).length > 0) {
         for (const [key, template] of Object.entries(templates)) {
@@ -3409,7 +3419,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     this.templatesArray.push(template);
   };
   storeTemplates_fn = async function() {
-    GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
+    await GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
   };
   parseBlueMarble_fn = async function(json) {
     console.log(`Parsing BlueMarble...`);
@@ -3423,7 +3433,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
       if (schemaVersionArray[1] != schemaVersionBleedingEdge[1]) {
         const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
-        windowWizard.buildWindow();
+        await windowWizard.buildWindow();
       }
       this.templatesArray = await loadSchema({
         tileSize: this.tileSize,
@@ -3432,7 +3442,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
       });
     } else if (schemaVersionArray[0] < schemaVersionBleedingEdge[0]) {
       const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
-      windowWizard.buildWindow();
+      await windowWizard.buildWindow();
     } else {
       this.windowMain.handleDisplayError(`Template version ${schemaVersion} is unsupported.
 Use Blue Marble version ${scriptVersion} or load a new template.`);
@@ -3599,8 +3609,8 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
      * @param {TemplateManager} templateManager 
      * @since 0.11.34
      */
-    constructor(templateManager2) {
-      this.templateManager = templateManager2;
+    constructor(templateManager) {
+      this.templateManager = templateManager;
       this.disableAll = false;
       this.chargeRefillTimerID = "";
       this.coordsTilePixel = [];
@@ -3716,23 +3726,23 @@ Did you try clicking the canvas first?`);
     // Sends a heartbeat to the telemetry server
     async sendHeartbeat(version2) {
       console.log("Sending heartbeat to telemetry server...");
-      let userSettings2 = GM_getValue("bmUserSettings", "{}");
-      userSettings2 = JSON.parse(userSettings2);
-      if (!userSettings2 || !userSettings2.telemetry || !userSettings2.uuid) {
+      let userSettings = await GM.getValue("bmUserSettings", "{}");
+      userSettings = JSON.parse(userSettings);
+      if (!userSettings || !userSettings.telemetry || !userSettings.uuid) {
         console.log("Telemetry is disabled, not sending heartbeat.");
         return;
       }
       const ua = navigator.userAgent;
       let browser = await this.getBrowserFromUA(ua);
       let os = this.getOS(ua);
-      GM_xmlhttpRequest({
+      GM.xmlhttpRequest({
         method: "POST",
         url: "https://telemetry.thebluecorner.net/heartbeat",
         headers: {
           "Content-Type": "application/json"
         },
         data: JSON.stringify({
-          uuid: userSettings2.uuid,
+          uuid: userSettings.uuid,
           version: version2,
           browser,
           os
@@ -3797,13 +3807,13 @@ Did you try clicking the canvas first?`);
      * @since 0.88.339
      * @see {@link Overlay#constructor}
      */
-    constructor(name2, version2, currentTelemetryVersion2, uuid) {
+    constructor(name2, version2, currentTelemetryVersion, uuid) {
       super(name2, version2);
       __privateAdd(this, _WindowTelemetry_instances);
       this.window = null;
       this.windowID = "bm-window-telemetry";
       this.windowParent = document.body;
-      this.currentTelemetryVersion = currentTelemetryVersion2;
+      this.currentTelemetryVersion = currentTelemetryVersion;
       this.uuid = uuid;
     }
     /** Spawns a telemetry window.
@@ -3838,16 +3848,10 @@ Did you try clicking the canvas first?`);
     }
   };
   _WindowTelemetry_instances = new WeakSet();
-  /** Enables or disables telemetry based on the value passed in.
-   * A value of zero will always disable telemetry.
-   * A numeric, non-zero value will enable telemetry until the telemetry agreement is changed.
-   * @param {number} value - The value to set the telemetry to
-   * @since 0.88.339
-   */
-  setTelemetryValue_fn = function(value) {
-    const userSettings2 = JSON.parse(GM_getValue("bmUserSettings", "{}"));
-    userSettings2.telemetry = value;
-    GM.setValue("bmUserSettings", JSON.stringify(userSettings2));
+  setTelemetryValue_fn = async function(value) {
+    const userSettings = JSON.parse(await GM.getValue("bmUserSettings", "{}"));
+    userSettings.telemetry = value;
+    GM.setValue("bmUserSettings", JSON.stringify(userSettings));
   };
 
   // src/main.js
@@ -3937,85 +3941,86 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       return response;
     };
   });
-  var cssOverlay = GM_getResourceText("CSS-BM-File");
-  GM_addStyle(cssOverlay);
-  var robotoMonoInjectionPoint = "robotoMonoInjectionPoint";
-  if (!!(robotoMonoInjectionPoint.indexOf("@font-face") + 1)) {
-    console.log(`Loading Roboto Mono as a file...`);
-    GM_addStyle(robotoMonoInjectionPoint);
-  } else {
-    stylesheetLink = document.createElement("link");
-    stylesheetLink.href = "https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap";
-    stylesheetLink.rel = "preload";
-    stylesheetLink.as = "style";
-    stylesheetLink.onload = function() {
-      this.onload = null;
-      this.rel = "stylesheet";
-    };
-    document.head?.appendChild(stylesheetLink);
-  }
-  var stylesheetLink;
-  var userSettings = JSON.parse(GM_getValue("bmUserSettings", "{}"));
-  var observers = new Observers();
-  var windowMain = new WindowMain(name, version);
-  var templateManager = new TemplateManager(name, version);
-  var apiManager = new ApiManager(templateManager);
-  var settingsManager = new SettingsManager(name, version, userSettings);
-  windowMain.setSettingsManager(settingsManager);
-  windowMain.setApiManager(apiManager);
-  templateManager.setWindowMain(windowMain);
-  templateManager.setSettingsManager(settingsManager);
-  var storageTemplates = JSON.parse(GM_getValue("bmTemplates", "{}"));
-  console.log(storageTemplates);
-  templateManager.importJSON(storageTemplates);
-  console.log(userSettings);
-  console.log(Object.keys(userSettings).length);
-  if (Object.keys(userSettings).length == 0) {
-    const uuid = crypto.randomUUID();
-    console.log(uuid);
-    GM.setValue("bmUserSettings", JSON.stringify({
-      "uuid": uuid
-    }));
-  }
-  setInterval(() => apiManager.sendHeartbeat(version), 1e3 * 60 * 30);
-  var currentTelemetryVersion = 1;
-  var previousTelemetryVersion = userSettings?.telemetry;
-  console.log(`Telemetry is ${!(previousTelemetryVersion == void 0)}`);
-  if (previousTelemetryVersion == void 0 || previousTelemetryVersion > currentTelemetryVersion) {
-    const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
-    windowTelemetry.setApiManager(apiManager);
-    windowTelemetry.buildWindow();
-  }
-  windowMain.buildWindow();
-  apiManager.spontaneousResponseListener(windowMain);
-  observeBlack();
-  consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
-  function observeBlack() {
-    const observer = new MutationObserver((mutations, observer2) => {
-      const black = document.querySelector("#color-1");
-      if (!black) {
-        return;
-      }
-      let move = document.querySelector("#bm-button-move");
-      if (!move) {
-        move = document.createElement("button");
-        move.id = "bm-button-move";
-        move.textContent = "Move \u2191";
-        move.className = "btn btn-soft";
-        move.onclick = function() {
-          const roundedBox = this.parentNode.parentNode.parentNode.parentNode;
-          const shouldMoveUp = this.textContent == "Move \u2191";
-          roundedBox.parentNode.className = roundedBox.parentNode.className.replace(shouldMoveUp ? "bottom" : "top", shouldMoveUp ? "top" : "bottom");
-          roundedBox.style.borderTopLeftRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
-          roundedBox.style.borderTopRightRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
-          roundedBox.style.borderBottomLeftRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
-          roundedBox.style.borderBottomRightRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
-          this.textContent = shouldMoveUp ? "Move \u2193" : "Move \u2191";
-        };
-        const paintPixel = black.parentNode.parentNode.parentNode.parentNode.querySelector("h2");
-        paintPixel.parentNode?.appendChild(move);
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
+  (async () => {
+    const cssOverlay = await GM.getResourceText("CSS-BM-File");
+    GM.addStyle(cssOverlay);
+    const robotoMonoInjectionPoint = "robotoMonoInjectionPoint";
+    if (!!(robotoMonoInjectionPoint.indexOf("@font-face") + 1)) {
+      console.log(`Loading Roboto Mono as a file...`);
+      GM.addStyle(robotoMonoInjectionPoint);
+    } else {
+      var stylesheetLink = document.createElement("link");
+      stylesheetLink.href = "https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap";
+      stylesheetLink.rel = "preload";
+      stylesheetLink.as = "style";
+      stylesheetLink.onload = function() {
+        this.onload = null;
+        this.rel = "stylesheet";
+      };
+      document.head?.appendChild(stylesheetLink);
+    }
+    const userSettings = JSON.parse(await GM.getValue("bmUserSettings", "{}"));
+    const observers = new Observers();
+    const windowMain = new WindowMain(name, version);
+    const templateManager = new TemplateManager(name, version);
+    const apiManager = new ApiManager(templateManager);
+    const settingsManager = new SettingsManager(name, version, userSettings);
+    windowMain.setSettingsManager(settingsManager);
+    windowMain.setApiManager(apiManager);
+    templateManager.setWindowMain(windowMain);
+    templateManager.setSettingsManager(settingsManager);
+    const storageTemplates = JSON.parse(await GM.getValue("bmTemplates", "{}"));
+    console.log(storageTemplates);
+    templateManager.importJSON(storageTemplates);
+    console.log(userSettings);
+    console.log(Object.keys(userSettings).length);
+    if (Object.keys(userSettings).length == 0) {
+      const uuid = crypto.randomUUID();
+      console.log(uuid);
+      await GM.setValue("bmUserSettings", JSON.stringify({
+        "uuid": uuid
+      }));
+    }
+    setInterval(() => apiManager.sendHeartbeat(version), 1e3 * 60 * 30);
+    const currentTelemetryVersion = 1;
+    const previousTelemetryVersion = userSettings?.telemetry;
+    console.log(`Telemetry is ${!(previousTelemetryVersion == void 0)}`);
+    if (previousTelemetryVersion == void 0 || previousTelemetryVersion > currentTelemetryVersion) {
+      const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
+      windowTelemetry.setApiManager(apiManager);
+      windowTelemetry.buildWindow();
+    }
+    windowMain.buildWindow();
+    apiManager.spontaneousResponseListener(windowMain);
+    observeBlack();
+    consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
+    function observeBlack() {
+      const observer = new MutationObserver((mutations, observer2) => {
+        const black = document.querySelector("#color-1");
+        if (!black) {
+          return;
+        }
+        let move = document.querySelector("#bm-button-move");
+        if (!move) {
+          move = document.createElement("button");
+          move.id = "bm-button-move";
+          move.textContent = "Move \u2191";
+          move.className = "btn btn-soft";
+          move.onclick = function() {
+            const roundedBox = this.parentNode.parentNode.parentNode.parentNode;
+            const shouldMoveUp = this.textContent == "Move \u2191";
+            roundedBox.parentNode.className = roundedBox.parentNode.className.replace(shouldMoveUp ? "bottom" : "top", shouldMoveUp ? "top" : "bottom");
+            roundedBox.style.borderTopLeftRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
+            roundedBox.style.borderTopRightRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
+            roundedBox.style.borderBottomLeftRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
+            roundedBox.style.borderBottomRightRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
+            this.textContent = shouldMoveUp ? "Move \u2193" : "Move \u2191";
+          };
+          const paintPixel = black.parentNode.parentNode.parentNode.parentNode.querySelector("h2");
+          paintPixel.parentNode?.appendChild(move);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+  })();
 })();

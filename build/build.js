@@ -161,7 +161,7 @@ let mainBMcss = fs.readFileSync('dist/BlueMarble.user.css', 'utf8');
 mainBMcss = mainBMcss.replace(/\r?\n/g, '').trim();
 
 // Injects the CSS into the Blue Marble JavaScript
-let standaloneBMjs = mainBMjs.replace('GM_getResourceText("CSS-BM-File")', `\`${mainBMcss}\``);
+let standaloneBMjs = mainBMjs.replace('await GM.getResourceText("CSS-BM-File")', `\`${mainBMcss}\``);
 
 // Removes the metadata in the header that points to the old CSS location
 standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@resource\s+CSS-BM-File.*\r?\n?/g, '');
