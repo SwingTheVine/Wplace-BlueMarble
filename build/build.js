@@ -166,6 +166,18 @@ let standaloneBMjs = mainBMjs.replace('await GM.getResourceText("CSS-BM-File")',
 // Removes the metadata in the header that points to the old CSS location
 standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@resource\s+CSS-BM-File.*\r?\n?/g, '');
 
+// Obtains the backwards compatability script to inject
+const gm4Polyfill = fs.readFileSync('build/assets/gm4-polyfill.js');
+
+// Removes the metadata in the header that points to the hosted GM4 Polyfill code
+standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@require\s+.*gm4-polyfill\.js.*\r?\n?/g, '');
+// Everything will break if this is not done before GM4 Polyfill injection (it will also match the injection).
+
+// Injects the backwards compatability script between the comments, and the BM code
+const regexLengthToEndOfComments = standaloneBMjs.match(/^(?:[ \t]*\r?\n|[ \t]*\/\/[^\n]*\r?\n|[ \t]*\/\*[\s\S]*?\*\/[ \t]*\r?\n?)*/);
+const lengthToEndOfComments = regexLengthToEndOfComments ? regexLengthToEndOfComments[0]?.length : 0;
+standaloneBMjs = standaloneBMjs.slice(0, lengthToEndOfComments) + gm4Polyfill + standaloneBMjs.slice(lengthToEndOfComments);
+
 // Obtains the Roboto Mono font to inject
 const robotoMonoLatin = fs.readFileSync('build/assets/RobotoMonoLatin.woff2');
 const robotoMonoLatinBase64 = robotoMonoLatin.toString('base64');
