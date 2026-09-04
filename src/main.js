@@ -268,7 +268,7 @@ if (document.readyState === 'loading') {
 
       const black = document.querySelector('#color-1'); // Attempt to retrieve the black color element for anchoring
 
-      if (!black) {return;} // Black color does not exist yet. Kills iteself
+      if (!black) {return;} // Black color does not exist yet. Returns early
 
       let move = document.querySelector('#bm-button-move'); // Tries to find the move button
 
