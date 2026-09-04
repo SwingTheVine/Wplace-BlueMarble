@@ -254,8 +254,14 @@ export default class ApiManager {
     // Kiwi (not guaranteed, but typically shows "Kiwi")
     if (ua.includes("Kiwi")) return "Kiwi";
 
-    // Brave (doesn't expose in UA by default; heuristic via Brave/ token in some versions)
-    if (ua.includes("Brave")) return "Brave";
+    // Samsung's default internet browser
+    if (ua.includes("SamsungBrowser")) return "Samsung Internet";
+
+    // Brave (will probably not work, but I'm including it anyways)
+    if (navigator.brave && typeof navigator.brave.isBrave === "function") {
+      if (await navigator.brave.isBrave()) return "Brave";
+    }
+    // If it does not work, "Chrome" is reported instead
 
     // Firefox
     if (ua.includes("Firefox/")) return "Firefox";
@@ -266,11 +272,6 @@ export default class ApiManager {
     // Safari (must be after Chrome check)
     if (ua.includes("Safari/")) return "Safari";
 
-    // Brave special check
-    if (navigator.brave && typeof navigator.brave.isBrave === "function") {
-      if (await navigator.brave.isBrave()) return "Brave";
-    }
-
     // Fallback
     return 'Unknown';
   }
@@ -278,27 +279,38 @@ export default class ApiManager {
   getOS(ua = navigator.userAgent) {
     ua = ua || "";
 
-    if (/Windows NT 11/i.test(ua)) return "Windows 11";
-    if (/Windows NT 10/i.test(ua)) return "Windows 10";
+    // Windows
+    if (/Windows NT 10\.0/i.test(ua)) return "Windows 10"; // Also Windows 11
     if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
     if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
     if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
     if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
     if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
 
-    if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
+    // ChromeOS
+    if (/CrOS/i.test(ua)) return "ChromeOS"; // Also reports as Linux (because it is), so this must be returned before the Linux check
+
+    // MacOS
+    if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina"; // For privacy reasons, most browsers report this version
     if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
     if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
     if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
     if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
     if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
-    if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS"; // Generic fallback
+    if (/Mac OS X 1[5-9][_\.]/i.test(ua)) return "macOS Sequoia or newer";
+    if (/Mac OS X 14[_\.]/i.test(ua)) return "macOS Sonoma";
+    if (/Mac OS X 13[_\.]/i.test(ua)) return "macOS Ventura";
+    if (/Mac OS X 12[_\.]/i.test(ua)) return "macOS Monterey";
+    if (/Mac OS X 11[_\.]/i.test(ua)) return "macOS Big Sur";
+    if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
 
+    // Mobiles
     if (/Android/i.test(ua)) return "Android";
     if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
 
+    // FOSS
     if (/Linux/i.test(ua)) return "Linux";
 
-    return "Unknown";
+    return "Unknown"; // Fallback
   }
 }
