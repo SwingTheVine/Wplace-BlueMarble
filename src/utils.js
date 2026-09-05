@@ -282,7 +282,7 @@ export function base64ToUint8(base64) {
  */
 export function set32BitPosition(number, position, value) {
 
-  let modifiedNumber = undefined; // The modified number
+  let modifiedNumber = undefined; // The modified number, when it exists. Until then, it is `undefined`.
   const mask = 1 << position; // Zeros, except the requested bit to modify, which is one
   
   // If the bit should be one...

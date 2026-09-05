@@ -1,4 +1,4 @@
-import { consoleError, encodedToNumber, numberToEncoded, set32BitPosition, sleep } from "./utils";
+import { consoleError, consoleWarn, encodedToNumber, numberToEncoded, set32BitPosition, sleep } from "./utils";
 import WindowSettings from "./WindowSettings";
 
 /** SettingsManager class for handling user settings and making them persist between sessions.
@@ -30,7 +30,10 @@ export default class SettingsManager extends WindowSettings {
    */
   constructor(name, version, userSettings, templateManager) {
     super(name, version); // Executes WindowSettings constructor
-    
+
+    // The character representing zero in Blue Marble's default encoding alphabet
+    this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
+
     this.userSettings = userSettings; // User settings as an Object
     this.userSettings.flags ??= []; // Makes sure the key "flags" always exists
     this.userSettingsOld = structuredClone(this.userSettings); // Creates a duplicate of the user settings to store the old version of user settings from 5+ seconds ago
@@ -40,10 +43,8 @@ export default class SettingsManager extends WindowSettings {
     this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
 
     this.templateManager = templateManager; // The main template manager instance
+    this.templateManager.shouldFilterColor = this.#encodedFilteredColorParser(userSettings?.filter);
     this.filteredColorsMapOld = this.templateManager?.shouldFilterColor; // The filtered colors Map from a few seconds ago
-
-    // The character representing zero in Blue Marble's default encoding alphabet
-    this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
 
     setInterval(this.updateUserStorage.bind(this), this.updateFrequency); // Runs every X seconds (see updateFrequency)
   }
@@ -327,9 +328,9 @@ export default class SettingsManager extends WindowSettings {
     const filteredColorMap = this.templateManager.shouldFilterColor;
     console.log('FilteredColorMap', filteredColorMap);
 
-    // If no colors are to be filtered, store an empty string
+    // If no colors are to be filtered, return early
     if (!filteredColorMap.size) {
-      this.userSettings.filter = '';
+      this.userSettings.filter = this.zerothEncodingAlphabetCharacter.repeat(15);
       return; // Returns early
     }
 
@@ -363,6 +364,57 @@ export default class SettingsManager extends WindowSettings {
     this.userSettings.filter = encodedBitFlags; // Stores the encoded bit flags
 
     console.log(`Finished updating filter color storage in ${(performance.now() - timer).toFixed(3) / 1000} seconds!\nThere are ${filteredColorMap.size} hidden colors.`);
+  }
+
+  /** Decodes the filtered color bit flags that came from user storage.
+   * @param {string} encodedString - The filtered color save-state from user storage
+   * @returns {Map<number, boolean>} A map containing only entries of colors to filter
+   * @since 0.92.18
+   */
+  #encodedFilteredColorParser(encodedString) {
+
+    const shouldColorBeFiltered = new Map(); // Will contain colors to be filtered
+
+    // If encodedString is in an unexpected state...
+    if (typeof encodedString !== 'string') {
+      consoleWarn('Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...');
+      return shouldColorBeFiltered; // Return early
+    }
+
+    // Return early if no colors are filtered
+    if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {return shouldColorBeFiltered;}
+
+    const minSupportedBitFlag = -32; // Minimum supported color ID (Reserved Blue Marble color)
+    const maxSupportedBitFlag = 63; // Maximum supported color ID (Light Stone Wplace color)
+    const supportedEncodedBitFlags = encodedString.slice(0, 15); // This version of Blue Marble can not support more than 15 encoded characters, so we ignore them.
+
+    // The bit flags
+    const bitFlagsNegSmall = encodedToNumber(supportedEncodedBitFlags.slice(0, 5));
+    const bitFlagsPosSmall = encodedToNumber(supportedEncodedBitFlags.slice(5, 10));
+    const bitFlagsPosLarge = encodedToNumber(supportedEncodedBitFlags.slice(10, 15));
+    // It is assumed that `encodedToNumber` outputs an unsigned number (0 to 4294967295)
+
+    // For all supported color IDs...
+    for (let id = minSupportedBitFlag; id <= maxSupportedBitFlag; id++) {
+
+      let isBitTrue = false;
+
+      // Find if the bit is one, and if it is, mark that ID as a filtered color
+      if (id >= -32 && id <= -1) {
+        isBitTrue = (bitFlagsNegSmall & (1 << (id + 32))) !== 0;
+      } else if (id >= 0 && id <= 31) {
+        isBitTrue = (bitFlagsPosSmall & (1 << id)) !== 0;
+      } else if (id >= 32 && id <= 63) {
+        isBitTrue = (bitFlagsPosLarge & (1 << (id - 32))) !== 0;
+      }
+      if (isBitTrue) {
+        shouldColorBeFiltered.set(id, true);
+      }
+    }
+
+    console.log('Colors to filter from storage:', shouldColorBeFiltered);
+
+    return shouldColorBeFiltered;
   }
 
   /** Build the "template" category of settings window
