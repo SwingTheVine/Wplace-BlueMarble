@@ -67,10 +67,7 @@ export default class ApiManager {
 
           console.log(dataJSON['id']);
           if (!!dataJSON['id'] || dataJSON['id'] === 0) {
-            console.log(numberToEncoded(
-              dataJSON['id'],
-              '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~'
-            ));
+            console.log(numberToEncoded(dataJSON['id']));
           }
           this.templateManager.userID = dataJSON['id'];
 

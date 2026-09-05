@@ -177,9 +177,11 @@ export function consoleError(...args) {((consoleError) => consoleError(...args))
  */
 export function consoleWarn(...args) {((consoleWarn) => consoleWarn(...args))(console.warn);}
 
+const defaultEncoding = '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+
 /** Encodes a number into a custom encoded string.
  * @param {number} number - The number to encode
- * @param {string} encoding - The characters to use when encoding
+ * @param {string} [encoding] - The characters to use when encoding. If omittied, it will default to JSON-safe base 92
  * @since 0.65.2
  * @returns {string} Encoded string
  * @example
@@ -188,8 +190,10 @@ export function consoleWarn(...args) {((consoleWarn) => consoleWarn(...args))(co
  * console.log(numberToEncoded(5, encode)); // c
  * console.log(numberToEncoded(15, encode)); // 1A
  * console.log(numberToEncoded(12345, encode)); // 1BCaA
+ * console.log(numberToEncoded(9)); // +
+ * // The last log is '+' because it defaulted to base 92
  */
-export function numberToEncoded(number, encoding) {
+export function numberToEncoded(number, encoding = defaultEncoding) {
 
   if (number === 0) return encoding[0]; // End quickly if number equals 0. No special calculation needed
 
@@ -207,7 +211,7 @@ export function numberToEncoded(number, encoding) {
 
 /** Decodes a number from a custom encoded string.
  * @param {string} encoded - The encoded string
- * @param {string} encoding - The characters to use when decoding
+ * @param {string} [encoding] - The characters to use when decoding. If omitted, it will default to JSON-safe base 92
  * @since 0.88.448
  * @returns {number} Decoded number
  * @example
@@ -216,8 +220,10 @@ export function numberToEncoded(number, encoding) {
  * console.log(encodedToNumber('c', encode));     // 5
  * console.log(encodedToNumber('1A', encode));    // 15
  * console.log(encodedToNumber('1BCaA', encode)); // 12345
+ * console.log(encodedToNumber('c')); // 64
+ * // The last log is 64 because it defaulted to base 92
  */
-export function encodedToNumber(encoded, encoding) {
+export function encodedToNumber(encoded, encoding = defaultEncoding) {
 
   let decodedNumber = 0; // The decoded number
   const base = encoding.length; // The number of characters used, which determins the base
