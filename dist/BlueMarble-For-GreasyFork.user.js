@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.17
+// @version         0.92.19
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1631,7 +1631,7 @@
   };
 
   // src/settingsManager.js
-  var _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn;
+  var _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn, encodedFilteredColorParser_fn;
   var SettingsManager = class extends WindowSettings {
     /** Constructor for the SettingsManager class
      * @param {string} name - The name of the userscript
@@ -1644,6 +1644,7 @@
       var _a;
       super(name2, version2);
       __privateAdd(this, _SettingsManager_instances);
+      this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
       this.userSettings = userSettings;
       (_a = this.userSettings).flags ?? (_a.flags = []);
       this.userSettingsOld = structuredClone(this.userSettings);
@@ -1651,8 +1652,8 @@
       this.updateFrequency = 5e3;
       this.lastUpdateTime = 0;
       this.templateManager = templateManager;
+      this.templateManager.shouldFilterColor = __privateMethod(this, _SettingsManager_instances, encodedFilteredColorParser_fn).call(this, userSettings?.filter);
       this.filteredColorsMapOld = this.templateManager?.shouldFilterColor;
-      this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
       setInterval(this.updateUserStorage.bind(this), this.updateFrequency);
     }
     /** Updates the user settings in userscript storage
@@ -1831,7 +1832,7 @@
     const filteredColorMap = this.templateManager.shouldFilterColor;
     console.log("FilteredColorMap", filteredColorMap);
     if (!filteredColorMap.size) {
-      this.userSettings.filter = "";
+      this.userSettings.filter = this.zerothEncodingAlphabetCharacter.repeat(15);
       return;
     }
     let mutableBitFlagsNegSmall = 0;
@@ -1856,6 +1857,42 @@
     this.userSettings.filter = encodedBitFlags;
     console.log(`Finished updating filter color storage in ${(performance.now() - timer).toFixed(3) / 1e3} seconds!
 There are ${filteredColorMap.size} hidden colors.`);
+  };
+  /** Decodes the filtered color bit flags that came from user storage.
+   * @param {string} encodedString - The filtered color save-state from user storage
+   * @returns {Map<number, boolean>} A map containing only entries of colors to filter
+   * @since 0.92.18
+   */
+  encodedFilteredColorParser_fn = function(encodedString) {
+    const shouldColorBeFiltered = /* @__PURE__ */ new Map();
+    if (typeof encodedString !== "string") {
+      consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
+      return shouldColorBeFiltered;
+    }
+    if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
+      return shouldColorBeFiltered;
+    }
+    const minSupportedBitFlag = -32;
+    const maxSupportedBitFlag = 63;
+    const supportedEncodedBitFlags = encodedString.slice(0, 15);
+    const bitFlagsNegSmall = encodedToNumber(supportedEncodedBitFlags.slice(0, 5));
+    const bitFlagsPosSmall = encodedToNumber(supportedEncodedBitFlags.slice(5, 10));
+    const bitFlagsPosLarge = encodedToNumber(supportedEncodedBitFlags.slice(10, 15));
+    for (let id = minSupportedBitFlag; id <= maxSupportedBitFlag; id++) {
+      let isBitTrue = false;
+      if (id >= -32 && id <= -1) {
+        isBitTrue = (bitFlagsNegSmall & 1 << id + 32) !== 0;
+      } else if (id >= 0 && id <= 31) {
+        isBitTrue = (bitFlagsPosSmall & 1 << id) !== 0;
+      } else if (id >= 32 && id <= 63) {
+        isBitTrue = (bitFlagsPosLarge & 1 << id - 32) !== 0;
+      }
+      if (isBitTrue) {
+        shouldColorBeFiltered.set(id, true);
+      }
+    }
+    console.log("Colors to filter from storage:", shouldColorBeFiltered);
+    return shouldColorBeFiltered;
   };
 
   // src/Template.js
@@ -3394,7 +3431,7 @@ Version: ${this.version}`);
           const templateBeforeFilter = context.getImageData(coordXtoDrawAt, coordYtoDrawAt, template.bitmap.width, template.bitmap.height);
           templateBeforeFilter32 = new Uint32Array(templateBeforeFilter.data.buffer);
         }
-        const timer = Date.now();
+        const timer = performance.now();
         const {
           correctPixels: pixelsCorrect,
           filteredTemplate: templateAfterFilter
@@ -3417,7 +3454,7 @@ Version: ${this.version}`);
           console.log("Colors to filter: ", this.shouldFilterColor);
           context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
         }
-        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1e3} seconds!
+        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(performance.now() - timer).toFixed(3) / 1e3} seconds!
 There are ${pixelsCorrectTotal} correct pixels.`);
         if (typeof template.instance.pixelCount["correct"] == "undefined") {
           template.instance.pixelCount["correct"] = {};

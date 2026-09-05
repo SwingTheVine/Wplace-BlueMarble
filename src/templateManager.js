@@ -605,7 +605,7 @@ export default class TemplateManager {
       }
 
       // Take the pre-filter template ImageData + the pre-filter tile ImageData, and use that to calculate the correct pixels
-      const timer = Date.now();
+      const timer = performance.now();
       const {
         correctPixels: pixelsCorrect,
         filteredTemplate: templateAfterFilter
@@ -637,7 +637,7 @@ export default class TemplateManager {
         context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
       }
 
-      console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(Date.now() - timer) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
+      console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(performance.now() - timer).toFixed(3) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
 
       // If "correct" does not exist as a key of the object "pixelCount", we create it
       if (typeof template.instance.pixelCount['correct'] == 'undefined') {
