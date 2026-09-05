@@ -934,8 +934,11 @@ export default class TemplateManager {
 
         // -----     HIGHLIGHTING      -----
 
-        // If highlighting is enabled, AND the template pixel is NOT transparent AND the template pixel does NOT match the tile pixel
-        if (!highlightDisabled && (templatePixelAlpha > tolerance) && (bestTileColorID != bestTemplateColorID)) {
+        // If highlighting is enabled...
+        // ...AND the template pixel is NOT transparent...
+        // ...AND the template pixel does NOT match the tile pixel...
+        // ...AND the template pixel is NOT filtered
+        if (!highlightDisabled && (templatePixelAlpha > tolerance) && (bestTileColorID != bestTemplateColorID) && !this.shouldFilterColor.get(bestTemplateColorID)) {
 
           // If the tile pixel is NOT transparent, OR the user wants to highlight transparent pixels
           if (shouldTransparentTilePixelsBeHighlighted || (tilePixelAlpha > tolerance)) {
@@ -962,7 +965,6 @@ export default class TemplateManager {
             }
           }
         }
-
         // -----  END OF HIGHLIGHTING  -----
 
         // If the template pixel is Erased, and the tile pixel is transparent...
