@@ -210,18 +210,23 @@ if (document.readyState === 'loading') {
   const windowMain = new WindowMain(name, version); // Constructs a new Overlay object for the main overlay
   const templateManager = new TemplateManager(name, version); // Constructs a new TemplateManager object
   const apiManager = new ApiManager(templateManager); // Constructs a new ApiManager object
-  const settingsManager = new SettingsManager(name, version, userSettings, templateManager); // Constructs a new SettingsManager
+  const settingsManager = new SettingsManager(name, version, userSettings); // Constructs a new SettingsManager
 
-  windowMain.setSettingsManager(settingsManager); // Sets the settings manager
-  windowMain.setApiManager(apiManager); // Sets the API manager
-
+  // Allows the class instances to access each other
+  // Main Window
+  windowMain.setSettingsManager(settingsManager);
+  windowMain.setApiManager(apiManager);
+  // Template Manager
   templateManager.setWindowMain(windowMain);
-  templateManager.setSettingsManager(settingsManager); // Sets the settings manager
+  templateManager.setSettingsManager(settingsManager);
+  // Settings Manager
+  settingsManager.setTemplateManager(templateManager);
+  templateManager.shouldFilterColor = settingsManager.decodeFilteredColorBitFlags(userSettings?.filter); // Tells the template manager which colors should be filtered
+  settingsManager.filteredColorsMapOld = templateManager.shouldFilterColor; // Sets the "old" value to the current value (so we don't trigger a storage save)
 
   const storageTemplates = JSON.parse(await GM.getValue('bmTemplates', '{}'));
   console.log(storageTemplates);
   templateManager.importJSON(storageTemplates); // Loads the templates
-
 
   console.log(userSettings);
   console.log(Object.keys(userSettings).length);

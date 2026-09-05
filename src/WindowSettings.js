@@ -54,7 +54,7 @@ export default class WindowSettings extends Overlay {
           .addHeader(1, {'textContent': 'Settings'}).buildElement()
         .buildElement()
         .addHr().buildElement()
-        .addP({'textContent': 'Settings take 5 seconds to save.'}).buildElement()
+        .addP({'textContent': 'Settings take 2 seconds to save.'}).buildElement()
         .addDiv({'class': 'bm-container bm-scrollable'}, (instance, div) => {
           // Each category in the settings window
           this.buildHighlight();

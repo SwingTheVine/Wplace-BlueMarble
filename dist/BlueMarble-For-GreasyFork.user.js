@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.19
+// @version         0.92.22
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1600,7 +1600,7 @@
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Settings" }).buildElement().buildElement().addHr().buildElement().addP({ "textContent": "Settings take 5 seconds to save." }).buildElement().addDiv({ "class": "bm-container bm-scrollable" }, (instance, div) => {
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Settings" }).buildElement().buildElement().addHr().buildElement().addP({ "textContent": "Settings take 2 seconds to save." }).buildElement().addDiv({ "class": "bm-container bm-scrollable" }, (instance, div) => {
         this.buildHighlight();
         this.buildTemplate();
       }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
@@ -1631,38 +1631,35 @@
   };
 
   // src/settingsManager.js
-  var _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn, encodedFilteredColorParser_fn;
+  var _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn;
   var SettingsManager = class extends WindowSettings {
     /** Constructor for the SettingsManager class
      * @param {string} name - The name of the userscript
      * @param {string} version - The version of the userscript
      * @param {Object} userSettings - The user settings as an object
-     * @param {TemplateManager} templateManager - The main templateManager instance
      * @since 0.91.11
      */
-    constructor(name2, version2, userSettings, templateManager) {
+    constructor(name2, version2, userSettings) {
       var _a;
       super(name2, version2);
       __privateAdd(this, _SettingsManager_instances);
       this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
+      this.templateManager = null;
       this.userSettings = userSettings;
       (_a = this.userSettings).flags ?? (_a.flags = []);
       this.userSettingsOld = structuredClone(this.userSettings);
       this.userSettingsSaveLocation = "bmUserSettings";
-      this.updateFrequency = 5e3;
+      this.updateFrequency = 2e3;
       this.lastUpdateTime = 0;
-      this.templateManager = templateManager;
-      this.templateManager.shouldFilterColor = __privateMethod(this, _SettingsManager_instances, encodedFilteredColorParser_fn).call(this, userSettings?.filter);
-      this.filteredColorsMapOld = this.templateManager?.shouldFilterColor;
       setInterval(this.updateUserStorage.bind(this), this.updateFrequency);
     }
     /** Updates the user settings in userscript storage
      * @since 0.91.39
      */
     async updateUserStorage() {
+      await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
       const userSettingsCurrent = JSON.stringify(this.userSettings);
       const userSettingsOld = JSON.stringify(this.userSettingsOld);
-      await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
       if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
         await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent);
         this.userSettingsOld = structuredClone(this.userSettings);
@@ -1725,6 +1722,41 @@
       }
       this.window = this.buildElement().buildElement().buildElement();
     }
+    /** Decodes the filtered color bit flags that came from user storage.
+     * @param {string} encodedString - The filtered color save-state from user storage
+     * @returns {Map<number, boolean>} A map containing only entries of colors to filter
+     * @since 0.92.18
+     */
+    encodedFilteredColorParser(encodedString) {
+      const shouldColorBeFiltered = /* @__PURE__ */ new Map();
+      if (typeof encodedString !== "string") {
+        consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
+        return shouldColorBeFiltered;
+      }
+      if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
+        return shouldColorBeFiltered;
+      }
+      const minSupportedBitFlag = -32;
+      const maxSupportedBitFlag = 63;
+      const supportedEncodedBitFlags = encodedString.slice(0, 15);
+      const bitFlagsNegSmall = encodedToNumber(supportedEncodedBitFlags.slice(0, 5));
+      const bitFlagsPosSmall = encodedToNumber(supportedEncodedBitFlags.slice(5, 10));
+      const bitFlagsPosLarge = encodedToNumber(supportedEncodedBitFlags.slice(10, 15));
+      for (let id = minSupportedBitFlag; id <= maxSupportedBitFlag; id++) {
+        let isBitTrue = false;
+        if (id >= -32 && id <= -1) {
+          isBitTrue = (bitFlagsNegSmall & 1 << id + 32) !== 0;
+        } else if (id >= 0 && id <= 31) {
+          isBitTrue = (bitFlagsPosSmall & 1 << id) !== 0;
+        } else if (id >= 32 && id <= 63) {
+          isBitTrue = (bitFlagsPosLarge & 1 << id - 32) !== 0;
+        }
+        if (isBitTrue) {
+          shouldColorBeFiltered.set(id, true);
+        }
+      }
+      return shouldColorBeFiltered;
+    }
     /** Build the "template" category of settings window
      * @since 0.91.68
      * @see WindowSettings#buildTemplate
@@ -1737,6 +1769,13 @@
         checkbox.checked = this.userSettings?.flags?.includes("hl-agSkip");
         checkbox.onchange = (event) => this.toggleFlag("hl-agSkip", event.target.checked);
       }).buildElement().buildElement().buildElement();
+    }
+    /** Populates the templateManager variable with the templateManager class.
+     * @param {TemplateManager} templateManager - The templateManager class instance
+     * @since 0.92.22
+     */
+    setTemplateManager(templateManager) {
+      this.templateManager = templateManager;
     }
   };
   _SettingsManager_instances = new WeakSet();
@@ -1828,9 +1867,7 @@
     }
   };
   updateFilteredColors_fn = async function() {
-    const timer = performance.now();
     const filteredColorMap = this.templateManager.shouldFilterColor;
-    console.log("FilteredColorMap", filteredColorMap);
     if (!filteredColorMap.size) {
       this.userSettings.filter = this.zerothEncodingAlphabetCharacter.repeat(15);
       return;
@@ -1850,49 +1887,7 @@
       }
     }
     const encodedBitFlags = numberToEncoded(mutableBitFlagsNegSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
-    console.log(mutableBitFlagsNegSmall);
-    console.log(mutableBitFlagsPosSmall);
-    console.log(mutableBitFlagsPosLarge);
-    console.log(encodedBitFlags);
     this.userSettings.filter = encodedBitFlags;
-    console.log(`Finished updating filter color storage in ${(performance.now() - timer).toFixed(3) / 1e3} seconds!
-There are ${filteredColorMap.size} hidden colors.`);
-  };
-  /** Decodes the filtered color bit flags that came from user storage.
-   * @param {string} encodedString - The filtered color save-state from user storage
-   * @returns {Map<number, boolean>} A map containing only entries of colors to filter
-   * @since 0.92.18
-   */
-  encodedFilteredColorParser_fn = function(encodedString) {
-    const shouldColorBeFiltered = /* @__PURE__ */ new Map();
-    if (typeof encodedString !== "string") {
-      consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
-      return shouldColorBeFiltered;
-    }
-    if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
-      return shouldColorBeFiltered;
-    }
-    const minSupportedBitFlag = -32;
-    const maxSupportedBitFlag = 63;
-    const supportedEncodedBitFlags = encodedString.slice(0, 15);
-    const bitFlagsNegSmall = encodedToNumber(supportedEncodedBitFlags.slice(0, 5));
-    const bitFlagsPosSmall = encodedToNumber(supportedEncodedBitFlags.slice(5, 10));
-    const bitFlagsPosLarge = encodedToNumber(supportedEncodedBitFlags.slice(10, 15));
-    for (let id = minSupportedBitFlag; id <= maxSupportedBitFlag; id++) {
-      let isBitTrue = false;
-      if (id >= -32 && id <= -1) {
-        isBitTrue = (bitFlagsNegSmall & 1 << id + 32) !== 0;
-      } else if (id >= 0 && id <= 31) {
-        isBitTrue = (bitFlagsPosSmall & 1 << id) !== 0;
-      } else if (id >= 32 && id <= 63) {
-        isBitTrue = (bitFlagsPosLarge & 1 << id - 32) !== 0;
-      }
-      if (isBitTrue) {
-        shouldColorBeFiltered.set(id, true);
-      }
-    }
-    console.log("Colors to filter from storage:", shouldColorBeFiltered);
-    return shouldColorBeFiltered;
   };
 
   // src/Template.js
@@ -4057,11 +4052,14 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     const windowMain = new WindowMain(name, version);
     const templateManager = new TemplateManager(name, version);
     const apiManager = new ApiManager(templateManager);
-    const settingsManager = new SettingsManager(name, version, userSettings, templateManager);
+    const settingsManager = new SettingsManager(name, version, userSettings);
     windowMain.setSettingsManager(settingsManager);
     windowMain.setApiManager(apiManager);
     templateManager.setWindowMain(windowMain);
     templateManager.setSettingsManager(settingsManager);
+    settingsManager.setTemplateManager(templateManager);
+    templateManager.shouldFilterColor = settingsManager.encodedFilteredColorParser(userSettings?.filter);
+    settingsManager.filteredColorsMapOld = templateManager.shouldFilterColor;
     const storageTemplates = JSON.parse(await GM.getValue("bmTemplates", "{}"));
     console.log(storageTemplates);
     templateManager.importJSON(storageTemplates);
