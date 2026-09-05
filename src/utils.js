@@ -304,6 +304,32 @@ export function set32BitPosition(number, position, value) {
   // In other words, since our range is positive, we make the number positive as well.
 }
 
+/** Converts an unsigned 32-bit number into an Array of 32 boolean values, which represent each bit in the number.
+ * @param {number} number - The number to convert. Expected to be a valid unsigned 32-bit value.
+ * @returns {boolean[]} Array of 32 boolean values
+ */
+export function numberUnsignedTo32BitBooleanArray(number) {
+
+  // Returns a zeroed array if the passed-in value is invalid
+  if ((!Number.isInteger(number)) || (number < 0) || (number > 4294967295)) {
+    consoleError(`Tried to convert an unsigned 32-bit number to a boolean array, but the ${typeof number} value passed in was not valid! Value: ${number}. Returning zeros...`);
+    const zeros = [];
+    for (let i = 0; i <= 31; i++) {
+      zeros[i] = false;
+    }
+    return zeros;
+  }
+
+  const outputArray = [];
+
+  // For each bit, take the bit value, turn it into a boolean, and store it in the same index in the Array
+  for (let bitIndex = 0; bitIndex <= 31; bitIndex++) {
+    outputArray[bitIndex] = (number & (1 << bitIndex)) !== 0;
+  }
+
+  return outputArray;
+}
+
 /** Handles reading from the clipboard.
  * Assume this only returns text.
  * Assume this requires user input.

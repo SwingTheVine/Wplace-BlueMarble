@@ -1,4 +1,4 @@
-import { consoleError, consoleWarn, encodedToNumber, numberToEncoded, set32BitPosition, sleep } from "./utils";
+import { consoleError, consoleWarn, encodedToNumber, numberToEncoded, numberUnsignedTo32BitBooleanArray, set32BitPosition, sleep } from "./utils";
 import WindowSettings from "./WindowSettings";
 
 /** SettingsManager class for handling user settings and making them persist between sessions.
@@ -17,6 +17,7 @@ import WindowSettings from "./WindowSettings";
  *   "flags": ["hl-noTrans", "ftr-oWin", "te-noSkip"],
  *   "highlight": [[1,0,-1],[1,-1,0],[2,1,0],[1,0,1]],
  *   "filter": "!!#L3/kBp'Gb8]q"
+ *   "windowState": {"ftr": "!!$L4", "bm": "/kBp:"}
  * }
  */
 export default class SettingsManager extends WindowSettings {
@@ -25,26 +26,26 @@ export default class SettingsManager extends WindowSettings {
    * @param {string} name - The name of the userscript
    * @param {string} version - The version of the userscript
    * @param {Object} userSettings - The user settings as an object
-   * @param {TemplateManager} templateManager - The main templateManager instance
    * @since 0.91.11
    */
-  constructor(name, version, userSettings, templateManager) {
+  constructor(name, version, userSettings) {
     super(name, version); // Executes WindowSettings constructor
 
-    // The character representing zero in Blue Marble's default encoding alphabet
+    // The character representing zero and one in Blue Marble's default encoding alphabet
     this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
+    this.onethEncodingAlphabetCharacter = numberToEncoded(1);
+
+    this.templateManager = null; // The template manager instance
 
     this.userSettings = userSettings; // User settings as an Object
     this.userSettings.flags ??= []; // Makes sure the key "flags" always exists
     this.userSettingsOld = structuredClone(this.userSettings); // Creates a duplicate of the user settings to store the old version of user settings from 5+ seconds ago
     this.userSettingsSaveLocation = 'bmUserSettings'; // Storage save location
 
-    this.updateFrequency = 5000; // Cooldown between saving to storage (throttle)
-    this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
+    this.globalWindowsStateObject = this.#decodeWindowStateToObject(this.userSettings?.windowState);
 
-    this.templateManager = templateManager; // The main template manager instance
-    this.templateManager.shouldFilterColor = this.#encodedFilteredColorParser(userSettings?.filter);
-    this.filteredColorsMapOld = this.templateManager?.shouldFilterColor; // The filtered colors Map from a few seconds ago
+    this.updateFrequency = 2000; // Cooldown between saving to storage (throttle)
+    this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
 
     setInterval(this.updateUserStorage.bind(this), this.updateFrequency); // Runs every X seconds (see updateFrequency)
   }
@@ -54,11 +55,11 @@ export default class SettingsManager extends WindowSettings {
    */
   async updateUserStorage() {
 
+    await this.#updateFilteredColors(); // Update the encoded string of filtered colors
+
     // Turns the objects into a string
     const userSettingsCurrent = JSON.stringify(this.userSettings);
     const userSettingsOld = JSON.stringify(this.userSettingsOld);
-
-    await this.#updateFilteredColors();
 
     // If the user settings have changed, AND the last update to user storage was over 5 seconds ago (5sec throttle)...
     if ((userSettingsCurrent != userSettingsOld) && ((Date.now() - this.lastUpdateTime) > this.updateFrequency)) {
@@ -322,11 +323,10 @@ export default class SettingsManager extends WindowSettings {
    */
   async #updateFilteredColors() {
 
-    const timer = performance.now();
+    //const timer = performance.now();
     
     // The current color filter Map
     const filteredColorMap = this.templateManager.shouldFilterColor;
-    console.log('FilteredColorMap', filteredColorMap);
 
     // If no colors are to be filtered, return early
     if (!filteredColorMap.size) {
@@ -356,14 +356,9 @@ export default class SettingsManager extends WindowSettings {
       + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter)
       + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
 
-    console.log(mutableBitFlagsNegSmall);
-    console.log(mutableBitFlagsPosSmall);
-    console.log(mutableBitFlagsPosLarge);
-    console.log(encodedBitFlags);
-
     this.userSettings.filter = encodedBitFlags; // Stores the encoded bit flags
 
-    console.log(`Finished updating filter color storage in ${(performance.now() - timer).toFixed(3) / 1000} seconds!\nThere are ${filteredColorMap.size} hidden colors.`);
+    //console.log(`Finished updating filter color storage in ${(performance.now() - timer).toFixed(3) / 1000} seconds!\nThere are ${filteredColorMap.size} hidden colors.`);
   }
 
   /** Decodes the filtered color bit flags that came from user storage.
@@ -371,7 +366,7 @@ export default class SettingsManager extends WindowSettings {
    * @returns {Map<number, boolean>} A map containing only entries of colors to filter
    * @since 0.92.18
    */
-  #encodedFilteredColorParser(encodedString) {
+  decodeFilteredColorBitFlags(encodedString) {
 
     const shouldColorBeFiltered = new Map(); // Will contain colors to be filtered
 
@@ -412,9 +407,46 @@ export default class SettingsManager extends WindowSettings {
       }
     }
 
-    console.log('Colors to filter from storage:', shouldColorBeFiltered);
-
     return shouldColorBeFiltered;
+  }
+
+  /** Decodes & builds the window state object.
+   * This function parses user storage into a readable format,
+   * then passes it to the {@link SettingsManager}, which is the owner of the windows state object.
+   * @param {Object} windowState - The encoded state of all windows saved in user storage
+   */
+  #decodeWindowStateToObject(windowState) {
+
+    /** Decodes the common header data in each encoded value.
+     * This is an arrow function so code inside the function can easily access class-level variables (using `this`).
+     * @param {string} encodedString - The encoded value
+     * @returns {Array<number, number>}
+     * @since 0.92.23
+     */
+    const decodeCommon = (encodedString) => {
+      /** This is the expected format:
+       * The first character is a sign. Boolean. True/one is negative.
+       * The next four characters represent the X coordinate of the window.
+       * The fifth character is a sign. True/one is negative.
+       * The next four characters represent the Y coordinate of the window.
+       * You have now iterated over 10 characters.
+       */
+
+      const xCoordSign = (encodedString.slice(0, 1) == this.onethEncodingAlphabetCharacter);
+      const xCoordIrregular = encodedToNumber(encodedString.slice(1, 5)); // Unsigned coordinate
+      const xCoord = (xCoordSign) ? -1 * xCoordIrregular : xCoordIrregular; // Signed coordinate
+
+      const yCoordSign = (encodedString.slice(5, 6) == this.onethEncodingAlphabetCharacter);
+      const yCoordIrregular = encodedToNumber(encodedString.slice(6, 10)); // Unsigned coordinate
+      const yCoord = (yCoordSign) ? -1 * yCoordIrregular : yCoordIrregular; // Signed coordinate
+
+      return [xCoord, yCoord];
+    };
+
+    const mainWindowEncodedState = windowState.bm;
+    const mainWindowState = [...decodeCommon(mainWindowEncodedState), ...numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedState.slice(10, 15)))];
+
+    
   }
 
   /** Build the "template" category of settings window
@@ -438,4 +470,10 @@ export default class SettingsManager extends WindowSettings {
       .buildElement()
     .buildElement()
   }
+
+  /** Populates the templateManager variable with the templateManager class.
+   * @param {TemplateManager} templateManager - The templateManager class instance
+   * @since 0.92.22
+   */
+  setTemplateManager(templateManager) {this.templateManager = templateManager;}
 }
