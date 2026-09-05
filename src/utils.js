@@ -271,6 +271,39 @@ export function base64ToUint8(base64) {
   return array;
 }
 
+/** Changes a specific bit in a 32 bit number.
+ * Assume there are no safeguards. Assume you can overflow.
+ * Ensure the passed-in variables meet *ALL* mentioned requirements.
+ * @param {number} number - A primitive, non-fractional number 
+ * @param {number} position - A primitive, non-fractional number between 0 and 31 (inclusive). DO NOT PASS IN OTHER VALUES
+ * @param {boolean} value - Boolean representing the value to update the bit to (true is one)
+ * @returns {number} The modified, primitive number
+ * @since 0.92.16
+ */
+export function set32BitPosition(number, position, value) {
+
+  let modifiedNumber = undefined; // The modified number
+  const mask = 1 << position; // Zeros, except the requested bit to modify, which is one
+  
+  // If the bit should be one...
+  if (value) {
+
+    modifiedNumber = number | mask; // Bitwise OR operation to set the bit
+  } else {
+    // Else, the bit should be zero
+
+    modifiedNumber = number & ~mask; // Inverts the mask (bitwise), then uses a bitwise AND operation to set the bit
+  }
+
+  // Makes the number unsigned.
+  return modifiedNumber >>> 0;
+  // We were technically passed in a 64-bit float.
+  // So, we need to return a 64-bit float.
+  // But, we don't want the 64-bit float to be negative.
+  // We want the range of the float to be 0 to 4 294 967 295.
+  // In other words, since our range is positive, we make the number positive as well.
+}
+
 /** Handles reading from the clipboard.
  * Assume this only returns text.
  * Assume this requires user input.
