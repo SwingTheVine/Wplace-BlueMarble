@@ -98,7 +98,6 @@ export default class TemplateManager {
     this.settingsManager = null; // The main instance of the SettingsManager class
     this.schemaVersion = '2.0.0'; // Version of JSON schema
     this.userID = null; // The ID of the current user
-    this.encodingBase = '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~'; // Characters to use for encoding/decoding
     this.tileSize = 1000; // The number of pixels in a tile. Assumes the tile is square
     this.drawMult = 3; // The enlarged size for each pixel. E.g. when "3", a 1x1 pixel becomes a 1x1 pixel inside a 3x3 area. MUST BE ODD
     this.paletteTolerance = 3; // Tolerance for how close an RGB value has to be in order to be considered a color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
@@ -162,7 +161,7 @@ export default class TemplateManager {
     const template = new Template({
       displayName: name,
       sortID: 0, // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
-      authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+      authorID: numberToEncoded(this.userID || 0),
       file: blob,
       coords: coords
     });
@@ -223,7 +222,7 @@ export default class TemplateManager {
     const template = new Template({
       displayName: templateObject.displayName,
       sortID: Object.keys(this.templatesJSON.templates).length || 0,
-      authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+      authorID: numberToEncoded(this.userID || 0),
       pixelCount: pixelCount,
       chunked: templateObject.tiles
     });

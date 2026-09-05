@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.14
+// @version         0.92.15
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -156,7 +156,8 @@
   function consoleWarn(...args) {
     ((consoleWarn2) => consoleWarn2(...args))(console.warn);
   }
-  function numberToEncoded(number, encoding) {
+  var defaultEncoding = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+  function numberToEncoded(number, encoding = defaultEncoding) {
     if (number === 0) return encoding[0];
     let result = "";
     const base = encoding.length;
@@ -166,7 +167,7 @@
     }
     return result;
   }
-  function encodedToNumber(encoded, encoding) {
+  function encodedToNumber(encoded, encoding = defaultEncoding) {
     let decodedNumber = 0;
     const base = encoding.length;
     for (const character of encoded) {
@@ -3025,7 +3026,6 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
       this.settingsManager = null;
       this.schemaVersion = "2.0.0";
       this.userID = null;
-      this.encodingBase = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
       this.tileSize = 1e3;
       this.drawMult = 3;
       this.paletteTolerance = 3;
@@ -3084,7 +3084,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         displayName: name2,
         sortID: 0,
         // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
-        authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+        authorID: numberToEncoded(this.userID || 0),
         file: blob,
         coords: coords2
       });
@@ -3413,7 +3413,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     const template = new Template({
       displayName: templateObject.displayName,
       sortID: Object.keys(this.templatesJSON.templates).length || 0,
-      authorID: numberToEncoded(this.userID || 0, this.encodingBase),
+      authorID: numberToEncoded(this.userID || 0),
       pixelCount,
       chunked: templateObject.tiles
     });
@@ -3647,10 +3647,7 @@ Could not fetch userdata.`);
             const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON["level"]) * Math.pow(30, 0.65), 1 / 0.65) - dataJSON["pixelsPainted"]);
             console.log(dataJSON["id"]);
             if (!!dataJSON["id"] || dataJSON["id"] === 0) {
-              console.log(numberToEncoded(
-                dataJSON["id"],
-                "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-              ));
+              console.log(numberToEncoded(dataJSON["id"]));
             }
             this.templateManager.userID = dataJSON["id"];
             if (this.chargeRefillTimerID.length != 0) {
