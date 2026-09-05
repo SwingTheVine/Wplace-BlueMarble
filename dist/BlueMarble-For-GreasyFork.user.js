@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.12
+// @version         0.92.14
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2220,7 +2220,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Credits" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addSpan({ "role": "img", "aria-label": this.name }).addSpan({ "innerHTML": ascii, "class": "bm-ascii", "aria-hidden": "true" }).buildElement().buildElement().addBr().buildElement().addHr().buildElement().addBr().buildElement().addSpan({ "textContent": '"Blue Marble" userscript is made by SwingTheVine.' }).buildElement().addBr().buildElement().addSpan({ "innerHTML": 'The <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble Website</a> is made by <a href="https://github.com/crqch" target="_blank" rel="noopener noreferrer">crqch</a>.' }).buildElement().addBr().buildElement().addSpan({ "textContent": `The Blue Marble Website used until ${localizeDate(new Date(1756069320 * 1e3))} was made by Camille Daguin.` }).buildElement().addBr().buildElement().addSpan({ "textContent": 'The favicon "Blue Marble" is owned by NASA. (The image of the Earth is owned by NASA)' }).buildElement().addBr().buildElement().addSpan({ "textContent": "Special Thanks:" }).buildElement().addUl().addLi({ "textContent": "Espresso, Meqa, and Robot for moderating SwingTheVine's community." }).buildElement().addLi({ "innerHTML": 'nof, <a href="https://github.com/TouchedByDarkness" target="_blank" rel="noopener noreferrer">darkness</a> for creating similar userscripts!' }).buildElement().addLi({ "innerHTML": '<a href="https://wondapon.net/" target="_blank" rel="noopener noreferrer">Wonda</a> for the Blue Marble banner image!' }).buildElement().addLi({ "innerHTML": '<a href="https://crqch.dev/" target="_blank" rel="noopener noreferrer">crqch</a> for creating, maintaining, and hosting the <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble website</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/BullStein" target="_blank" rel="noopener noreferrer">BullStein</a>, <a href="https://github.com/allanf181" target="_blank" rel="noopener noreferrer">allanf181</a> for being early beta testers!' }).buildElement().addLi({ "innerHTML": 'guidu_ and <a href="https://github.com/Nick-machado" target="_blank" rel="noopener noreferrer">Nick-machado</a> for the original "Minimize" Button code!' }).buildElement().addLi({ "innerHTML": 'Nomad and <a href="https://www.youtube.com/@gustav_vv" target="_blank" rel="noopener noreferrer">Gustav</a> for the tutorials!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/cfpwastaken" target="_blank" rel="noopener noreferrer">cfp</a> for creating the template overlay that Blue Marble was based on!' }).buildElement().addLi({ "innerHTML": '<a href="https://forcenetwork.cloud/" target="_blank" rel="noopener noreferrer">Force Network</a> for hosting the <a href="https://github.com/SwingTheVine/Wplace-TelemetryServer" target="_blank" rel="noopener noreferrer">telemetry server</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://thebluecorner.net" target="_blank" rel="noopener noreferrer">TheBlueCorner</a> for getting me interested in online pixel canvases!' }).buildElement().buildElement().addBr().buildElement().addSpan({ "innerHTML": '<a href="https://ko-fi.com/swingthevine" target="_blank" rel="noopener noreferrer">Donators</a>:' }).buildElement().addUl().addLi({ "textContent": "Soultree" }).buildElement().addLi({ "textContent": "Espresso" }).buildElement().addLi({ "textContent": "BEST FAN" }).buildElement().addLi({ "textContent": "Ferb" }).buildElement().addLi({ "textContent": "FuchsDresden" }).buildElement().addLi({ "textContent": "Jack" }).buildElement().addLi({ "textContent": "raiken_au" }).buildElement().addLi({ "textContent": "Jacob" }).buildElement().addLi({ "textContent": "StupidOne" }).buildElement().addLi({ "textContent": "Glox" }).buildElement().addLi({ "textContent": "PintilieVasile" }).buildElement().addLi({ "textContent": "Corni" }).buildElement().addLi({ "textContent": "Liam" }).buildElement().addLi({ "textContent": "som9" }).buildElement().addLi({ "textContent": "2 Anonymous Supporters" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Credits" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addSpan({ "role": "img", "aria-label": this.name }).addSpan({ "innerHTML": ascii, "class": "bm-ascii", "aria-hidden": "true" }).buildElement().buildElement().addBr().buildElement().addHr().buildElement().addBr().buildElement().addSpan({ "textContent": '"Blue Marble" userscript is made by SwingTheVine.' }).buildElement().addBr().buildElement().addSpan({ "innerHTML": 'The <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble Website</a> is made by <a href="https://github.com/crqch" target="_blank" rel="noopener noreferrer">crqch</a>.' }).buildElement().addBr().buildElement().addSpan({ "textContent": `The Blue Marble Website used until ${localizeDate(new Date(1756069320 * 1e3))} was made by Camille Daguin.` }).buildElement().addBr().buildElement().addSpan({ "textContent": 'The favicon "Blue Marble" is owned by NASA. (The image of the Earth is owned by NASA)' }).buildElement().addBr().buildElement().addSpan({ "textContent": "Special Thanks:" }).buildElement().addUl().addLi({ "textContent": "Espresso, Meqa, and Robot for moderating SwingTheVine's community." }).buildElement().addLi({ "innerHTML": 'nof, <a href="https://github.com/TouchedByDarkness" target="_blank" rel="noopener noreferrer">darkness</a> for creating similar userscripts!' }).buildElement().addLi({ "innerHTML": '<a href="https://wondapon.net/" target="_blank" rel="noopener noreferrer">Wonda</a> for the Blue Marble banner image!' }).buildElement().addLi({ "innerHTML": '<a href="https://crqch.dev/" target="_blank" rel="noopener noreferrer">crqch</a> for creating, maintaining, and hosting the <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble website</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/BullStein" target="_blank" rel="noopener noreferrer">BullStein</a>, <a href="https://github.com/allanf181" target="_blank" rel="noopener noreferrer">allanf181</a> for being early beta testers!' }).buildElement().addLi({ "innerHTML": 'guidu_ and <a href="https://github.com/Nick-machado" target="_blank" rel="noopener noreferrer">Nick-machado</a> for the original "Minimize" Button code!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/LolipopJ" target="_blank" rel="noopener noreferrer">LolipopJ</a> and <a href="https://github.com/Arttful" target="_blank" rel="noopener noreferrer">Arttful</a> for providing a solution to a bug I could not solve!' }).buildElement().addLi({ "innerHTML": 'Nomad and <a href="https://www.youtube.com/@gustav_vv" target="_blank" rel="noopener noreferrer">Gustav</a> for the tutorials!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/cfpwastaken" target="_blank" rel="noopener noreferrer">cfp</a> for creating the template overlay that Blue Marble was based on!' }).buildElement().addLi({ "innerHTML": '<a href="https://forcenetwork.cloud/" target="_blank" rel="noopener noreferrer">Force Network</a> for hosting the <a href="https://github.com/SwingTheVine/Wplace-TelemetryServer" target="_blank" rel="noopener noreferrer">telemetry server</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://thebluecorner.net" target="_blank" rel="noopener noreferrer">TheBlueCorner</a> for getting me interested in online pixel canvases!' }).buildElement().buildElement().addBr().buildElement().addSpan({ "innerHTML": '<a href="https://ko-fi.com/swingthevine" target="_blank" rel="noopener noreferrer">Donators</a>:' }).buildElement().addUl().addLi({ "textContent": "Soultree" }).buildElement().addLi({ "textContent": "Espresso" }).buildElement().addLi({ "textContent": "BEST FAN" }).buildElement().addLi({ "textContent": "Ferb" }).buildElement().addLi({ "textContent": "FuchsDresden" }).buildElement().addLi({ "textContent": "Jack" }).buildElement().addLi({ "textContent": "raiken_au" }).buildElement().addLi({ "textContent": "Jacob" }).buildElement().addLi({ "textContent": "StupidOne" }).buildElement().addLi({ "textContent": "Glox" }).buildElement().addLi({ "textContent": "PintilieVasile" }).buildElement().addLi({ "textContent": "Corni" }).buildElement().addLi({ "textContent": "Liam" }).buildElement().addLi({ "textContent": "som9" }).buildElement().addLi({ "textContent": "2 Anonymous Supporters" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
     }
   };
@@ -3575,7 +3575,7 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
             }
           }
         }
-        if (!highlightDisabled && templatePixelAlpha > tolerance && bestTileColorID != bestTemplateColorID) {
+        if (!highlightDisabled && templatePixelAlpha > tolerance && bestTileColorID != bestTemplateColorID && !this.shouldFilterColor.get(bestTemplateColorID)) {
           if (shouldTransparentTilePixelsBeHighlighted || tilePixelAlpha > tolerance) {
             const templatePixelColor = template32[templateRow * templateWidth + templateColumn];
             for (const subpixelPattern of highlightPattern) {
@@ -3766,30 +3766,35 @@ Did you try clicking the canvas first?`);
       if (ua.includes("Vivaldi")) return "Vivaldi";
       if (ua.includes("YaBrowser")) return "Yandex";
       if (ua.includes("Kiwi")) return "Kiwi";
-      if (ua.includes("Brave")) return "Brave";
-      if (ua.includes("Firefox/")) return "Firefox";
-      if (ua.includes("Chrome/")) return "Chrome";
-      if (ua.includes("Safari/")) return "Safari";
+      if (ua.includes("SamsungBrowser")) return "Samsung Internet";
       if (navigator.brave && typeof navigator.brave.isBrave === "function") {
         if (await navigator.brave.isBrave()) return "Brave";
       }
+      if (ua.includes("Firefox/")) return "Firefox";
+      if (ua.includes("Chrome/")) return "Chrome";
+      if (ua.includes("Safari/")) return "Safari";
       return "Unknown";
     }
     getOS(ua = navigator.userAgent) {
       ua = ua || "";
-      if (/Windows NT 11/i.test(ua)) return "Windows 11";
-      if (/Windows NT 10/i.test(ua)) return "Windows 10";
+      if (/Windows NT 10\.0/i.test(ua)) return "Windows 10";
       if (/Windows NT 6\.3/i.test(ua)) return "Windows 8.1";
       if (/Windows NT 6\.2/i.test(ua)) return "Windows 8";
       if (/Windows NT 6\.1/i.test(ua)) return "Windows 7";
       if (/Windows NT 6\.0/i.test(ua)) return "Windows Vista";
       if (/Windows NT 5\.1|Windows XP/i.test(ua)) return "Windows XP";
+      if (/CrOS/i.test(ua)) return "ChromeOS";
       if (/Mac OS X 10[_\.]15/i.test(ua)) return "macOS Catalina";
       if (/Mac OS X 10[_\.]14/i.test(ua)) return "macOS Mojave";
       if (/Mac OS X 10[_\.]13/i.test(ua)) return "macOS High Sierra";
       if (/Mac OS X 10[_\.]12/i.test(ua)) return "macOS Sierra";
       if (/Mac OS X 10[_\.]11/i.test(ua)) return "OS X El Capitan";
       if (/Mac OS X 10[_\.]10/i.test(ua)) return "OS X Yosemite";
+      if (/Mac OS X 1[5-9][_\.]/i.test(ua)) return "macOS Sequoia or newer";
+      if (/Mac OS X 14[_\.]/i.test(ua)) return "macOS Sonoma";
+      if (/Mac OS X 13[_\.]/i.test(ua)) return "macOS Ventura";
+      if (/Mac OS X 12[_\.]/i.test(ua)) return "macOS Monterey";
+      if (/Mac OS X 11[_\.]/i.test(ua)) return "macOS Big Sur";
       if (/Mac OS X 10[_\.]/i.test(ua)) return "macOS";
       if (/Android/i.test(ua)) return "Android";
       if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
