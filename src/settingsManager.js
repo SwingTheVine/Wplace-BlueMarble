@@ -1,4 +1,4 @@
-import { sleep } from "./utils";
+import { consoleError, encodedToNumber, numberToEncoded, set32BitPosition, sleep } from "./utils";
 import WindowSettings from "./WindowSettings";
 
 /** SettingsManager class for handling user settings and making them persist between sessions.
@@ -16,7 +16,7 @@ import WindowSettings from "./WindowSettings";
  *   "telemetry": 1,
  *   "flags": ["hl-noTrans", "ftr-oWin", "te-noSkip"],
  *   "highlight": [[1,0,-1],[1,-1,0],[2,1,0],[1,0,1]],
- *   "filter": [-2,0,4,5,6,29,63]
+ *   "filter": "!!#L3/kBp'Gb8]q"
  * }
  */
 export default class SettingsManager extends WindowSettings {
@@ -25,9 +25,10 @@ export default class SettingsManager extends WindowSettings {
    * @param {string} name - The name of the userscript
    * @param {string} version - The version of the userscript
    * @param {Object} userSettings - The user settings as an object
+   * @param {TemplateManager} templateManager - The main templateManager instance
    * @since 0.91.11
    */
-  constructor(name, version, userSettings) {
+  constructor(name, version, userSettings, templateManager) {
     super(name, version); // Executes WindowSettings constructor
     
     this.userSettings = userSettings; // User settings as an Object
@@ -36,7 +37,13 @@ export default class SettingsManager extends WindowSettings {
     this.userSettingsSaveLocation = 'bmUserSettings'; // Storage save location
 
     this.updateFrequency = 5000; // Cooldown between saving to storage (throttle)
-    this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should save this.userSettings to storage
+    this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
+
+    this.templateManager = templateManager; // The main template manager instance
+    this.filteredColorsMapOld = this.templateManager?.shouldFilterColor; // The filtered colors Map from a few seconds ago
+
+    // The character representing zero in Blue Marble's default encoding alphabet
+    this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
 
     setInterval(this.updateUserStorage.bind(this), this.updateFrequency); // Runs every X seconds (see updateFrequency)
   }
@@ -49,6 +56,8 @@ export default class SettingsManager extends WindowSettings {
     // Turns the objects into a string
     const userSettingsCurrent = JSON.stringify(this.userSettings);
     const userSettingsOld = JSON.stringify(this.userSettingsOld);
+
+    await this.#updateFilteredColors();
 
     // If the user settings have changed, AND the last update to user storage was over 5 seconds ago (5sec throttle)...
     if ((userSettingsCurrent != userSettingsOld) && ((Date.now() - this.lastUpdateTime) > this.updateFrequency)) {
@@ -305,6 +314,55 @@ export default class SettingsManager extends WindowSettings {
     for (const button of presetButtons) {
       button.disabled = false; // Re-enables the button
     }
+  }
+
+  /** Updates filtered colors in user storage.
+   * @since 0.92.15
+   */
+  async #updateFilteredColors() {
+
+    const timer = performance.now();
+    
+    // The current color filter Map
+    const filteredColorMap = this.templateManager.shouldFilterColor;
+    console.log('FilteredColorMap', filteredColorMap);
+
+    // If no colors are to be filtered, store an empty string
+    if (!filteredColorMap.size) {
+      this.userSettings.filter = '';
+      return; // Returns early
+    }
+
+    let mutableBitFlagsNegSmall = 0; // Colors -1 to -31 in Blue Marble's palette
+    let mutableBitFlagsPosSmall = 0; // Colors 0 to 31 in Wplace's palette
+    let mutableBitFlagsPosLarge = 0; // Colors 32 to 63 in Wplace's palette
+    
+    // For each color passed in...
+    for (const [id, value] of filteredColorMap) {
+
+      if (id >= -32 && id <= -1) {
+        mutableBitFlagsNegSmall = set32BitPosition(mutableBitFlagsNegSmall, id + 32, value);
+      } else if (id >= 0 && id <= 31) {
+        mutableBitFlagsPosSmall = set32BitPosition(mutableBitFlagsPosSmall, id, value);
+      } else if (id >= 32 && id <= 63) {
+        mutableBitFlagsPosLarge = set32BitPosition(mutableBitFlagsPosLarge, id - 32, value);
+      } else {
+        consoleError(`Attempted to store filter color with ID #${id} but this ID number is out of bounds (-32 to 63)! The color will not be stored.`);
+      }
+    }
+
+    const encodedBitFlags = numberToEncoded(mutableBitFlagsNegSmall).padStart(5, this.zerothEncodingAlphabetCharacter)
+      + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter)
+      + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
+
+    console.log(mutableBitFlagsNegSmall);
+    console.log(mutableBitFlagsPosSmall);
+    console.log(mutableBitFlagsPosLarge);
+    console.log(encodedBitFlags);
+
+    this.userSettings.filter = encodedBitFlags; // Stores the encoded bit flags
+
+    console.log(`Finished updating filter color storage in ${(performance.now() - timer).toFixed(3) / 1000} seconds!\nThere are ${filteredColorMap.size} hidden colors.`);
   }
 
   /** Build the "template" category of settings window

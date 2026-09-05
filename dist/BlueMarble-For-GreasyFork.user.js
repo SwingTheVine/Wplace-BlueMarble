@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.15
+// @version         0.92.17
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -193,6 +193,16 @@
       array[i] = binary.charCodeAt(i);
     }
     return array;
+  }
+  function set32BitPosition(number, position, value) {
+    let modifiedNumber = void 0;
+    const mask = 1 << position;
+    if (value) {
+      modifiedNumber = number | mask;
+    } else {
+      modifiedNumber = number & ~mask;
+    }
+    return modifiedNumber >>> 0;
   }
   async function getClipboardData(event = void 0) {
     let data = "";
@@ -1621,15 +1631,16 @@
   };
 
   // src/settingsManager.js
-  var _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn;
+  var _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn;
   var SettingsManager = class extends WindowSettings {
     /** Constructor for the SettingsManager class
      * @param {string} name - The name of the userscript
      * @param {string} version - The version of the userscript
      * @param {Object} userSettings - The user settings as an object
+     * @param {TemplateManager} templateManager - The main templateManager instance
      * @since 0.91.11
      */
-    constructor(name2, version2, userSettings) {
+    constructor(name2, version2, userSettings, templateManager) {
       var _a;
       super(name2, version2);
       __privateAdd(this, _SettingsManager_instances);
@@ -1639,6 +1650,9 @@
       this.userSettingsSaveLocation = "bmUserSettings";
       this.updateFrequency = 5e3;
       this.lastUpdateTime = 0;
+      this.templateManager = templateManager;
+      this.filteredColorsMapOld = this.templateManager?.shouldFilterColor;
+      this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
       setInterval(this.updateUserStorage.bind(this), this.updateFrequency);
     }
     /** Updates the user settings in userscript storage
@@ -1647,6 +1661,7 @@
     async updateUserStorage() {
       const userSettingsCurrent = JSON.stringify(this.userSettings);
       const userSettingsOld = JSON.stringify(this.userSettingsOld);
+      await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
       if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
         await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent);
         this.userSettingsOld = structuredClone(this.userSettings);
@@ -1810,6 +1825,37 @@
     for (const button of presetButtons) {
       button.disabled = false;
     }
+  };
+  updateFilteredColors_fn = async function() {
+    const timer = performance.now();
+    const filteredColorMap = this.templateManager.shouldFilterColor;
+    console.log("FilteredColorMap", filteredColorMap);
+    if (!filteredColorMap.size) {
+      this.userSettings.filter = "";
+      return;
+    }
+    let mutableBitFlagsNegSmall = 0;
+    let mutableBitFlagsPosSmall = 0;
+    let mutableBitFlagsPosLarge = 0;
+    for (const [id, value] of filteredColorMap) {
+      if (id >= -32 && id <= -1) {
+        mutableBitFlagsNegSmall = set32BitPosition(mutableBitFlagsNegSmall, id + 32, value);
+      } else if (id >= 0 && id <= 31) {
+        mutableBitFlagsPosSmall = set32BitPosition(mutableBitFlagsPosSmall, id, value);
+      } else if (id >= 32 && id <= 63) {
+        mutableBitFlagsPosLarge = set32BitPosition(mutableBitFlagsPosLarge, id - 32, value);
+      } else {
+        consoleError(`Attempted to store filter color with ID #${id} but this ID number is out of bounds (-32 to 63)! The color will not be stored.`);
+      }
+    }
+    const encodedBitFlags = numberToEncoded(mutableBitFlagsNegSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
+    console.log(mutableBitFlagsNegSmall);
+    console.log(mutableBitFlagsPosSmall);
+    console.log(mutableBitFlagsPosLarge);
+    console.log(encodedBitFlags);
+    this.userSettings.filter = encodedBitFlags;
+    console.log(`Finished updating filter color storage in ${(performance.now() - timer).toFixed(3) / 1e3} seconds!
+There are ${filteredColorMap.size} hidden colors.`);
   };
 
   // src/Template.js
@@ -3974,7 +4020,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     const windowMain = new WindowMain(name, version);
     const templateManager = new TemplateManager(name, version);
     const apiManager = new ApiManager(templateManager);
-    const settingsManager = new SettingsManager(name, version, userSettings);
+    const settingsManager = new SettingsManager(name, version, userSettings, templateManager);
     windowMain.setSettingsManager(settingsManager);
     windowMain.setApiManager(apiManager);
     templateManager.setWindowMain(windowMain);
