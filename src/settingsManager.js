@@ -1,5 +1,32 @@
+import ApiManager from "./apiManager";
 import { consoleError, consoleWarn, encodedToNumber, numberToEncoded, numberUnsignedTo32BitBooleanArray, set32BitPosition, sleep } from "./utils";
 import WindowSettings from "./WindowSettings";
+
+/** Documentation for `windowState` encoding.
+ * The variables are stored as concatnated, Big-Endian, base 92, substrings.
+ * 
+ *  Var 1 | Var 2 | Var 3
+ * 123456781234567812345678 (do not assume each variable is 8 bytes)
+ * 
+ * These variables are listed from their first occurance, to their last occurance, in order.
+ * The first section ("All Windows") contains the variables which occur at the start of every window state.
+ * Variables unique to a window are stored *after* that section.
+ * 
+ *             |# of |  Slice  |         |
+ * Window Name |bytes|  Value  |  Type   | Description
+ * ------------+-----+---------+---------+------------
+ * All Windows |  1  |  0,  1  | Number  | Draw depth of the window. (0 is the window on the bottom, 92 is the window on the top)
+ * All Windows 
+ * All Windows |  1  |  0,  1  | Boolean | Does the window exist in the DOM tree? (Is the window displayed to the user?)
+ * All Windows |  1  |  1,  2  | Boolean | Has the window been moved/dragged by the user?
+ * All Windows |  1  |  2,  3  | Boolean | Is the X-axis shift translation negative? (This is a sign)
+ * All Windows |  3  |  3,  6  | Number  | Shift translation across the X-axis (zeroed if none)
+ * All Windows |  1  |  6,  7  | Boolean | Is the Y-axis shift translation negative? (This is a sign)
+ * All Windows |  3  |  7, 10  | Number  | Shift translation across the Y-axis (zeroed if none)
+ * ------------+-----+---------+---------+------------
+ * Main Window |  5  | 10, 14  | Binary  | 32 bit flags, which are unique to this window
+ * 
+ */
 
 /** SettingsManager class for handling user settings and making them persist between sessions.
  * Logic for {@link WindowSettings} is managed here.
@@ -8,6 +35,8 @@ import WindowSettings from "./WindowSettings";
  * When a flag is false, it will not exist in the "flags" Array.
  * (Therefore, "flags" should be `[]` by default)
  * If it exists in the "flags" Array, then the flag is `true`.
+ * Windows are assumed to have only one `translate()` call in a `transform:` CSS in-line style.
+ * Aforementioned `translate()` is expected to be in pixel units. It can read non-pixel units, but will save/load as pixel units.
  * @class SettingsManager
  * @since 0.91.11
  * @example
@@ -35,7 +64,9 @@ export default class SettingsManager extends WindowSettings {
     this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
     this.onethEncodingAlphabetCharacter = numberToEncoded(1);
 
+    this.windowMain = null; // The Main Blue Marble window
     this.templateManager = null; // The template manager instance
+    this.apiManager = null; // The API manager
 
     this.userSettings = userSettings; // User settings as an Object
     this.userSettings.flags ??= []; // Makes sure the key "flags" always exists
@@ -43,6 +74,7 @@ export default class SettingsManager extends WindowSettings {
     this.userSettingsSaveLocation = 'bmUserSettings'; // Storage save location
 
     this.globalWindowsStateObject = this.#decodeWindowStateToObject(this.userSettings?.windowState);
+    this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i); // RegEx for finding where the window is
 
     this.updateFrequency = 2000; // Cooldown between saving to storage (throttle)
     this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
@@ -410,6 +442,82 @@ export default class SettingsManager extends WindowSettings {
     return shouldColorBeFiltered;
   }
 
+  /** Retrieves all window states, and *overrides* the user storage version
+   * @since 0.92.23
+   */
+  #updateWindowState() {
+
+    /** Obtains common window states, which are non-unqiue to the window.
+     * (Every window can have these states)
+     * @param {HTMLElement} windowElement - The ID (DOM attribute) of the window.
+     * @param {string} userStorageID - The UID (key) used in user storage to signify this window
+     * @since 0.92.23
+     * @returns {string} Encoded string, which contains the common state variables.
+     */
+    const obtainCommonStates = (windowElement, userStorageID) => {
+
+      // Retrieves the hottest stored common state for this window.
+      // This is the memory version, as opposed to disk version, which is cold
+      const commonStatesOld = this.globalWindowsStateObject?.[userStorageID]?.slice(0, 10);
+      // This is ONLY the common states of the window
+
+      // Obtains the window `Element`. Only runs querySelector if the ID exists, so we don't run a query similar to `#undefined`
+      //const windowElement = windowID ? document.querySelector('#' + windowID) : undefined;
+    
+      // Returns the previously stored window state variables...
+      // ...but sets the "is window shown" variable to `false`
+      if (!windowElement) {return this.zerothEncodingAlphabetCharacter + commonStatesOld.slice(1);}
+
+      const windowStyle = windowElement.style.toString(); // The in-line style DOM attribute for the window
+      
+      /** RegEx matches, which contain the coordinate strings
+       * @type {string[] | null}
+       */
+      const matches = this.commonWindowStateTranslateRegEx.exec(windowStyle);
+
+      // If a match was found, then a valid `translate()` call exists, which means the window was moved
+      const windowHasBeenMoved = !!matches;
+
+      const xTransCoord = Number(matches?.[1] ?? 0); // X Coordinate, or zero
+      const yTransCoord = Number(matches?.[2] ?? 0); // Y Coordinate, or zero
+
+      // A really cool trick, which turns the sign of a number into a boolean. (Negative zero becomes positive)
+      // !!(Math.sign(number) + 1)
+      // But since `negative = true` here, we invert the boolean.
+      const windowHasBeenMovedXNeg = !(Math.sign(xTransCoord) + 1);
+      const windowHasBeenMovedYNeg = !(Math.sign(yTransCoord) + 1);
+
+      const windowCoordinateMaximum = 778687; // Ones, for three encoded characters  (92^3)-1
+
+      // Encodes the X & Y coordinates, clamped to the farthest supported coordinate
+      const windowTransX = numberToEncoded(Math.min(Math.abs(xTransCoord), windowCoordinateMaximum));
+      const windowTransY = numberToEncoded(Math.min(Math.abs(yTransCoord), windowCoordinateMaximum));
+
+      // Stores one/true because the window always exists if this code reaches this point
+      return this.onethEncodingAlphabetCharacter
+        // Stores the "Has the window been moved" variable
+        + (windowHasBeenMoved ? this.onethEncodingAlphabetCharacter : this.zerothEncodingAlphabetCharacter)
+        // Stores the X coordinate sign
+        + (windowHasBeenMovedXNeg ? this.onethEncodingAlphabetCharacter : this.zerothEncodingAlphabetCharacter)
+        // Stores the X coordinate
+        + windowTransX
+        // Stores the Y coordinate sign
+        + (windowHasBeenMovedYNeg ? this.onethEncodingAlphabetCharacter : this.zerothEncodingAlphabetCharacter)
+        // Stores the Y coordinate
+        + windowTransY;
+    };
+    
+    // Obtains the window ID for the main window
+    const windowMainID = this.windowMain?.windowID;
+    // Obtains the main window element itself
+    const windowMainElement = windowMainID ? document.querySelector('#' + this.windowMain?.windowID) : undefined;
+    // Obtains the most-up-to-date common window state for the main window
+    const windowMainCommonStates = obtainCommonStates(windowMainElement, 'bm');
+    let windowMainUniqueStatesMutable = 0; // Stores 32 bit flags unique to this window
+
+
+  }
+
   /** Decodes & builds the window state object.
    * This function parses user storage into a readable format,
    * then passes it to the {@link SettingsManager}, which is the owner of the windows state object.
@@ -424,28 +532,28 @@ export default class SettingsManager extends WindowSettings {
      * @since 0.92.23
      */
     const decodeCommon = (encodedString) => {
-      /** This is the expected format:
-       * The first character is a sign. Boolean. True/one is negative.
-       * The next four characters represent the X coordinate of the window.
-       * The fifth character is a sign. True/one is negative.
-       * The next four characters represent the Y coordinate of the window.
-       * You have now iterated over 10 characters.
-       */
 
-      const xCoordSign = (encodedString.slice(0, 1) == this.onethEncodingAlphabetCharacter);
-      const xCoordIrregular = encodedToNumber(encodedString.slice(1, 5)); // Unsigned coordinate
-      const xCoord = (xCoordSign) ? -1 * xCoordIrregular : xCoordIrregular; // Signed coordinate
+      // If the bit flag is 1, the window has been moved
+      const hasWindowBeenMoved = (encodedString.slice(0, 1) == this.onethEncodingAlphabetCharacter);
 
-      const yCoordSign = (encodedString.slice(5, 6) == this.onethEncodingAlphabetCharacter);
-      const yCoordIrregular = encodedToNumber(encodedString.slice(6, 10)); // Unsigned coordinate
-      const yCoord = (yCoordSign) ? -1 * yCoordIrregular : yCoordIrregular; // Signed coordinate
+      const xTransCoordSign = (encodedString.slice(1, 2) == this.onethEncodingAlphabetCharacter);
+      const xTransCoordIrregular = encodedToNumber(encodedString.slice(2, 6)); // Unsigned coordinate
+      const xTransCoord = (xTransCoordSign) ? -1 * xTransCoordIrregular : xTransCoordIrregular; // Signed coordinate
 
-      return [xCoord, yCoord];
+      const yTransCoordSign = (encodedString.slice(6, 7) == this.onethEncodingAlphabetCharacter);
+      const yTransCoordIrregular = encodedToNumber(encodedString.slice(7, 11)); // Unsigned coordinate
+      const yTransCoord = (yTransCoordSign) ? -1 * yTransCoordIrregular : yTransCoordIrregular; // Signed coordinate
+
+      return [hasWindowBeenMoved, xTransCoord, yTransCoord]; // The X & Y coords of the window
     };
 
-    const mainWindowEncodedState = windowState.bm;
-    const mainWindowState = [...decodeCommon(mainWindowEncodedState), ...numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedState.slice(10, 15)))];
-
+    // Main Window
+    const mainWindowEncodedState = windowState.bm; // The entire encoded window state
+    const mainWindowEncodedCommon = mainWindowEncodedState.slice(0, 11); // The encoded window state for common variables
+    const mainWindowEncodedFlags = mainWindowEncodedState.slice(11, 16); // The encoded window state for bit flags
+    const mainWindowState = decodeCommon(mainWindowEncodedCommon).concat(numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags)));
+    // mainWindowState is an Array where each index is variable. The order is preserved.
+    
     
   }
 
@@ -471,9 +579,21 @@ export default class SettingsManager extends WindowSettings {
     .buildElement()
   }
 
+  /** Populates the windowMain variable with the windowMain class.
+   * @param {WindowMain} windowMain - The windowMain class instance
+   * @since 0.92.23
+   */
+  setWindowMain(windowMain) {this.windowMain = windowMain;}
+
   /** Populates the templateManager variable with the templateManager class.
    * @param {TemplateManager} templateManager - The templateManager class instance
    * @since 0.92.22
    */
   setTemplateManager(templateManager) {this.templateManager = templateManager;}
+
+  /** Populates the apiManager variable with the apiManager class.
+   * @param {ApiManager} apiManager - The apiManager class instance
+   * @since 0.92.23
+   */
+  setApiManager(apiManager) {this.apiManager = apiManager;}
 }
