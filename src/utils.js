@@ -1,3 +1,4 @@
+import Overlay from "./Overlay";
 
 /** Returns a Date of when Wplace was last updated.
  * This is obtained from a certain DOM element which contains the version of Wplace.
@@ -195,6 +196,18 @@ const defaultEncoding = '!#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVW
  */
 export function numberToEncoded(number, encoding = defaultEncoding) {
 
+  // If the number passed in is not a number...
+  if (typeof number !== 'number') {
+    // Encoding a non-number (but treating it as if it were a number) will produce garbage data.
+    // Typically, Blue Marble would throw an error to the console log, and return zero.
+    // However, this function is commonly used to save data.
+    // If we return zero, it would result in "unexplained" data loss. (Which, could be massive or cascading, since values don't stop modifying each other after the initial failure)
+    // If we continue, it would result in corrupted save data.
+    // Therefore, the only reasonable course of action is to crash the thread, in order to minimize data loss.
+    new Overlay().handleDisplayError(`numberToEncoded() recieved '${typeof number}' and crashed BM to minimize data loss.`);
+    throw new Error(`numberToEncoded expected a number, but recieved a ${typeof number}! Value: ${number}`);
+  }
+
   if (number === 0) return encoding[0]; // End quickly if number equals 0. No special calculation needed
 
   let result = ''; // The encoded string
@@ -213,7 +226,7 @@ export function numberToEncoded(number, encoding = defaultEncoding) {
  * @param {string} encoded - The encoded string
  * @param {string} [encoding] - The characters to use when decoding. If omitted, it will default to JSON-safe base 92
  * @since 0.88.448
- * @returns {number} Decoded number
+ * @returns {number} Decoded number (integer)
  * @example
  * const encode = '012abcABC'; // Base 9
  * console.log(encodedToNumber('0', encode));     // 0
