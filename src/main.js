@@ -224,6 +224,10 @@ if (document.readyState === 'loading') {
   templateManager.shouldFilterColor = settingsManager.decodeFilteredColorBitFlags(userSettings?.filter); // Tells the template manager which colors should be filtered
   settingsManager.filteredColorsMapOld = templateManager.shouldFilterColor; // Sets the "old" value to the current value (so we don't trigger a storage save)
 
+  settingsManager.setWindowMain(windowMain);
+  settingsManager.setTemplateManager(templateManager);
+  settingsManager.setApiManager(apiManager);
+
   const storageTemplates = JSON.parse(await GM.getValue('bmTemplates', '{}'));
   console.log(storageTemplates);
   templateManager.importJSON(storageTemplates); // Loads the templates
