@@ -95,11 +95,12 @@ export default class SettingsManager extends WindowSettings {
 
     this._windowStatesObject = {};//this.#decodeWindowStateToObject(this.userSettings?.windowStates ?? {});
     this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i); // RegEx for finding where the window is
+    this.commonStatesByteLength = 8; // Sum of bytes of the common window state variables ("All Windows")
 
     this.updateFrequency = 2000; // Cooldown between saving to storage (throttle)
     this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
 
-    setInterval(this.#updateWindowState.bind(this), this.updateFrequency * 0.4);
+    setInterval(this.#updateWindowState.bind(this), this.updateFrequency * 0.6);
     setInterval(this.updateUserStorage.bind(this), this.updateFrequency); // Runs every X seconds (see updateFrequency)
   }
 
@@ -482,8 +483,8 @@ export default class SettingsManager extends WindowSettings {
       // Retrieves the hottest stored common state for this window.
       // This is the memory version, as opposed to disk version, which is cold
       // If it can't retrieve the common state, we use zeros, because either the window is new, or something went VERY wrong somewhere else, so a little data loss here is fine compared to the alternative (crashing)
-      console.log(this._windowStatesObject?.[userStorageID]?.slice(0, 8));
-      const commonStatesOld = this._windowStatesObject?.[userStorageID]?.slice(0, 8) ?? this.zerothEncodingAlphabetCharacter.repeat(8);
+      console.log(this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength));
+      const commonStatesOld = this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       // This is ONLY the common states of the window
 
       // Returns the previously stored window state variables...
@@ -575,27 +576,20 @@ export default class SettingsManager extends WindowSettings {
      * @returns {Array<number, number>}
      * @since 0.92.23
      */
-    const decodeCommon = (encodedString) => {
+    const decodeCommonStates = (encodedString) => {
 
-      // If the bit flag is 1, the window has been moved
-      const hasWindowBeenMoved = (encodedString.slice(0, 1) == this.onethEncodingAlphabetCharacter);
-
-      const xTransCoordSign = (encodedString.slice(1, 2) == this.onethEncodingAlphabetCharacter);
-      const xTransCoordIrregular = encodedToNumber(encodedString.slice(2, 6)); // Unsigned coordinate
-      const xTransCoord = (xTransCoordSign) ? -1 * xTransCoordIrregular : xTransCoordIrregular; // Signed coordinate
-
-      const yTransCoordSign = (encodedString.slice(6, 7) == this.onethEncodingAlphabetCharacter);
-      const yTransCoordIrregular = encodedToNumber(encodedString.slice(7, 11)); // Unsigned coordinate
-      const yTransCoord = (yTransCoordSign) ? -1 * yTransCoordIrregular : yTransCoordIrregular; // Signed coordinate
-
-      return [hasWindowBeenMoved, xTransCoord, yTransCoord]; // The X & Y coords of the window
+      // If the passed in encodedString is invalid...
+      if ((typeof encodedString !== 'string') || (encodedString.length == 0)) {
+        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}\nAssuming all common states are zeros...`);
+        encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
+      } // The data we are supposed to read is corrupt, so we can zero all bytes and continue as normal.
     };
 
     // Main Window
     const mainWindowEncodedState = windowState.bm; // The entire encoded window state
     const mainWindowEncodedCommon = mainWindowEncodedState.slice(0, 11); // The encoded window state for common variables
     const mainWindowEncodedFlags = mainWindowEncodedState.slice(11, 16); // The encoded window state for bit flags
-    const mainWindowState = decodeCommon(mainWindowEncodedCommon).concat(numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags)));
+    const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags)));
     // mainWindowState is an Array where each index is variable. The order is preserved.
     
     
