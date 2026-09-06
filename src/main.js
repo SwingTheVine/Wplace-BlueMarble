@@ -288,20 +288,37 @@ if (document.readyState === 'loading') {
         move.textContent = 'Move ↑';
         move.className = 'btn btn-soft';
         move.onclick = function() {
-          const roundedBox = this.parentNode.parentNode.parentNode.parentNode; // Obtains the rounded box
+          const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"])'); // Obtains the visible palette window
+          const paletteWindow = paletteWindowVisible.closest('div:is([class~="bottom-0"], [class~="top-0"])'); // Obtains the entire palette window (includes wrappers)
+          console.log(paletteWindowInteractiveUiContainer);
+          console.log(paletteWindow);
+          // Specifically, `paletteWindow` should be the element anchoring the window to the bottom of the screen
+          
+          // Figures out the direction the window should move, then moves it
           const shouldMoveUp = (this.textContent == 'Move ↑');
-          roundedBox.parentNode.className = roundedBox.parentNode.className.replace(shouldMoveUp ? 'bottom' : 'top', shouldMoveUp ? 'top' : 'bottom'); // Moves the rounded box to the top
-          roundedBox.style.borderTopLeftRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
-          roundedBox.style.borderTopRightRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
-          roundedBox.style.borderBottomLeftRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
-          roundedBox.style.borderBottomRightRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
+          paletteWindow.className = paletteWindow?.className?.replace(shouldMoveUp ? 'bottom-0' : 'top-0', shouldMoveUp ? 'top-0' : 'bottom-0'); // Moves the palette window to the top of the screen
+          
+          // Fixes borders
+          paletteWindowVisible.style.borderTopLeftRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
+          paletteWindowVisible.style.borderTopRightRadius = shouldMoveUp ? '0px' : 'var(--radius-box)';
+          paletteWindowVisible.style.borderBottomLeftRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
+          paletteWindowVisible.style.borderBottomRightRadius = shouldMoveUp ? 'var(--radius-box)' : '0px';
+          
+          // Toggles movement direction
           this.textContent = shouldMoveUp ? 'Move ↓' : 'Move ↑';
         }
 
-        // Attempts to find the "Paint Pixel" element for anchoring
-        const paintPixel = black.parentNode.parentNode.parentNode.parentNode.querySelector('h2');
-
-        paintPixel.parentNode?.appendChild(move); // Adds the move button
+        // Obtains the palette window's container, which holds all interactive elements in the window
+        // Obtains the palette window's toolbar, which holds the non-palette of buttons
+        const paletteWindowInteractiveUiContainer = black.closest('div[id]:has(h2):has(canvas)');
+        const paletteToolbar = paletteWindowInteractiveUiContainer?.querySelector('div:has(h2) div:has(button):has(div[class~="tooltip"] kbd):not(:has(h2))');
+        
+        // If the toolbar exists, we add the move button to it
+        if (paletteToolbar) {
+          paletteToolbar.appendChild(move); // Adds the "Move" button
+        } else {
+          consoleWarn('Could not find palette toolbar to inject Move button into!');
+        }
       }
     });
 

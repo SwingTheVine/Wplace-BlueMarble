@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.30
+// @version         0.92.48
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1673,9 +1673,10 @@
       this.userSettingsSaveLocation = "bmUserSettings";
       this._windowStatesObject = {};
       this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i);
+      this.commonStatesByteLength = 8;
       this.updateFrequency = 2e3;
       this.lastUpdateTime = 0;
-      setInterval(__privateMethod(this, _SettingsManager_instances, updateWindowState_fn).bind(this), this.updateFrequency * 0.4);
+      setInterval(__privateMethod(this, _SettingsManager_instances, updateWindowState_fn).bind(this), this.updateFrequency * 0.6);
       setInterval(this.updateUserStorage.bind(this), this.updateFrequency);
     }
     /** Updates the user settings in userscript storage
@@ -1934,22 +1935,18 @@
    */
   updateWindowState_fn = function() {
     const obtainCommonStates = (windowElement, userStorageID) => {
-      console.log(this._windowStatesObject?.[userStorageID]?.slice(0, 8));
-      const commonStatesOld = this._windowStatesObject?.[userStorageID]?.slice(0, 8) ?? this.zerothEncodingAlphabetCharacter.repeat(8);
-      console.log("!windowElement", !windowElement);
+      console.log(this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength));
+      const commonStatesOld = this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       if (!windowElement) {
         return commonStatesOld.slice(0, 1) + numberToEncoded(set32BitPosition(encodedToNumber(commonStatesOld.slice(1, 2)), 0, false)) + commonStatesOld.slice(2);
       }
       const drawDepth = Math.max(0, Math.min(Number(windowElement.dataset["drawDepth"] ?? 0), 91));
-      console.log("drawDepth", drawDepth);
       let bitFlagsMutable = set32BitPosition(0, 0, true);
       const windowMinimizationButton = windowElement.querySelector("button[data-button-status]");
       const isWindowMinimized = windowMinimizationButton?.dataset["buttonStatus"] == "collapsed";
       bitFlagsMutable = set32BitPosition(bitFlagsMutable, 1, isWindowMinimized);
-      console.log("isWindowMinimized", isWindowMinimized);
       const windowStyle = windowElement.style;
       const matches = this.commonWindowStateTranslateRegEx.exec(windowStyle.getPropertyValue("transform") ?? "");
-      console.log("matches", matches);
       bitFlagsMutable = set32BitPosition(bitFlagsMutable, 2, !!matches);
       const xTransCoord = Number(matches?.[1] ?? 0);
       const yTransCoord = Number(matches?.[2] ?? 0);
@@ -1961,9 +1958,7 @@
       return numberToEncoded(drawDepth).slice(-1) + numberToEncoded(bitFlagsMutable).slice(-1) + windowTransX.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3) + windowTransY.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3);
     };
     const windowMainID = this.windowMain?.windowID;
-    console.log(windowMainID);
     const windowMainElement = windowMainID ? document.querySelector("#" + this.windowMain?.windowID) : void 0;
-    console.log(windowMainElement);
     const windowMainCommonStates = obtainCommonStates(windowMainElement, "bm");
     let windowMainUniqueStatesMutable = 0;
     const windowMainTemplateCoordinateX = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-tx")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-px")?.value ?? 0)));
@@ -1978,20 +1973,17 @@
    * @since 0.92.23
    */
   decodeWindowStateToObject_fn = function(windowState) {
-    const decodeCommon = (encodedString) => {
-      const hasWindowBeenMoved = encodedString.slice(0, 1) == this.onethEncodingAlphabetCharacter;
-      const xTransCoordSign = encodedString.slice(1, 2) == this.onethEncodingAlphabetCharacter;
-      const xTransCoordIrregular = encodedToNumber(encodedString.slice(2, 6));
-      const xTransCoord = xTransCoordSign ? -1 * xTransCoordIrregular : xTransCoordIrregular;
-      const yTransCoordSign = encodedString.slice(6, 7) == this.onethEncodingAlphabetCharacter;
-      const yTransCoordIrregular = encodedToNumber(encodedString.slice(7, 11));
-      const yTransCoord = yTransCoordSign ? -1 * yTransCoordIrregular : yTransCoordIrregular;
-      return [hasWindowBeenMoved, xTransCoord, yTransCoord];
+    const decodeCommonStates = (encodedString) => {
+      if (typeof encodedString !== "string" || encodedString.length == 0) {
+        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
+Assuming all common states are zeros...`);
+        encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
+      }
     };
     const mainWindowEncodedState = windowState.bm;
     const mainWindowEncodedCommon = mainWindowEncodedState.slice(0, 11);
     const mainWindowEncodedFlags = mainWindowEncodedState.slice(11, 16);
-    const mainWindowState = decodeCommon(mainWindowEncodedCommon).concat(numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags)));
+    const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags)));
   };
 
   // src/Template.js
@@ -4205,17 +4197,25 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           move.textContent = "Move \u2191";
           move.className = "btn btn-soft";
           move.onclick = function() {
-            const roundedBox = this.parentNode.parentNode.parentNode.parentNode;
+            const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"])');
+            const paletteWindow = paletteWindowVisible.closest('div:is([class~="bottom-0"], [class~="top-0"])');
+            console.log(paletteWindowInteractiveUiContainer);
+            console.log(paletteWindow);
             const shouldMoveUp = this.textContent == "Move \u2191";
-            roundedBox.parentNode.className = roundedBox.parentNode.className.replace(shouldMoveUp ? "bottom" : "top", shouldMoveUp ? "top" : "bottom");
-            roundedBox.style.borderTopLeftRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
-            roundedBox.style.borderTopRightRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
-            roundedBox.style.borderBottomLeftRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
-            roundedBox.style.borderBottomRightRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
+            paletteWindow.className = paletteWindow?.className?.replace(shouldMoveUp ? "bottom-0" : "top-0", shouldMoveUp ? "top-0" : "bottom-0");
+            paletteWindowVisible.style.borderTopLeftRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
+            paletteWindowVisible.style.borderTopRightRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
+            paletteWindowVisible.style.borderBottomLeftRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
+            paletteWindowVisible.style.borderBottomRightRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
             this.textContent = shouldMoveUp ? "Move \u2193" : "Move \u2191";
           };
-          const paintPixel = black.parentNode.parentNode.parentNode.parentNode.querySelector("h2");
-          paintPixel.parentNode?.appendChild(move);
+          const paletteWindowInteractiveUiContainer = black.closest("div[id]:has(h2):has(canvas)");
+          const paletteToolbar = paletteWindowInteractiveUiContainer?.querySelector('div:has(h2) div:has(button):has(div[class~="tooltip"] kbd):not(:has(h2))');
+          if (paletteToolbar) {
+            paletteToolbar.appendChild(move);
+          } else {
+            consoleWarn("Could not find palette toolbar to inject Move button into!");
+          }
         }
       });
       observer.observe(document.body, { childList: true, subtree: true });
