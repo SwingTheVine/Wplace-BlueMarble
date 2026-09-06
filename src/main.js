@@ -286,16 +286,15 @@ if (document.readyState === 'loading') {
         move = document.createElement('button');
         move.id = 'bm-button-move';
         move.textContent = 'Move ↑';
+        move.dataset['screenPosition'] = 'bottom';
         move.className = 'btn btn-soft';
         move.onclick = function() {
           const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"])'); // Obtains the visible palette window
           const paletteWindow = paletteWindowVisible.closest('div:is([class~="bottom-0"], [class~="top-0"])'); // Obtains the entire palette window (includes wrappers)
-          console.log(paletteWindowInteractiveUiContainer);
-          console.log(paletteWindow);
           // Specifically, `paletteWindow` should be the element anchoring the window to the bottom of the screen
           
           // Figures out the direction the window should move, then moves it
-          const shouldMoveUp = (this.textContent == 'Move ↑');
+          const shouldMoveUp = (this.dataset?.['screenPosition'] == 'bottom');
           paletteWindow.className = paletteWindow?.className?.replace(shouldMoveUp ? 'bottom-0' : 'top-0', shouldMoveUp ? 'top-0' : 'bottom-0'); // Moves the palette window to the top of the screen
           
           // Fixes borders
@@ -306,6 +305,10 @@ if (document.readyState === 'loading') {
           
           // Toggles movement direction
           this.textContent = shouldMoveUp ? 'Move ↓' : 'Move ↑';
+          this.dataset['screenPosition'] = shouldMoveUp ? 'top' : 'bottom';
+
+          // Shows only the arrow on smaller screens
+          if (paletteWindowVisible?.getBoundingClientRect()?.width <= 650) {this.textContent = this.textContent.slice(-1);}
         }
 
         // Obtains the palette window's container, which holds all interactive elements in the window

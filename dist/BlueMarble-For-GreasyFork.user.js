@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.48
+// @version         0.92.51
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -4195,19 +4195,22 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           move = document.createElement("button");
           move.id = "bm-button-move";
           move.textContent = "Move \u2191";
+          move.dataset["screenPosition"] = "bottom";
           move.className = "btn btn-soft";
           move.onclick = function() {
             const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"])');
             const paletteWindow = paletteWindowVisible.closest('div:is([class~="bottom-0"], [class~="top-0"])');
-            console.log(paletteWindowInteractiveUiContainer);
-            console.log(paletteWindow);
-            const shouldMoveUp = this.textContent == "Move \u2191";
+            const shouldMoveUp = this.dataset?.["screenPosition"] == "bottom";
             paletteWindow.className = paletteWindow?.className?.replace(shouldMoveUp ? "bottom-0" : "top-0", shouldMoveUp ? "top-0" : "bottom-0");
             paletteWindowVisible.style.borderTopLeftRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
             paletteWindowVisible.style.borderTopRightRadius = shouldMoveUp ? "0px" : "var(--radius-box)";
             paletteWindowVisible.style.borderBottomLeftRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
             paletteWindowVisible.style.borderBottomRightRadius = shouldMoveUp ? "var(--radius-box)" : "0px";
             this.textContent = shouldMoveUp ? "Move \u2193" : "Move \u2191";
+            this.dataset["screenPosition"] = shouldMoveUp ? "top" : "bottom";
+            if (paletteWindowVisible?.getBoundingClientRect()?.width <= 650) {
+              this.textContent = this.textContent.slice(-1);
+            }
           };
           const paletteWindowInteractiveUiContainer = black.closest("div[id]:has(h2):has(canvas)");
           const paletteToolbar = paletteWindowInteractiveUiContainer?.querySelector('div:has(h2) div:has(button):has(div[class~="tooltip"] kbd):not(:has(h2))');
