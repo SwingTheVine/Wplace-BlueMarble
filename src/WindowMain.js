@@ -80,10 +80,11 @@ export default class WindowMain extends Overlay {
     const translateX = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION);
     const translateY = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION);
 
-    
+    // If both translations are zero, use the default starting location.
+    const startingPosition = (!translateX && !translateY) ? 'top: 10px; left: unset; right: 75px;' : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
 
     // Creates the window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': `top: 10px; left: unset; right: 75px; z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': `${startingPosition} z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {
       // div.onclick = (event) => {
       //   if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
       //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top
