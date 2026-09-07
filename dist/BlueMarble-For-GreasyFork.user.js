@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.89
+// @version         0.92.94
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -3163,6 +3163,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         this.handleDisplayError("Main window already exists!");
         return;
       }
+      const wStartsExp = !this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_MINIMIZED);
       const xTemplateCoord = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.TEMPLATE_COORDINATE_X);
       const yTemplateCoord = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.TEMPLATE_COORDINATE_Y);
       let initTemplateCoords = ["", "", "", ""];
@@ -3176,14 +3177,18 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       let translateY = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION);
       translateX = Math.max(-250, Math.min(window.innerWidth - 40, translateX));
       translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
-      const startingPosition = !translateX && !translateY ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
+      const startingPosition = !this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_MOVED) ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
       this.mainWindow = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
-      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": wStartsExp ? "\u25BC" : "\u25B6", "aria-label": wStartsExp ? 'Minimize window "Blue Marble"' : 'Unminimize window "Blue Marble"', "data-button-status": wStartsExp ? "expanded" : "collapsed" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "innerHTML": '<svg viewbox="0 0 9 9" style="width:60%; margin:auto;"><path d="M2,4H5V7M0,9L5,4M1,1H8V8" stroke="#fff" fill="none"></svg>' }, (instance, button) => {
+      }).buildElement().addDiv(void 0, (instance, div) => {
+        if (!wStartsExp) {
+          instance.addHeader(1, { "textContent": this.name }).buildElement();
+        }
+      }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": '<svg viewbox="0 0 9 9" style="width:60%; margin:auto;"><path d="M2,4H5V7M0,9L5,4M1,1H8V8" stroke="#fff" fill="none"></svg>' }, (instance, button) => {
         button.onclick = () => {
           const thisWindow = document.querySelector("#" + this.windowID);
           thisWindow.style.top = "10px";
@@ -3194,7 +3199,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }, (instance, img) => {
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content", "style": wStartsExp ? "" : "height: 0px; display: none;" }).addDiv({ "class": "bm-container" }).addImg({ "class": "bm-favicon", "src": "https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png" }, (instance, img) => {
         const date = /* @__PURE__ */ new Date();
         const dayOfTheYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 1)) / (1e3 * 60 * 60 * 24)) + 1;
         if (dayOfTheYear == 204) {
