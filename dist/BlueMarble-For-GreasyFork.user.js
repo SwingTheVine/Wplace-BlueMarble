@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.86
+// @version         0.92.89
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -3135,7 +3135,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     constructor(name2, version2) {
       super(name2, version2);
       __privateAdd(this, _WindowMain_instances);
-      this.window = null;
+      this.mainWindow = null;
       this.windowID = "bm-window-main";
       this.windowParent = document.body;
       this.settingsManager = null;
@@ -3172,10 +3172,12 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const windowWasInDOM = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_EXISTS);
       const drawDepthOld = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.DRAW_DEPTH);
       const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
-      const translateX = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION);
-      const translateY = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION);
+      let translateX = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION);
+      let translateY = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION);
+      translateX = Math.max(-250, Math.min(window.innerWidth - 40, translateX));
+      translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
       const startingPosition = !translateX && !translateY ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
+      this.mainWindow = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
