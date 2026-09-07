@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.94
+// @version         0.92.97
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -4298,6 +4298,11 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     inject(injectionCode);
   }
   (async () => {
+    const prayThisIsNotTrue = document.querySelector("#bm-window-main");
+    if (prayThisIsNotTrue) {
+      new WindowMain(name, version).handleDisplayError("You have multiple copies of Blue Marble running! Open your userscript manager and disable them.");
+      throw new Error(`Blue Marble has already initalized! Do you have multiple copies of Blue Marble running simultaneously?`);
+    }
     const cssOverlay = await GM.getResourceText("CSS-BM-File");
     GM.addStyle(cssOverlay);
     const robotoMonoInjectionPoint = "robotoMonoInjectionPoint";
