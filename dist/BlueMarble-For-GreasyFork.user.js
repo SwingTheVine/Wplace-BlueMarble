@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.51
+// @version         0.92.76
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -46,7 +46,9 @@
     throw TypeError(msg);
   };
   var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+  var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
   var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+  var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
   var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 
   // src/observers.js
@@ -1404,12 +1406,17 @@
     return result;
   }
   function encodedToNumber(encoded, encoding = defaultEncoding) {
+    if (typeof encoded !== "string") {
+      consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.
+Returning zero...`);
+      return 0;
+    }
     let decodedNumber = 0;
     const base = encoding.length;
     for (const character of encoded) {
       const decodedCharacter = encoding.indexOf(character);
       if (decodedCharacter == -1) {
-        consoleError(`Invalid character '${character}' encountered whilst decoding! Is the decode alphabet/base incorrect?`);
+        consoleError(`Invalid character '${character}' encountered whilst decoding in encodedToNumber()! Is the decode alphabet/base incorrect?`);
       }
       decodedNumber = decodedNumber * base + decodedCharacter;
     }
@@ -1650,7 +1657,7 @@
   };
 
   // src/settingsManager.js
-  var _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn, updateWindowState_fn, decodeWindowStateToObject_fn;
+  var _windowStatesObject, _windowStatesObjectEncoded, _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn, updateWindowState_fn, decodeWindowStateToObject_fn;
   var SettingsManager = class extends WindowSettings {
     /** Constructor for the SettingsManager class
      * @param {string} name - The name of the userscript
@@ -1662,6 +1669,8 @@
       var _a;
       super(name2, version2);
       __privateAdd(this, _SettingsManager_instances);
+      __privateAdd(this, _windowStatesObject);
+      __privateAdd(this, _windowStatesObjectEncoded);
       this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
       this.onethEncodingAlphabetCharacter = numberToEncoded(1);
       this.windowMain = null;
@@ -1671,9 +1680,10 @@
       (_a = this.userSettings).flags ?? (_a.flags = []);
       this.userSettingsOld = structuredClone(this.userSettings);
       this.userSettingsSaveLocation = "bmUserSettings";
-      this._windowStatesObject = {};
-      this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i);
       this.commonStatesByteLength = 8;
+      __privateSet(this, _windowStatesObjectEncoded, this.userSettings?.windowStates ?? {});
+      __privateSet(this, _windowStatesObject, __privateMethod(this, _SettingsManager_instances, decodeWindowStateToObject_fn).call(this, __privateGet(this, _windowStatesObjectEncoded)) ?? {});
+      this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i);
       this.updateFrequency = 2e3;
       this.lastUpdateTime = 0;
       setInterval(__privateMethod(this, _SettingsManager_instances, updateWindowState_fn).bind(this), this.updateFrequency * 0.6);
@@ -1684,7 +1694,7 @@
      */
     async updateUserStorage() {
       await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
-      this.userSettings["windowStates"] = this._windowStatesObject;
+      this.userSettings["windowStates"] = __privateGet(this, _windowStatesObjectEncoded);
       const userSettingsCurrent = JSON.stringify(this.userSettings);
       const userSettingsOld = JSON.stringify(this.userSettingsOld);
       if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
@@ -1797,6 +1807,14 @@
         checkbox.onchange = (event) => this.toggleFlag("hl-agSkip", event.target.checked);
       }).buildElement().buildElement().buildElement();
     }
+    /** Returns the decoded window states
+     * @since 0.92.69
+     * @returns {Object} An object containing window states
+     */
+    getWindowStatesObject() {
+      console.log("#windowStatesObject: ", __privateGet(this, _windowStatesObject));
+      return __privateGet(this, _windowStatesObject);
+    }
     /** Populates the windowMain variable with the windowMain class.
      * @param {WindowMain} windowMain - The windowMain class instance
      * @since 0.92.23
@@ -1819,6 +1837,8 @@
       this.apiManager = apiManager;
     }
   };
+  _windowStatesObject = new WeakMap();
+  _windowStatesObjectEncoded = new WeakMap();
   _SettingsManager_instances = new WeakSet();
   /** Updates the display of the highlight buttons in the settings window.
    * Additionally, it will update user settings with the new selection.
@@ -1935,8 +1955,8 @@
    */
   updateWindowState_fn = function() {
     const obtainCommonStates = (windowElement, userStorageID) => {
-      console.log(this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength));
-      const commonStatesOld = this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
+      console.log(__privateGet(this, _windowStatesObject)?.[userStorageID]?.slice(0, this.commonStatesByteLength));
+      const commonStatesOld = __privateGet(this, _windowStatesObject)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       if (!windowElement) {
         return commonStatesOld.slice(0, 1) + numberToEncoded(set32BitPosition(encodedToNumber(commonStatesOld.slice(1, 2)), 0, false)) + commonStatesOld.slice(2);
       }
@@ -1964,7 +1984,7 @@
     const windowMainTemplateCoordinateX = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-tx")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-px")?.value ?? 0)));
     const windowMainTemplateCoordinateY = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-ty")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-py")?.value ?? 0)));
     const windowMainState = windowMainCommonStates + numberToEncoded(windowMainUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2) + numberToEncoded(windowMainTemplateCoordinateX).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4) + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4);
-    this._windowStatesObject["bm"] = windowMainState;
+    __privateGet(this, _windowStatesObjectEncoded)["bm"] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
   };
   /** Decodes & builds the window state object.
    * This function parses user storage into a readable format,
@@ -1973,17 +1993,42 @@
    * @since 0.92.23
    */
   decodeWindowStateToObject_fn = function(windowState) {
+    console.log("Recieved window state to decode: ", windowState);
     const decodeCommonStates = (encodedString) => {
       if (typeof encodedString !== "string" || encodedString.length == 0) {
         consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
 Assuming all common states are zeros...`);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       }
+      const drawDepth = encodedToNumber(encodedString.slice(0, 1));
+      const bitFlags = encodedToNumber(encodedString.slice(1, 2));
+      const isWindowInDOM = (bitFlags & 1 << 0) !== 0;
+      const isWindowMinimized = (bitFlags & 1 << 1) !== 0;
+      const hasWindowBeenMoved = (bitFlags & 1 << 2) !== 0;
+      const xAxisSignIsNegative = (bitFlags & 1 << 3) !== 0;
+      const yAxisSignIsNegative = (bitFlags & 1 << 4) !== 0;
+      const reservedCommonFlag = false;
+      const xAxisShiftTrans = encodedToNumber(encodedString.slice(2, 5));
+      const yAxisShiftTrans = encodedToNumber(encodedString.slice(5, 8));
+      const commonStates = [drawDepth, isWindowInDOM, isWindowMinimized, hasWindowBeenMoved, xAxisSignIsNegative, yAxisSignIsNegative, reservedCommonFlag, xAxisShiftTrans, yAxisShiftTrans];
+      console.log(commonStates);
+      return commonStates;
     };
-    const mainWindowEncodedState = windowState.bm;
-    const mainWindowEncodedCommon = mainWindowEncodedState.slice(0, 11);
-    const mainWindowEncodedFlags = mainWindowEncodedState.slice(11, 16);
-    const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags)));
+    const mainWindowStateDefault = "!#!!!!!!!!!!!!!!!!";
+    const mainWindowEncodedState = windowState["bm"] ?? mainWindowStateDefault;
+    const mainWindowEncodedCommon = mainWindowEncodedState?.slice(0, this.commonStatesByteLength);
+    const mainWindowEncodedFlags = mainWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const mainWindowTemplateCoordX = encodedToNumber(mainWindowEncodedState?.slice(10, 14));
+    const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18));
+    const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(
+      numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0),
+      mainWindowTemplateCoordX,
+      mainWindowTemplateCoordY
+    );
+    console.log(mainWindowState);
+    return {
+      "bm": mainWindowState
+    };
   };
 
   // src/Template.js
@@ -3018,6 +3063,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.window = null;
       this.windowID = "bm-window-main";
       this.windowParent = document.body;
+      this.settingsManager = null;
     }
     /** Creates the main Blue Marble window.
      * Parent/child relationships in the DOM structure below are indicated by indentation.
@@ -3028,6 +3074,13 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         this.handleDisplayError("Main window already exists!");
         return;
       }
+      const xTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.["bm"]?.[7]);
+      const yTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.["bm"]?.[8]);
+      let initTemplateCoords = ["", "", "", ""];
+      if (xTemplateCoord + yTemplateCoord != 0 && !isNaN(xTemplateCoord) && !isNaN(yTemplateCoord)) {
+        initTemplateCoords = [xTemplateCoord / 1e3, yTemplateCoord / 1e3, xTemplateCoord % 1e3, yTemplateCoord % 1e3];
+      }
+      console.log(initTemplateCoords);
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": "top: 10px; left: unset; right: 75px;", "data-draw-depth": "0" }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
@@ -3062,13 +3115,13 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
             instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
           };
         }
-      ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "value": initTemplateCoords?.[0], "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
         input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
-      }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "class": "bm-input-coords", "placeholder": "Tl Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      }).buildElement().addInput({ "type": "number", "id": "bm-input-ty", "class": "bm-input-coords", "placeholder": "Tl Y", "value": initTemplateCoords?.[1], "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
         input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
-      }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "class": "bm-input-coords", "placeholder": "Px X", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      }).buildElement().addInput({ "type": "number", "id": "bm-input-px", "class": "bm-input-coords", "placeholder": "Px X", "value": initTemplateCoords?.[2], "min": 0, "max": 999, "step": 1, "required": true }, (instance, input) => {
         input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
-      }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "class": "bm-input-coords", "placeholder": "Px Y", "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
+      }).buildElement().addInput({ "type": "number", "id": "bm-input-py", "class": "bm-input-coords", "placeholder": "Px Y", "value": initTemplateCoords?.[3], "min": 0, "max": 999, "step": 1, "required": true }, (instance, input) => {
         input.addEventListener("paste", (event) => __privateMethod(this, _WindowMain_instances, coordinateInputPaste_fn).call(this, instance, input, event));
       }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addInputFile({ "class": "bm-input-file", "textContent": "Upload Template", "accept": "image/png, image/jpeg, image/webp, image/bmp, image/gif" }).buildElement().buildElement().addDiv({ "class": "bm-container bm-flex-between" }).addButton({ "textContent": "Disable", "data-button-status": "shown" }, (instance, button) => {
         button.onclick = () => {
@@ -3152,6 +3205,13 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         };
       }).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+    }
+    /** Populates the settingsManager variable with the settingsManager class.
+     * @param {SettingsManager} settingsManager - The settingsManager class instance
+     * @since 0.92.67
+     */
+    setSettingsManager(settingsManager) {
+      this.settingsManager = settingsManager;
     }
   };
   _WindowMain_instances = new WeakSet();
