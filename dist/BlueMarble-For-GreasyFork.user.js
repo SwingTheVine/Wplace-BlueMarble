@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.82
+// @version         0.92.83
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -3172,7 +3172,10 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const windowWasInDOM = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_EXISTS);
       const drawDepthOld = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.DRAW_DEPTH);
       const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `top: 10px; left: unset; right: 75px; z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
+      const translateX = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION);
+      const translateY = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION);
+      const startingPosition = !translateX && !translateY ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
