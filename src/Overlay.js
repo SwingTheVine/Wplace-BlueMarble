@@ -1,4 +1,4 @@
-import { consoleLog } from "./utils";
+import { consoleError, consoleInfo, consoleLog } from "./utils";
 
 /** The overlay builder for the Blue Marble script.
  * @description This class handles the overlay UI for the Blue Marble script.
@@ -1416,6 +1416,91 @@ export default class Overlay {
       startDrag(touch.clientX, touch.clientY);
       event.preventDefault();
     }, { passive: false });
+  }
+
+  /** Manages the logic required to maintain the draw depth order.
+   * Manages z-index offset... because thats what draw depth is for.
+   * Automatically moves windows' draw depth to insert this window's draw depth.
+   * If draw depth is omited, the window is added to the top.
+   * The primary purpose of requesting draw depth is to draw all windows in the same order they were in during the last cold save.
+   * (i.e. if you refresh the tab, your overlapping windows will be stacked exactly the same as before you refreshed)
+   * If the window does not exist in the DOM tree, and the window is being built, don't request a draw depth.
+   * If the window exists in the DOM tree, and the window is being built, the draw depth should be requested.
+   * The window must have a Blue Marble ID. This should always be true, unless you try to apply draw depth to something that is *not* a Blue Marble window.
+   * 
+   * @param {number} [requestedDrawDepth] - The draw depth to (possibly) be inserted at
+   * @returns {number} The draw depth your new window will use
+   * @since 0.92.92
+   */
+  handleDrawDepth(requestedDrawDepth) {
+
+    // If the requested draw depth is invalid, put the window on top
+    if ((requestedDrawDepth < 0) || (requestedDrawDepth > 91) || (typeof requestedDrawDepth !== 'number') || !Number.isInteger(requestedDrawDepth)) {
+      consoleWarn(`Window requested invalid draw depth (${typeof requestedDrawDepth}: ${requestedDrawDepth})! The window will be put on top.`);
+      requestedDrawDepth = undefined; // Very hacky way of doing this
+    }
+
+    // If no window is currently using the requested draw depth...
+    if ((typeof requestedDrawDepth !== 'undefined') && !document.querySelector(`body [id^="bm-"][data-draw-depth="${requestedDrawDepth}"]`)) {
+      return requestedDrawDepth; // Return the requested draw depth
+    }
+
+    // Grabs all open windows
+    const windows = document.querySelectorAll('body [id^="bm-"][data-draw-depth]');
+
+    // If the draw depth is full...
+    if (windows.length >= 92) {
+      consoleWarn(`Maximum draw depth reached! For as long as 92 windows are open, new windows will overload the highest draw depth.`); // For console
+      this.handleDisplayError('Maximum draw depth reached! Close some windows!'); // For user
+      return 91;
+    }
+
+    // Sorts the windows, so they are arranged from 0 to 91 (with possible holes)
+    const windowsSortedAsc = Array.from(windows).sort((a, b) => Number(a.dataset['drawDepth']) - Number(b.dataset['drawDepth']));
+
+    // If we have reached the maximum number of windows...
+    if (document.querySelector('[id^="bm-"][data-draw-depth="91"]')) {
+
+      consoleInfo(`Maximum draw depth reached! Defragmenting the depth list...`);
+
+      // For each window in the array, assign their index as their new drawDepth
+      windowsSortedAsc.forEach((bmWindow, index) => {
+        bmWindow.dataset['drawDepth'] = index; // Changes their draw depth tracker
+        bmWindow.style.zIndex = 9000 + index; // Changes their REAL draw order
+      });
+    }
+
+    // If no draw depth was requested, we return one number higher than the highest *used* draw depth
+    if (typeof requestedDrawDepth === 'undefined') {
+      return Number(windowsSortedAsc[windowsSortedAsc.length - 1]?.dataset['drawDepth']) + 1;
+    }
+
+    /* At this point:
+     * 1. The number of windows is less than 92.
+     * 2. The window Arrays are sorted.
+     * 3. Draw Depth #91 is empty (because of #1 and #2).
+     * 4. There is a valid request for a specific draw depth.
+     * 5. The requested draw depth is currently being used.
+     * The only scenario left is:
+     *  - We need to move other windows' draw depth in order to fufill this request.
+     */
+
+    // Sorts the windows, so that they are arranged from 91 to 0
+    const windowsSortedDesc = windowsSortedAsc.slice().reverse();
+
+    // For each window...
+    windowsSortedDesc.forEach(windowElement => {
+
+      const drawDepth = Number(windowElement.dataset['drawDepth']); // Draw depth of the current iteration of window
+
+      // If this window's draw depth is greater than or equal to the requested depth...
+      if (drawDepth >= requestedDrawDepth) {
+        windowElement.dataset['drawDepth'] = drawDepth + 1; // ...shift its draw depth tracker up 1...
+        windowElement.style.zIndex = 9000 + drawDepth + 1; // ...and sync the real draw order to match
+      }
+    });
+
+    return requestedDrawDepth; // Return the requested draw depth, because it is now free to use
   }
 
   /** Handles status display.

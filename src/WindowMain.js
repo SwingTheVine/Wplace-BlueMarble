@@ -66,10 +66,24 @@ export default class WindowMain extends Overlay {
     if (((xTemplateCoord + yTemplateCoord) != 0) && !isNaN(xTemplateCoord) && !isNaN(yTemplateCoord)) {
       initTemplateCoords = [Math.floor(xTemplateCoord / 1000), Math.floor(yTemplateCoord / 1000), xTemplateCoord % 1000, yTemplateCoord % 1000];
     }
-    console.log(initTemplateCoords);
+
+    // Obtains if the window was in the DOM tree during the last cold save
+    const windowWasInDOM = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.WINDOW_EXISTS);
+
+    // Obtains the draw depth from the last save
+    const drawDepthOld = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.DRAW_DEPTH);
+
+    // If this window was open when the user left the page, we request the draw depth this window had when the page closed.
+    // If this window was NOT open, then we put it on top
+    const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : undefined);
+
+    const translateX = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION);
+    const translateY = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION);
+
+    
 
     // Creates the window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': 'top: 10px; left: unset; right: 75px;', 'data-draw-depth': '0'}, (instance, div) => {
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': `top: 10px; left: unset; right: 75px; z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {
       // div.onclick = (event) => {
       //   if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
       //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top

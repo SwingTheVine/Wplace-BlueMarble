@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.81
+// @version         0.92.82
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1257,6 +1257,55 @@
         event.preventDefault();
       }, { passive: false });
     }
+    /** Manages the logic required to maintain the draw depth order.
+     * Manages z-index offset... because thats what draw depth is for.
+     * Automatically moves windows' draw depth to insert this window's draw depth.
+     * If draw depth is omited, the window is added to the top.
+     * The primary purpose of requesting draw depth is to draw all windows in the same order they were in during the last cold save.
+     * (i.e. if you refresh the tab, your overlapping windows will be stacked exactly the same as before you refreshed)
+     * If the window does not exist in the DOM tree, and the window is being built, don't request a draw depth.
+     * If the window exists in the DOM tree, and the window is being built, the draw depth should be requested.
+     * The window must have a Blue Marble ID. This should always be true, unless you try to apply draw depth to something that is *not* a Blue Marble window.
+     * 
+     * @param {number} [requestedDrawDepth] - The draw depth to (possibly) be inserted at
+     * @returns {number} The draw depth your new window will use
+     * @since 0.92.92
+     */
+    handleDrawDepth(requestedDrawDepth) {
+      if (requestedDrawDepth < 0 || requestedDrawDepth > 91 || typeof requestedDrawDepth !== "number" || !Number.isInteger(requestedDrawDepth)) {
+        consoleWarn(`Window requested invalid draw depth (${typeof requestedDrawDepth}: ${requestedDrawDepth})! The window will be put on top.`);
+        requestedDrawDepth = void 0;
+      }
+      if (typeof requestedDrawDepth !== "undefined" && !document.querySelector(`body [id^="bm-"][data-draw-depth="${requestedDrawDepth}"]`)) {
+        return requestedDrawDepth;
+      }
+      const windows = document.querySelectorAll('body [id^="bm-"][data-draw-depth]');
+      if (windows.length >= 92) {
+        consoleWarn(`Maximum draw depth reached! For as long as 92 windows are open, new windows will overload the highest draw depth.`);
+        this.handleDisplayError("Maximum draw depth reached! Close some windows!");
+        return 91;
+      }
+      const windowsSortedAsc = Array.from(windows).sort((a, b) => Number(a.dataset["drawDepth"]) - Number(b.dataset["drawDepth"]));
+      if (document.querySelector('[id^="bm-"][data-draw-depth="91"]')) {
+        consoleInfo(`Maximum draw depth reached! Defragmenting the depth list...`);
+        windowsSortedAsc.forEach((bmWindow, index) => {
+          bmWindow.dataset["drawDepth"] = index;
+          bmWindow.style.zIndex = 9e3 + index;
+        });
+      }
+      if (typeof requestedDrawDepth === "undefined") {
+        return Number(windowsSortedAsc[windowsSortedAsc.length - 1]?.dataset["drawDepth"]) + 1;
+      }
+      const windowsSortedDesc = windowsSortedAsc.slice().reverse();
+      windowsSortedDesc.forEach((windowElement) => {
+        const drawDepth = Number(windowElement.dataset["drawDepth"]);
+        if (drawDepth >= requestedDrawDepth) {
+          windowElement.dataset["drawDepth"] = drawDepth + 1;
+          windowElement.style.zIndex = 9e3 + drawDepth + 1;
+        }
+      });
+      return requestedDrawDepth;
+    }
     /** Handles status display.
      * This will output plain text into the output Status box.
      * Additionally, this will output an info message to the console.
@@ -1264,8 +1313,8 @@
      * @since 0.58.4
      */
     handleDisplayStatus(text) {
-      const consoleInfo = console.info;
-      consoleInfo(`${this.name}: ${text}`);
+      const consoleInfo2 = console.info;
+      consoleInfo2(`${this.name}: ${text}`);
       this.updateInnerHTML(this.outputStatusId, "Status: " + text, true);
     }
     /** Handles error display.
@@ -1384,11 +1433,14 @@
   function consoleLog(...args) {
     ((consoleLog2) => consoleLog2(...args))(console.log);
   }
+  function consoleInfo(...args) {
+    ((consoleInfo2) => consoleInfo2(...args))(console.info);
+  }
   function consoleError(...args) {
     ((consoleError2) => consoleError2(...args))(console.error);
   }
-  function consoleWarn(...args) {
-    ((consoleWarn2) => consoleWarn2(...args))(console.warn);
+  function consoleWarn2(...args) {
+    ((consoleWarn3) => consoleWarn3(...args))(console.warn);
   }
   var defaultEncoding = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
   function numberToEncoded(number, encoding = defaultEncoding) {
@@ -1407,7 +1459,7 @@
   }
   function encodedToNumber(encoded, encoding = defaultEncoding) {
     if (typeof encoded !== "string") {
-      consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.
+      consoleWarn2(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.
 Returning zero...`);
       return 0;
     }
@@ -1767,7 +1819,7 @@ Returning zero...`);
     decodeFilteredColorBitFlags(encodedString) {
       const shouldColorBeFiltered = /* @__PURE__ */ new Map();
       if (typeof encodedString !== "string") {
-        consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
+        consoleWarn2("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
         return shouldColorBeFiltered;
       }
       if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
@@ -1829,7 +1881,7 @@ Returning zero...`);
         return 0;
       }
       const windowState = __privateGet(this, _windowStatesObject)?.[tinyID];
-      if (!Number.isInteger(index) || !(Math.sign(index) + 1) || index > windowState.length - 1) {
+      if (!Number.isInteger(index) || index < 0 || index > windowState.length - 1) {
         consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}
  Returning zero...`);
         return 0;
@@ -2018,7 +2070,7 @@ Returning zero...`);
     console.log("Recieved window state to decode: ", windowState);
     const decodeCommonStates = (encodedString) => {
       if (typeof encodedString !== "string" || encodedString.length == 0) {
-        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
+        consoleWarn2(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
 Assuming all common states are zeros...`);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       }
@@ -3117,8 +3169,10 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       if (xTemplateCoord + yTemplateCoord != 0 && !isNaN(xTemplateCoord) && !isNaN(yTemplateCoord)) {
         initTemplateCoords = [Math.floor(xTemplateCoord / 1e3), Math.floor(yTemplateCoord / 1e3), xTemplateCoord % 1e3, yTemplateCoord % 1e3];
       }
-      console.log(initTemplateCoords);
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": "top: 10px; left: unset; right: 75px;", "data-draw-depth": "0" }, (instance, div) => {
+      const windowWasInDOM = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_EXISTS);
+      const drawDepthOld = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.DRAW_DEPTH);
+      const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `top: 10px; left: unset; right: 75px; z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Blue Marble"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
@@ -3455,7 +3509,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
           consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
         },
         ontimeout: () => {
-          consoleWarn(`Download of template '${templateFileName}' has timed out!`);
+          consoleWarn2(`Download of template '${templateFileName}' has timed out!`);
         }
       });
     }
@@ -4150,7 +4204,7 @@ Did you try clicking the canvas first?`);
         if (typeof callback === "function") {
           callback(blobData);
         } else {
-          consoleWarn(`%c${name2}%c: Attempted to retrieve a blob (%s) from queue, but the blobID was not a function! Skipping...`, consoleStyle2, "", blobID);
+          consoleWarn2(`%c${name2}%c: Attempted to retrieve a blob (%s) from queue, but the blobID was not a function! Skipping...`, consoleStyle2, "", blobID);
         }
         fetchedBlobQueue.delete(blobID);
       }
@@ -4314,7 +4368,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           if (paletteToolbar) {
             paletteToolbar.appendChild(move);
           } else {
-            consoleWarn("Could not find palette toolbar to inject Move button into!");
+            consoleWarn2("Could not find palette toolbar to inject Move button into!");
           }
         }
       });

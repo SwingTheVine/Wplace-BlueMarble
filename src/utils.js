@@ -163,6 +163,15 @@ export function consoleLog(...args) {((consoleLog) => consoleLog(...args))(conso
 /** Bypasses terser's stripping of console function calls.
  * This is so the non-obfuscated code will contain debugging console calls, but the distributed version won't.
  * However, the distributed version needs to call the console somehow, so this wrapper function is how.
+ * This is the same as `console.info()`.
+ * @param {...any} args - Arguments to be passed into the `info()` function of the Console
+ * @since 0.92.82
+ */
+export function consoleInfo(...args) {((consoleInfo) => consoleInfo(...args))(console.info);}
+
+/** Bypasses terser's stripping of console function calls.
+ * This is so the non-obfuscated code will contain debugging console calls, but the distributed version won't.
+ * However, the distributed version needs to call the console somehow, so this wrapper function is how.
  * This is the same as `console.error()`.
  * @param {...any} args - Arguments to be passed into the `error()` function of the Console
  * @since 0.58.13
