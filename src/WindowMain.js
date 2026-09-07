@@ -24,6 +24,8 @@ export default class WindowMain extends Overlay {
     this.window = null; // Contains the *window* DOM tree
     this.windowID = 'bm-window-main'; // The ID attribute for this window
     this.windowParent = document.body; // The parent of the window DOM tree
+
+    this.settingsManager = null; // The settings manager
   }
 
   /** Creates the main Blue Marble window.
@@ -37,6 +39,18 @@ export default class WindowMain extends Overlay {
       this.handleDisplayError('Main window already exists!');
       return;
     }
+
+    // Obtains the initial template coordinates to display in the input fields
+    const xTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.['bm']?.[7]);
+    const yTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.['bm']?.[8]);
+
+    let initTemplateCoords = ['', '', '', '']; // Display nothing by default
+
+    // If there is at least one non-zero number, display all numbers
+    if (((xTemplateCoord + yTemplateCoord) != 0) && !isNaN(xTemplateCoord) && !isNaN(yTemplateCoord)) {
+      initTemplateCoords = [xTemplateCoord / 1000, yTemplateCoord / 1000, xTemplateCoord % 1000, yTemplateCoord % 1000];
+    }
+    console.log(initTemplateCoords);
 
     // Creates the window
     this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': 'top: 10px; left: unset; right: 75px;', 'data-draw-depth': '0'}, (instance, div) => {
@@ -98,16 +112,16 @@ export default class WindowMain extends Overlay {
                 }
               }
             ).buildElement()
-            .addInput({'type': 'number', 'id': 'bm-input-tx', 'class': 'bm-input-coords', 'placeholder': 'Tl X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            .addInput({'type': 'number', 'id': 'bm-input-tx', 'class': 'bm-input-coords', 'placeholder': 'Tl X', 'value': initTemplateCoords?.[0], 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
               input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
             }).buildElement()
-            .addInput({'type': 'number', 'id': 'bm-input-ty', 'class': 'bm-input-coords', 'placeholder': 'Tl Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            .addInput({'type': 'number', 'id': 'bm-input-ty', 'class': 'bm-input-coords', 'placeholder': 'Tl Y', 'value': initTemplateCoords?.[1], 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
               input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
             }).buildElement()
-            .addInput({'type': 'number', 'id': 'bm-input-px', 'class': 'bm-input-coords', 'placeholder': 'Px X', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            .addInput({'type': 'number', 'id': 'bm-input-px', 'class': 'bm-input-coords', 'placeholder': 'Px X', 'value': initTemplateCoords?.[2], 'min': 0, 'max': 999, 'step': 1, 'required': true}, (instance, input) => {
               input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
             }).buildElement()
-            .addInput({'type': 'number', 'id': 'bm-input-py', 'class': 'bm-input-coords', 'placeholder': 'Px Y', 'min': 0, 'max': 2047, 'step': 1, 'required': true}, (instance, input) => {
+            .addInput({'type': 'number', 'id': 'bm-input-py', 'class': 'bm-input-coords', 'placeholder': 'Px Y', 'value': initTemplateCoords?.[3], 'min': 0, 'max': 999, 'step': 1, 'required': true}, (instance, input) => {
               input.addEventListener("paste", event => this.#coordinateInputPaste(instance, input, event));
             }).buildElement()
           .buildElement()
@@ -253,5 +267,13 @@ export default class WindowMain extends Overlay {
       instance.updateInnerHTML('bm-input-px', coords?.[2] || '');
       instance.updateInnerHTML('bm-input-py', coords?.[3] || '');
     }
+  }
+
+  /** Populates the settingsManager variable with the settingsManager class.
+   * @param {SettingsManager} settingsManager - The settingsManager class instance
+   * @since 0.92.67
+   */
+  setSettingsManager(settingsManager) {
+    this.settingsManager = settingsManager;
   }
 }

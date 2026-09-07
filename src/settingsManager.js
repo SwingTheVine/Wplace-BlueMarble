@@ -71,6 +71,9 @@ import WindowSettings from "./WindowSettings";
  */
 export default class SettingsManager extends WindowSettings {
 
+  #windowStatesObject;
+  #windowStatesObjectEncoded;
+
   /** Constructor for the SettingsManager class
    * @param {string} name - The name of the userscript
    * @param {string} version - The version of the userscript
@@ -93,9 +96,10 @@ export default class SettingsManager extends WindowSettings {
     this.userSettingsOld = structuredClone(this.userSettings); // Creates a duplicate of the user settings to store the old version of user settings from 5+ seconds ago
     this.userSettingsSaveLocation = 'bmUserSettings'; // Storage save location
 
-    this._windowStatesObject = {};//this.#decodeWindowStateToObject(this.userSettings?.windowStates ?? {});
-    this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i); // RegEx for finding where the window is
     this.commonStatesByteLength = 8; // Sum of bytes of the common window state variables ("All Windows")
+    this.#windowStatesObjectEncoded = this.userSettings?.windowStates ?? {};
+    this.#windowStatesObject = this.#decodeWindowStateToObject(this.#windowStatesObjectEncoded) ?? {};
+    this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i); // RegEx for finding where the window is
 
     this.updateFrequency = 2000; // Cooldown between saving to storage (throttle)
     this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
@@ -111,7 +115,7 @@ export default class SettingsManager extends WindowSettings {
 
     await this.#updateFilteredColors(); // Update the encoded string of filtered colors
 
-    this.userSettings['windowStates'] = this._windowStatesObject;
+    this.userSettings['windowStates'] = this.#windowStatesObjectEncoded;
 
     // Turns the objects into a string
     const userSettingsCurrent = JSON.stringify(this.userSettings);
@@ -466,7 +470,8 @@ export default class SettingsManager extends WindowSettings {
     return shouldColorBeFiltered;
   }
 
-  /** Retrieves all window states, and *overrides* the user storage version stored in `this.userStorage.windowStates`
+  /** Retrieves all window states, and *overrides* the user storage version stored in `this.userStorage.windowStates`.
+   * This encodes window states.
    * @since 0.92.23
    */
   #updateWindowState() {
@@ -483,8 +488,8 @@ export default class SettingsManager extends WindowSettings {
       // Retrieves the hottest stored common state for this window.
       // This is the memory version, as opposed to disk version, which is cold
       // If it can't retrieve the common state, we use zeros, because either the window is new, or something went VERY wrong somewhere else, so a little data loss here is fine compared to the alternative (crashing)
-      console.log(this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength));
-      const commonStatesOld = this._windowStatesObject?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
+      console.log(this.#windowStatesObjectEncoded?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength));
+      const commonStatesOld = this.#windowStatesObjectEncoded?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       // This is ONLY the common states of the window
 
       // Returns the previously stored window state variables...
@@ -545,7 +550,6 @@ export default class SettingsManager extends WindowSettings {
     
     // Obtains the main window element itself
     const windowMainElement = windowMainID ? document.querySelector('#' + this.windowMain?.windowID) : undefined;
-    
     // Obtains the most-up-to-date common window state for the main window
     const windowMainCommonStates = obtainCommonStates(windowMainElement, 'bm');
     // Stores 13 bit flags unique to this window
@@ -559,7 +563,8 @@ export default class SettingsManager extends WindowSettings {
       + numberToEncoded(windowMainTemplateCoordinateX).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4) // Ensures this is always four characters
       + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4); // Ensures this is always four characters
 
-    this._windowStatesObject['bm'] = windowMainState;
+    // Save the window state, or fallback to zeros
+    this.#windowStatesObjectEncoded['bm'] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
   }
 
   /** Decodes & builds the window state object.
@@ -569,6 +574,8 @@ export default class SettingsManager extends WindowSettings {
    * @since 0.92.23
    */
   #decodeWindowStateToObject(windowState) {
+
+    console.log('Recieved window state to decode: ', windowState);
 
     /** Decodes the common header data in each encoded value.
      * This is an arrow function so code inside the function can easily access class-level variables (using `this`).
@@ -583,16 +590,48 @@ export default class SettingsManager extends WindowSettings {
         consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}\nAssuming all common states are zeros...`);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       } // The data we are supposed to read is corrupt, so we can zero all bytes and continue as normal.
+
+      // Stores the "layer" this window is at, compared to zero
+      const drawDepth = encodedToNumber(encodedString.slice(0, 1));
+
+      // The bit flags 0 to 5
+      const bitFlags = encodedToNumber(encodedString.slice(1, 2));
+      const isWindowInDOM = (bitFlags & (1 << 0)) !== 0; // Stores the value of the 0th bit, as a Boolean
+      const isWindowMinimized = (bitFlags & (1 << 1)) !== 0; // Stores the value of the 1st bit, as a Boolean
+      const hasWindowBeenMoved = (bitFlags & (1 << 2)) !== 0; // Stores the value of the 2nd bit, as a Boolean
+      const xAxisSignIsNegative = (bitFlags & (1 << 3)) !== 0; // Stores the value of the 3rd bit, as a Boolean
+      const yAxisSignIsNegative = (bitFlags & (1 << 4)) !== 0; // Stores the value of the 4th bit, as a Boolean
+      const reservedCommonFlag = false; // Reserved
+
+      // Shift Translations
+      const xAxisShiftTrans = encodedToNumber(encodedString.slice(2, 5));
+      const yAxisShiftTrans = encodedToNumber(encodedString.slice(5, 8));
+
+      const commonStates = [drawDepth, isWindowInDOM, isWindowMinimized, hasWindowBeenMoved, xAxisSignIsNegative, yAxisSignIsNegative, reservedCommonFlag, xAxisShiftTrans, yAxisShiftTrans];
+      console.log(commonStates);
+      return commonStates;
     };
 
+    const mainWindowStateDefault = '!#!!!!!!!!!!!!!!!!'; // Default state of the main window
+
     // Main Window
-    const mainWindowEncodedState = windowState.bm; // The entire encoded window state
-    const mainWindowEncodedCommon = mainWindowEncodedState.slice(0, 11); // The encoded window state for common variables
-    const mainWindowEncodedFlags = mainWindowEncodedState.slice(11, 16); // The encoded window state for bit flags
-    const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags)));
+    const mainWindowEncodedState = windowState['bm'] ?? mainWindowStateDefault; // The entire encoded window state. Fallback to default
+    const mainWindowEncodedCommon = mainWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
+    const mainWindowEncodedFlags = mainWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const mainWindowTemplateCoordX = encodedToNumber(mainWindowEncodedState?.slice(10, 14)); // The numbers to store in the "Upload Template" input fields
+    const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18)); // The numbers to store in the "Upload Template" input fields
+    const mainWindowState = 
+      decodeCommonStates(mainWindowEncodedCommon).concat(
+        numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0),
+        mainWindowTemplateCoordX, mainWindowTemplateCoordY
+      );
     // mainWindowState is an Array where each index is variable. The order is preserved.
-    
-    
+
+    console.log(mainWindowState);
+
+    return {
+      'bm': mainWindowState
+    };
   }
 
   /** Build the "template" category of settings window
@@ -615,6 +654,15 @@ export default class SettingsManager extends WindowSettings {
         }).buildElement()
       .buildElement()
     .buildElement()
+  }
+
+  /** Returns the decoded window states
+   * @since 0.92.69
+   * @returns {Object} An object containing window states
+   */
+  getWindowStatesObject() {
+    console.log('#windowStatesObject: ', this.#windowStatesObject);
+    return this.#windowStatesObject;
   }
 
   /** Populates the windowMain variable with the windowMain class.

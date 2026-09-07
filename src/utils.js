@@ -238,6 +238,12 @@ export function numberToEncoded(number, encoding = defaultEncoding) {
  */
 export function encodedToNumber(encoded, encoding = defaultEncoding) {
 
+  // Terminates if the encoded value was not a string
+  if (typeof encoded !== 'string') {
+    consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.\nReturning zero...`);
+    return 0;
+  }
+
   let decodedNumber = 0; // The decoded number
   const base = encoding.length; // The number of characters used, which determins the base
 
@@ -248,7 +254,7 @@ export function encodedToNumber(encoded, encoding = defaultEncoding) {
 
     // If no matching decode was found for this character...
     if (decodedCharacter == -1) {
-      consoleError(`Invalid character '${character}' encountered whilst decoding! Is the decode alphabet/base incorrect?`);
+      consoleError(`Invalid character '${character}' encountered whilst decoding in encodedToNumber()! Is the decode alphabet/base incorrect?`);
     }
 
     decodedNumber = (decodedNumber * base) + decodedCharacter; // Adds the decoded character to the final number
