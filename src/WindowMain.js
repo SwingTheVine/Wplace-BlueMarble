@@ -56,6 +56,9 @@ export default class WindowMain extends Overlay {
       return;
     }
 
+    // Should the window start off minimized?
+    const wStartsExp = !this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.WINDOW_MINIMIZED);
+
     // Obtains the initial template coordinates to display in the input fields
     const xTemplateCoord = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.TEMPLATE_COORDINATE_X);
     const yTemplateCoord = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.TEMPLATE_COORDINATE_Y);
@@ -85,8 +88,8 @@ export default class WindowMain extends Overlay {
     translateX = Math.max(-250, Math.min(window.innerWidth - 40, translateX));
     translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
 
-    // If both translations are zero, use the default starting location.
-    const startingPosition = (!translateX && !translateY) ? 'top: 10px; left: unset; right: 75px;' : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
+    // If the window has NOT been moved, use the default starting location.
+    const startingPosition = !this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.WINDOW_MOVED) ? 'top: 10px; left: unset; right: 75px;' : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
 
     // Creates the window
     this.mainWindow = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': `${startingPosition} z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {
@@ -95,11 +98,15 @@ export default class WindowMain extends Overlay {
       //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top
       // }
     }).addDragbar()
-        .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Blue Marble"', 'data-button-status': 'expanded'}, (instance, button) => {
+        .addButton({'class': 'bm-button-circle', 'textContent': wStartsExp ? '▼' : '▶', 'aria-label': wStartsExp ? 'Minimize window "Blue Marble"' : 'Unminimize window "Blue Marble"', 'data-button-status': wStartsExp ? 'expanded' : 'collapsed'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);
           button.ontouchend = () => {button.click();}; // Needed ONLY to negate weird interaction with dragbar
         }).buildElement()
-        .addDiv().buildElement() // Contains the minimized h1 element
+        .addDiv(undefined, (instance, div) => {
+          if (!wStartsExp) { // If we start collapsed, add the dragbar header
+            instance.addHeader(1, {'textContent': this.name}).buildElement();
+          }
+        }).buildElement() // Contains the minimized h1 element
         .addButton({'class': 'bm-button-circle', 'innerHTML': '<svg viewbox="0 0 9 9" style="width:60%; margin:auto;"><path d="M2,4H5V7M0,9L5,4M1,1H8V8" stroke="#fff" fill="none"></svg>'}, (instance, button) => {
           button.onclick = () => {
             const thisWindow = document.querySelector('#' + this.windowID);
@@ -111,8 +118,8 @@ export default class WindowMain extends Overlay {
           button.ontouchend = () => {button.click();};
         }).buildElement()
       .buildElement()
-      .addDiv({'class': 'bm-window-content'})
-        .addDiv({'class': 'bm-container'})
+    .addDiv({'class': 'bm-window-content', 'style': wStartsExp ? '' : 'height: 0px; display: none;'})
+      .addDiv({'class': 'bm-container'})
           .addImg({'class': 'bm-favicon', 'src': 'https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/assets/Favicon.png'}, (instance, img) => {
             // Adds a birthday hat & confetti to the window if it is Blue Marble's birthday
             const date = new Date();
