@@ -20,8 +20,8 @@ import WindowSettings from "./WindowSettings";
  * (i.e. Filter Window's displayed filtered colors is managed elsewhere, and is critical to templateManager for template rendering)
  * (i.e. All of the Settings Window's variables are critical to functionality elsewhere)
  * Nothing other than settingsManager should write to `windowState`, because there is no point. Just update the Manager's variable.
- * "Why did you make this so hard?" because it reduces the file size by up to ~95%
- * For example, the main window is stored as 30 bytes in the JSON file, and the non-compressed version would be ~400 bytes.
+ * "Why did you make this so hard?" because it reduces the file size by up to ~95% (with key-value pairs)
+ * For example, the main window is stored as 30 bytes in the JSON file, and the non-compressed version would be ~400 bytes (with key-value pairs).
  * 
  *  _____________________________________________________
  * |             |# of |  Slice  |         |
@@ -683,7 +683,7 @@ export default class SettingsManager extends WindowSettings {
     const windowState = this.#windowStatesObject?.[tinyID];
 
     // If the passed in arguments are valid types, but an invalid Array index
-    if (!Number.isInteger(index) || !(Math.sign(index) + 1) || (index > windowState.length - 1)) {
+    if (!Number.isInteger(index) || (index < 0) || (index > windowState.length - 1)) {
       consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}\n Returning zero...`);
       return 0;
     }
