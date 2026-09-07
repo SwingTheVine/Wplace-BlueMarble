@@ -95,6 +95,16 @@ export default class WindowMain extends Overlay {
           button.ontouchend = () => {button.click();}; // Needed ONLY to negate weird interaction with dragbar
         }).buildElement()
         .addDiv().buildElement() // Contains the minimized h1 element
+        .addButton({'class': 'bm-button-circle', 'innerHTML': '<svg viewbox="0 0 9 9" style="width:60%; margin:auto;"><path d="M2,4H5V7M0,9L5,4M1,1H8V8" stroke="#fff" fill="none"></svg>'}, (instance, button) => {
+          button.onclick = () => {
+            const thisWindow = document.querySelector('#' + this.windowID);
+            thisWindow.style.top = '10px';
+            thisWindow.style.left = 'unset';
+            thisWindow.style.right = '75px';
+            thisWindow.style.transform = '';
+          };
+          button.ontouchend = () => {button.click();};
+        }).buildElement()
       .buildElement()
       .addDiv({'class': 'bm-window-content'})
         .addDiv({'class': 'bm-container'})
