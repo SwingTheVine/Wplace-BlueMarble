@@ -175,6 +175,19 @@ if (document.readyState === 'loading') {
 (async () => {
   // All `await` GM calls must be inside this annon async function
 
+  const prayThisIsNotTrue = document.querySelector('#bm-window-main');
+  
+  // If Blue Marble has already initalized, don't initalize this copy of Blue Marble
+  if (prayThisIsNotTrue) {
+    // Unfortunatly, there are multiple copies of the spy code running now, but that can't be bad riiiiiiight?
+
+    // Since Blue Marble is already initalized, we can modify the window before building the window :melting_face:
+    new WindowMain(name, version).handleDisplayError('You have multiple copies of Blue Marble running! Open your userscript manager and disable them.');
+
+    // Crash this instance of Blue Marble so we don't cause race conditions, overlapping UI, etc.
+    throw new Error(`Blue Marble has already initalized! Do you have multiple copies of Blue Marble running simultaneously?`);
+  }
+
   // Imports the CSS file from dist folder on github
   const cssOverlay = await GM.getResourceText("CSS-BM-File");
   GM.addStyle(cssOverlay);
