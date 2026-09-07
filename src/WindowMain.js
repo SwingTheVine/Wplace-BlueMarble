@@ -26,6 +26,22 @@ export default class WindowMain extends Overlay {
     this.windowParent = document.body; // The parent of the window DOM tree
 
     this.settingsManager = null; // The settings manager
+
+    // Enum for requesting window state variables from settingsManager
+    this.WStateVariables = Object.freeze({
+      DRAW_DEPTH: 0,
+      WINDOW_EXISTS: 1,
+      WINDOW_MINIMIZED: 2,
+      WINDOW_MOVED: 3,
+      X_TRANSLATION_IS_NEGATIVE: 4,
+      Y_TRANSLATION_IS_NEGATIVE: 5,
+      // Reserved for expansion: 6
+      X_TRANSLATION: 7,
+      Y_TRANSLATION: 8,
+      // Bit flags: 9 - 21
+      TEMPLATE_COORDINATE_X: 22,
+      TEMPLATE_COORDINATE_Y: 23,
+    });
   }
 
   /** Creates the main Blue Marble window.
@@ -41,14 +57,14 @@ export default class WindowMain extends Overlay {
     }
 
     // Obtains the initial template coordinates to display in the input fields
-    const xTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.['bm']?.[7]);
-    const yTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.['bm']?.[8]);
+    const xTemplateCoord = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.TEMPLATE_COORDINATE_X);
+    const yTemplateCoord = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.TEMPLATE_COORDINATE_Y);
 
     let initTemplateCoords = ['', '', '', '']; // Display nothing by default
 
     // If there is at least one non-zero number, display all numbers
     if (((xTemplateCoord + yTemplateCoord) != 0) && !isNaN(xTemplateCoord) && !isNaN(yTemplateCoord)) {
-      initTemplateCoords = [xTemplateCoord / 1000, yTemplateCoord / 1000, xTemplateCoord % 1000, yTemplateCoord % 1000];
+      initTemplateCoords = [Math.floor(xTemplateCoord / 1000), Math.floor(yTemplateCoord / 1000), xTemplateCoord % 1000, yTemplateCoord % 1000];
     }
     console.log(initTemplateCoords);
 

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.92.76
+// @version         0.92.81
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1815,6 +1815,27 @@ Returning zero...`);
       console.log("#windowStatesObject: ", __privateGet(this, _windowStatesObject));
       return __privateGet(this, _windowStatesObject);
     }
+    /** Returns the corresponding variable's value from the window state.
+     * This was specifically so an enum value could be passed in as the `index`.
+     * @param {string} tinyID - The ID for the window that is ONLY used inside user storage
+     * @param {number} index - The Array index that contains the value
+     * @since 0.92.77
+     * @returns {number | boolean}
+     */
+    getWindowStateVariable(tinyID, index) {
+      if (typeof tinyID !== "string" || typeof index !== "number") {
+        consoleError(`Attempted to get window state variable with type (string, number), but recieved type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})
+Returning zero...`);
+        return 0;
+      }
+      const windowState = __privateGet(this, _windowStatesObject)?.[tinyID];
+      if (!Number.isInteger(index) || !(Math.sign(index) + 1) || index > windowState.length - 1) {
+        consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}
+ Returning zero...`);
+        return 0;
+      }
+      return windowState[index];
+    }
     /** Populates the windowMain variable with the windowMain class.
      * @param {WindowMain} windowMain - The windowMain class instance
      * @since 0.92.23
@@ -1950,13 +1971,14 @@ Returning zero...`);
     const encodedBitFlags = numberToEncoded(mutableBitFlagsNegSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
     this.userSettings.filter = encodedBitFlags;
   };
-  /** Retrieves all window states, and *overrides* the user storage version stored in `this.userStorage.windowStates`
+  /** Retrieves all window states, and *overrides* the user storage version stored in `this.userStorage.windowStates`.
+   * This encodes window states.
    * @since 0.92.23
    */
   updateWindowState_fn = function() {
     const obtainCommonStates = (windowElement, userStorageID) => {
-      console.log(__privateGet(this, _windowStatesObject)?.[userStorageID]?.slice(0, this.commonStatesByteLength));
-      const commonStatesOld = __privateGet(this, _windowStatesObject)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
+      console.log(__privateGet(this, _windowStatesObjectEncoded)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength));
+      const commonStatesOld = __privateGet(this, _windowStatesObjectEncoded)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       if (!windowElement) {
         return commonStatesOld.slice(0, 1) + numberToEncoded(set32BitPosition(encodedToNumber(commonStatesOld.slice(1, 2)), 0, false)) + commonStatesOld.slice(2);
       }
@@ -2021,7 +2043,8 @@ Assuming all common states are zeros...`);
     const mainWindowTemplateCoordX = encodedToNumber(mainWindowEncodedState?.slice(10, 14));
     const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18));
     const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(
-      numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0),
+      numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0).slice(-13),
+      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
       mainWindowTemplateCoordX,
       mainWindowTemplateCoordY
     );
@@ -3064,6 +3087,20 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.windowID = "bm-window-main";
       this.windowParent = document.body;
       this.settingsManager = null;
+      this.WStateVariables = Object.freeze({
+        DRAW_DEPTH: 0,
+        WINDOW_EXISTS: 1,
+        WINDOW_MINIMIZED: 2,
+        WINDOW_MOVED: 3,
+        X_TRANSLATION_IS_NEGATIVE: 4,
+        Y_TRANSLATION_IS_NEGATIVE: 5,
+        // Reserved for expansion: 6
+        X_TRANSLATION: 7,
+        Y_TRANSLATION: 8,
+        // Bit flags: 9 - 21
+        TEMPLATE_COORDINATE_X: 22,
+        TEMPLATE_COORDINATE_Y: 23
+      });
     }
     /** Creates the main Blue Marble window.
      * Parent/child relationships in the DOM structure below are indicated by indentation.
@@ -3074,11 +3111,11 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         this.handleDisplayError("Main window already exists!");
         return;
       }
-      const xTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.["bm"]?.[7]);
-      const yTemplateCoord = Number(this.settingsManager?.getWindowStatesObject()?.["bm"]?.[8]);
+      const xTemplateCoord = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.TEMPLATE_COORDINATE_X);
+      const yTemplateCoord = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.TEMPLATE_COORDINATE_Y);
       let initTemplateCoords = ["", "", "", ""];
       if (xTemplateCoord + yTemplateCoord != 0 && !isNaN(xTemplateCoord) && !isNaN(yTemplateCoord)) {
-        initTemplateCoords = [xTemplateCoord / 1e3, yTemplateCoord / 1e3, xTemplateCoord % 1e3, yTemplateCoord % 1e3];
+        initTemplateCoords = [Math.floor(xTemplateCoord / 1e3), Math.floor(yTemplateCoord / 1e3), xTemplateCoord % 1e3, yTemplateCoord % 1e3];
       }
       console.log(initTemplateCoords);
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": "top: 10px; left: unset; right: 75px;", "data-draw-depth": "0" }, (instance, div) => {
