@@ -21,7 +21,7 @@ export default class WindowMain extends Overlay {
    */
   constructor(name, version) {
     super(name, version); // Executes the code in the Overlay constructor
-    this.window = null; // Contains the *window* DOM tree
+    this.mainWindow = null; // Contains the *window* DOM tree
     this.windowID = 'bm-window-main'; // The ID attribute for this window
     this.windowParent = document.body; // The parent of the window DOM tree
 
@@ -77,14 +77,19 @@ export default class WindowMain extends Overlay {
     // If this window was NOT open, then we put it on top
     const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : undefined);
 
-    const translateX = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION);
-    const translateY = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION);
+    // Raw translation coordinates
+    let translateX = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION);
+    let translateY = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION);
+
+    // Clampped coordinates, so you can't permanantly lose the main window
+    translateX = Math.max(-250, Math.min(window.innerWidth - 40, translateX));
+    translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
 
     // If both translations are zero, use the default starting location.
     const startingPosition = (!translateX && !translateY) ? 'top: 10px; left: unset; right: 75px;' : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
 
     // Creates the window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': `${startingPosition} z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {
+    this.mainWindow = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': `${startingPosition} z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {
       // div.onclick = (event) => {
       //   if (event.target.closest('button, a, input, select')) {return;} // Exit-early if interactive child was clicked
       //   div.parentElement.appendChild(div); // When the window is clicked on, bring to top
