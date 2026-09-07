@@ -622,7 +622,7 @@ export default class SettingsManager extends WindowSettings {
     const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18)); // The numbers to store in the "Upload Template" input fields
     const mainWindowState = 
       decodeCommonStates(mainWindowEncodedCommon).concat(
-        numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0),
+        numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0).slice(-13), // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
         mainWindowTemplateCoordX, mainWindowTemplateCoordY
       );
     // mainWindowState is an Array where each index is variable. The order is preserved.
@@ -663,6 +663,32 @@ export default class SettingsManager extends WindowSettings {
   getWindowStatesObject() {
     console.log('#windowStatesObject: ', this.#windowStatesObject);
     return this.#windowStatesObject;
+  }
+
+  /** Returns the corresponding variable's value from the window state.
+   * This was specifically so an enum value could be passed in as the `index`.
+   * @param {string} tinyID - The ID for the window that is ONLY used inside user storage
+   * @param {number} index - The Array index that contains the value
+   * @since 0.92.77
+   * @returns {number | boolean}
+   */
+  getWindowStateVariable(tinyID, index) {
+
+    // If the passed in arguments are invalid
+    if ((typeof tinyID !== 'string') || (typeof index !== 'number')) {
+      consoleError(`Attempted to get window state variable with type (string, number), but recieved type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})\nReturning zero...`);
+      return 0;
+    }
+
+    const windowState = this.#windowStatesObject?.[tinyID];
+
+    // If the passed in arguments are valid types, but an invalid Array index
+    if (!Number.isInteger(index) || !(Math.sign(index) + 1) || (index > windowState.length - 1)) {
+      consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}\n Returning zero...`);
+      return 0;
+    }
+
+    return windowState[index]; // Returns the value
   }
 
   /** Populates the windowMain variable with the windowMain class.
