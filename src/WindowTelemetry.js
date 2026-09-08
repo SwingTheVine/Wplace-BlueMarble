@@ -44,6 +44,9 @@ export default class WindowTelemetry extends Overlay {
     const browser = await this.apiManager.getBrowserFromUA(navigator.userAgent);
     const os = this.apiManager.getOS(navigator.userAgent);
 
+    // If we don't call this, and the DOM tree loaded AFTER the class, but BEFORE the .buildWindow() call, BM will crash
+    this.windowParent = document.body; // The parent of the window DOM tree
+
     this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': 'height: 80vh; z-index: 9998;'})
       .addDiv({'class': 'bm-window-content'})
         .addDiv({'class': 'bm-container bm-center-vertically'})

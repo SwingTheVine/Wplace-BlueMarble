@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.93.15
+// @version         0.93.17
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1272,7 +1272,7 @@
      * @since 0.92.92
      */
     handleDrawDepth(requestedDrawDepth) {
-      if (requestedDrawDepth < 0 || requestedDrawDepth > 91 || typeof requestedDrawDepth !== "number" || !Number.isInteger(requestedDrawDepth)) {
+      if (typeof requestedDrawDepth !== "undefined" && (requestedDrawDepth < 0 || requestedDrawDepth > 91 || typeof requestedDrawDepth !== "number" || !Number.isInteger(requestedDrawDepth))) {
         consoleWarn(`Window requested invalid draw depth (${typeof requestedDrawDepth}: ${requestedDrawDepth})! The window will be put on top.`);
         requestedDrawDepth = void 0;
       }
@@ -1675,6 +1675,7 @@ Returning zero...`);
         document.querySelector(`#${this.windowID}`).remove();
         return;
       }
+      this.windowParent = document.body;
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
@@ -2520,6 +2521,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         document.querySelector(`#${this.windowID}`).remove();
         return;
       }
+      this.windowParent = document.body;
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Credits"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
@@ -2580,6 +2582,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         document.querySelector(`#${this.windowID}`).remove();
         return;
       }
+      this.windowParent = document.body;
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
@@ -3007,8 +3010,9 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       }
       let style = "";
       if (!document.querySelector(`#bm-window-main`)) {
-        style = style.concat("z-index: 9001;").trim();
+        style = style.concat("z-index: 9099;").trim();
       }
+      this.windowParent = document.body;
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": style }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Template Wizard"', "data-button-status": "expanded" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
@@ -4197,6 +4201,7 @@ Did you try clicking the canvas first?`);
       }
       const browser = await this.apiManager.getBrowserFromUA(navigator.userAgent);
       const os = this.apiManager.getOS(navigator.userAgent);
+      this.windowParent = document.body;
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": "height: 80vh; z-index: 9998;" }).addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": `${this.name} Telemetry` }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-center", "style": "gap: 1.5ch; flex-wrap: wrap;" }).addButton({ "textContent": "Enable Telemetry" }, (instance, button) => {
         button.onclick = () => {
           __privateMethod(this, _WindowTelemetry_instances, setTelemetryValue_fn).call(this, this.currentTelemetryVersion);

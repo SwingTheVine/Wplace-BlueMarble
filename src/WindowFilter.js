@@ -63,6 +63,9 @@ export default class WindowFilter extends Overlay {
       document.querySelector(`#${this.windowID}`).remove();
       return;
     }
+
+    // If we don't call this, and the DOM tree loaded AFTER the class, but BEFORE the .buildWindow() call, BM will crash
+    this.windowParent = document.body; // The parent of the window DOM tree
     
     // Creates a new color filter window
     this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window'}, (instance, div) => {
