@@ -24,6 +24,21 @@ export function sleep(time) {
   return new Promise(resolve => setTimeout(resolve, time));
 }
 
+/** Waits until the document has finished loading.
+ * This will not block the thread.
+ * @since 0.93.10
+ * @returns {Promise} Promise that resolves once the DOM is ready
+ */
+export function waitForDOMReady() {
+  return new Promise(resolve => {
+    if (document.readyState !== 'loading') {
+      resolve(); // The document is already loaded, so we return early
+    } else {
+      document.addEventListener('DOMContentLoaded', resolve, { once: true });
+    }
+  })
+}
+
 /** View the canvas in a new tab.
  * @param {HTMLCanvasElement | OffscreenCanvas} canvas - The canvas to view
  * @param {number} [lifeDuration=60_000] - (Optional) The lifetime of the URL blob in milliseconds

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.93.8
+// @version         0.93.14
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1394,6 +1394,15 @@
   }
   function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
+  }
+  function waitForDOMReady() {
+    return new Promise((resolve) => {
+      if (document.readyState !== "loading") {
+        resolve();
+      } else {
+        document.addEventListener("DOMContentLoaded", resolve, { once: true });
+      }
+    });
   }
   function localizeNumber(number) {
     const numberFormat = new Intl.NumberFormat();
@@ -4293,6 +4302,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     };
   };
   function inject(callback) {
+    consoleLog("DOM has finished loading!");
     const script = document.createElement("script");
     script.setAttribute("bm-name", name);
     script.setAttribute("bm-cStyle", consoleStyle);
@@ -4301,7 +4311,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     script.remove();
   }
   if (document.readyState === "loading") {
-    consoleLog("DOM is still loading! Using an event listener to inject spying code...");
+    consoleLog("DOM is still loading! Using an event listener to wait until the page is ready...");
     document.addEventListener("DOMContentLoaded", inject(injectionCode));
   } else {
     inject(injectionCode);
@@ -4361,6 +4371,9 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     const currentTelemetryVersion = 1;
     const previousTelemetryVersion = userSettings?.telemetry;
     console.log(`Telemetry is ${!(previousTelemetryVersion == void 0)}`);
+    consoleInfo("Halting Blue Marble execution until the DOM is ready...");
+    await waitForDOMReady();
+    consoleInfo("DOM is ready! Resuming Blue Marble execution...");
     if (previousTelemetryVersion == void 0 || previousTelemetryVersion > currentTelemetryVersion) {
       const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
       windowTelemetry.setApiManager(apiManager);

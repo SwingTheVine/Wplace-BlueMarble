@@ -5,7 +5,7 @@
 import Observers from './observers.js';
 import ApiManager from './apiManager.js';
 import TemplateManager from './templateManager.js';
-import { consoleLog, consoleWarn } from './utils.js';
+import { consoleLog, consoleWarn, consoleInfo, waitForDOMReady } from './utils.js';
 import WindowMain from './WindowMain.js';
 import WindowTelemetry from './WindowTelemetry.js';
 import SettingsManager from './settingsManager.js';
@@ -151,6 +151,7 @@ const injectionCode = () => {
  * @since 0.11.15
  */
 function inject(callback) {
+  consoleLog('DOM has finished loading!');
   const script = document.createElement('script');
   script.setAttribute('bm-name', name); // Passes in the name value
   script.setAttribute('bm-cStyle', consoleStyle); // Passes in the console style value
@@ -159,11 +160,10 @@ function inject(callback) {
   script.remove();
 }
 
-// Waits to inject until the DOM exists
 if (document.readyState === 'loading') {
 
   // If the DOM is still loading, (when done) we inject the code using an event listener
-  consoleLog('DOM is still loading! Using an event listener to inject spying code...');
+  consoleLog('DOM is still loading! Using an event listener to wait until the page is ready...');
   document.addEventListener('DOMContentLoaded', inject(injectionCode));
 } else {
 
@@ -266,6 +266,15 @@ if (document.readyState === 'loading') {
   // The last "version" of the data collection agreement that the user agreed too
   const previousTelemetryVersion = userSettings?.telemetry;
   console.log(`Telemetry is ${!(previousTelemetryVersion == undefined)}`);
+
+
+
+  // Waits until the DOM is ready, before attempting to observe or modify the DOM tree
+  consoleInfo('Halting Blue Marble execution until the DOM is ready...');
+  await waitForDOMReady();
+  consoleInfo('DOM is ready! Resuming Blue Marble execution...');
+
+
 
   // If the user has not agreed to the current data collection terms, we need to show the Telemetry window.
   if ((previousTelemetryVersion == undefined) || (previousTelemetryVersion > currentTelemetryVersion)) {
