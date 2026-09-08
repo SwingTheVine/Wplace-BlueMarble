@@ -91,6 +91,9 @@ export default class WindowMain extends Overlay {
     // If the window has NOT been moved, use the default starting location.
     const startingPosition = !this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.WINDOW_MOVED) ? 'top: 10px; left: unset; right: 75px;' : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
 
+    // If we don't call this, and the DOM tree loaded AFTER the class, but BEFORE the .buildWindow() call, BM will crash
+    this.windowParent = document.body; // The parent of the window DOM tree
+
     // Creates the window
     this.mainWindow = this.addDiv({'id': this.windowID, 'class': 'bm-window bm-windowed', 'style': `${startingPosition} z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {
       // div.onclick = (event) => {
