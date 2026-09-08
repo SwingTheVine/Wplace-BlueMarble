@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.93.14
+// @version         0.93.15
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -3196,6 +3196,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       translateX = Math.max(-250, Math.min(window.innerWidth - 40, translateX));
       translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
       const startingPosition = !this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_MOVED) ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
+      this.windowParent = document.body;
       this.mainWindow = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
       }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": wStartsExp ? "\u25BC" : "\u25B6", "aria-label": wStartsExp ? 'Minimize window "Blue Marble"' : 'Unminimize window "Blue Marble"', "data-button-status": wStartsExp ? "expanded" : "collapsed" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
