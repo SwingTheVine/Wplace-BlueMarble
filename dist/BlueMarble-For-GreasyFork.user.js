@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.93.4
+// @version         0.93.8
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1767,12 +1767,17 @@ Returning zero...`);
      * @since 0.91.60
      */
     toggleFlag(flagName, state = void 0) {
+      console.log("Flag Settings:", this.userSettings?.flags);
       const flagIndex = this.userSettings?.flags?.indexOf(flagName) ?? -1;
+      console.log(`Flag '${flagName}' is requested to become '${state}' (currently ${flagIndex})`);
       if (flagIndex != -1 && state !== true) {
-        this.userSettings?.flags?.slice(flagIndex, 1);
+        console.log(`Setting flag '${flagName}' to false!`);
+        this.userSettings?.flags?.splice(flagIndex, 1);
       } else if (flagIndex == -1 && state !== false) {
+        console.log(`Setting flag '${flagName}' to true! (Adding to storage)`);
         this.userSettings?.flags?.push(flagName);
       }
+      console.log("Flag Settings Final: ", this.userSettings?.flags);
     }
     // This is one of the most insane OOP setups I have ever laid my eyes on
     /** Builds the "highlight" category of the settings window
@@ -1956,7 +1961,7 @@ Returning zero...`);
         userStorageNew.push(userStorageChange);
       }
     } else if (indexOfChange != -1) {
-      userStorageNew.slice(indexOfChange, 1);
+      userStorageNew.splice(indexOfChange, 1);
     }
     console.log("New Highlight Settings: ", userStorageNew);
     this.userSettings["highlight"] = userStorageNew;

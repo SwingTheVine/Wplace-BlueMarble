@@ -144,16 +144,24 @@ export default class SettingsManager extends WindowSettings {
    */
   toggleFlag(flagName, state = undefined) {
 
+    console.log('Flag Settings:', this.userSettings?.flags);
+
     const flagIndex = this.userSettings?.flags?.indexOf(flagName) ?? -1; // Is the flag `true`?
+
+    console.log(`Flag '${flagName}' is requested to become '${state}' (currently ${flagIndex})`);
 
     // If the flag is enabled, AND the user does not want to force the flag to be true...
     if ((flagIndex != -1) && (state !== true)) {
+      console.log(`Setting flag '${flagName}' to false!`);
 
-      this.userSettings?.flags?.slice(flagIndex, 1); // Remove the flag (makes it false)
+      this.userSettings?.flags?.splice(flagIndex, 1); // Remove the flag (makes it false)
     } else if ((flagIndex == -1) && (state !== false)) {
+      console.log(`Setting flag '${flagName}' to true! (Adding to storage)`);
       // Else if the flag is disabled, AND the user does not want to force the flag to be false...
       this.userSettings?.flags?.push(flagName); // Add the flag (makes it true)
     }
+
+    console.log('Flag Settings Final: ', this.userSettings?.flags);
   }
 
   // This is one of the most insane OOP setups I have ever laid my eyes on
@@ -291,7 +299,7 @@ export default class SettingsManager extends WindowSettings {
       }
     } else if (indexOfChange != -1) {
       // Else, it is disabled. We want to remove it if it exists.
-      userStorageNew.slice(indexOfChange, 1); // Removes 1 index from the array at the index of the pixel change
+      userStorageNew.splice(indexOfChange, 1); // Removes 1 index from the array at the index of the pixel change
     }
 
     console.log('New Highlight Settings: ', userStorageNew);
