@@ -60,9 +60,12 @@ export default class WindowWizard extends Overlay {
 
     // If the main window does not exist yet...
     if (!document.querySelector(`#bm-window-main`)) {
-      style = style.concat('z-index: 9001;').trim();
+      style = style.concat('z-index: 9099;').trim();
     }
     // Forces the Wizard window to show above the main window if and only if the schema is bad when Blue Marble loads for the first time this session
+
+    // If we don't call this, and the DOM tree loaded AFTER the class, but BEFORE the .buildWindow() call, BM will crash
+    this.windowParent = document.body; // The parent of the window DOM tree
 
     // Creates a new template wizard window
     this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': style}, (instance, div) => {

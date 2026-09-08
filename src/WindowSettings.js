@@ -35,6 +35,9 @@ export default class WindowSettings extends Overlay {
       return;
     }
 
+    // If we don't call this, and the DOM tree loaded AFTER the class, but BEFORE the .buildWindow() call, BM will crash
+    this.windowParent = document.body; // The parent of the window DOM tree
+
     this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window'})
       .addDragbar()
         .addButton({'class': 'bm-button-circle', 'textContent': '▼', 'aria-label': 'Minimize window "Color Filter"', 'data-button-status': 'expanded'}, (instance, button) => {

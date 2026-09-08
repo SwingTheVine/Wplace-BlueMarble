@@ -51,6 +51,9 @@ export default class WindowCredts extends Overlay {
       return;
     }
 
+    // If we don't call this, and the DOM tree loaded AFTER the class, but BEFORE the .buildWindow() call, BM will crash
+    this.windowParent = document.body; // The parent of the window DOM tree
+
     // Creates a new credits window
     this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window'}, (instance, div) => {})
       .addDragbar()

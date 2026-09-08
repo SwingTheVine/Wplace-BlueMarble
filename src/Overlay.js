@@ -1435,7 +1435,8 @@ export default class Overlay {
   handleDrawDepth(requestedDrawDepth) {
 
     // If the requested draw depth is invalid, put the window on top
-    if ((requestedDrawDepth < 0) || (requestedDrawDepth > 91) || (typeof requestedDrawDepth !== 'number') || !Number.isInteger(requestedDrawDepth)) {
+    // However, if the "invalid" draw depth request is `undefined`, then we skip this check
+    if ((typeof requestedDrawDepth !== 'undefined') && ((requestedDrawDepth < 0) || (requestedDrawDepth > 91) || (typeof requestedDrawDepth !== 'number') || !Number.isInteger(requestedDrawDepth))) {
       consoleWarn(`Window requested invalid draw depth (${typeof requestedDrawDepth}: ${requestedDrawDepth})! The window will be put on top.`);
       requestedDrawDepth = undefined; // Very hacky way of doing this
     }
