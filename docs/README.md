@@ -45,16 +45,16 @@
 </table>
 
 <h1>Blue Marble</h1>
-<a href="" target="_blank" rel="noopener noreferrer"><img alt="Latest Version" src="https://img.shields.io/badge/Latest_Version-0.93.0-lightblue?style=flat"></a>
+<a href="" target="_blank" rel="noopener noreferrer"><img alt="Latest Version" src="https://img.shields.io/badge/Latest_Version-0.94.0-lightblue?style=flat"></a>
 <a href="https://github.com/SwingTheVine/Wplace-BlueMarble/releases" target="_blank" rel="noopener noreferrer"><img alt="Latest Release" src="https://img.shields.io/github/v/release/SwingTheVine/Wplace-BlueMarble?sort=semver&style=flat&label=Latest%20Release&color=blue"></a>
 <a href="https://github.com/SwingTheVine/Wplace-BlueMarble/blob/main/LICENSE.txt" target="_blank" rel="noopener noreferrer"><img alt="Software License: MPL-2.0" src="https://img.shields.io/badge/Software_License-MPL--2.0-slateblue?style=flat"></a>
 <a href="https://discord.gg/tpeBPy46hf" target="_blank" rel="noopener noreferrer"><img alt="Contact Me" src="https://img.shields.io/badge/Contact_Me-gray?style=flat&logo=Discord&logoColor=white&logoSize=auto&labelColor=cornflowerblue"></a>
 <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer"><img alt="Blue Marble Website" src="https://img.shields.io/badge/Blue_Marble_Website-crqch-blue?style=flat&logo=globe&logoColor=white"></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="WakaTime" src="https://img.shields.io/badge/Coding_Time-264hrs_44mins-blue?style=flat&logo=wakatime&logoColor=black&logoSize=auto&labelColor=white"></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Total Patches" src="https://img.shields.io/badge/Total_Patches-1345-black?style=flat"></a>
-<a href="" target="_blank" rel="noopener noreferrer"><img alt="Total Lines of Code" src="https://img.shields.io/badge/Lines_Of_Code-8380-blue?style=flat"></a>
-<a href="" target="_blank" rel="noopener noreferrer"><img alt="Total Comments" src="https://img.shields.io/badge/Lines_Of_Comments-6520-blue?style=flat"></a>
-<a href="" target="_blank" rel="noopener noreferrer"><img alt="Compression" src="https://img.shields.io/badge/Compression-73.33%25-blue"></a>
+<a href="" target="_blank" rel="noopener noreferrer"><img alt="Total Lines of Code" src="https://img.shields.io/badge/Lines_Of_Code-8436-blue?style=flat"></a>
+<a href="" target="_blank" rel="noopener noreferrer"><img alt="Total Comments" src="https://img.shields.io/badge/Lines_Of_Comments-6544-blue?style=flat"></a>
+<a href="" target="_blank" rel="noopener noreferrer"><img alt="Compression" src="https://img.shields.io/badge/Compression-73.43%25-blue"></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Repo Size" src="https://img.shields.io/github/repo-size/SwingTheVine/Wplace-BlueMarble"></a>
 <a href="https://hits.sh/github.com/SwingTheVine/Wplace-BlueMarble/" target="_blank" rel="noopener"><img alt="Views" src="https://hits.sh/github.com/SwingTheVine/Wplace-BlueMarble.svg?label=Views&extraCount=664359&color=ffffff"/></a>
 <a href="" target="_blank" rel="noopener noreferrer"><img alt="Downloads" src="https://img.shields.io/github/downloads/SwingTheVine/Wplace-BlueMarble/total.svg"></a>
