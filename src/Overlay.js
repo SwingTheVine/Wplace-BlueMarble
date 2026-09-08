@@ -1,4 +1,4 @@
-import { consoleError, consoleInfo, consoleLog } from "./utils";
+import { consoleError, consoleInfo, consoleLog, consoleWarn } from "./utils";
 
 /** The overlay builder for the Blue Marble script.
  * @description This class handles the overlay UI for the Blue Marble script.

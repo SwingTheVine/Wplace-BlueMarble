@@ -113,6 +113,8 @@ export default class SettingsManager extends WindowSettings {
    */
   async updateUserStorage() {
 
+    console.log('User Settings before attempted save: ', JSON.stringify(this.userSettings));
+
     await this.#updateFilteredColors(); // Update the encoded string of filtered colors
 
     this.userSettings['windowStates'] = this.#windowStatesObjectEncoded;
@@ -120,6 +122,9 @@ export default class SettingsManager extends WindowSettings {
     // Turns the objects into a string
     const userSettingsCurrent = JSON.stringify(this.userSettings);
     const userSettingsOld = JSON.stringify(this.userSettingsOld);
+
+    console.log('Old user settings: ', userSettingsOld);
+    console.log('New user settings: ', userSettingsCurrent);
 
     // If the user settings have changed, AND the last update to user storage was over 5 seconds ago (5sec throttle)...
     if ((userSettingsCurrent != userSettingsOld) && ((Date.now() - this.lastUpdateTime) > this.updateFrequency)) {
@@ -288,6 +293,8 @@ export default class SettingsManager extends WindowSettings {
       // Else, it is disabled. We want to remove it if it exists.
       userStorageNew.slice(indexOfChange, 1); // Removes 1 index from the array at the index of the pixel change
     }
+
+    console.log('New Highlight Settings: ', userStorageNew);
 
     this.userSettings['highlight'] = userStorageNew;
     // TODO: Add timer update here

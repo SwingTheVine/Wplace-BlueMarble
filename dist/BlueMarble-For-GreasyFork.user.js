@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.93.1
+// @version         0.93.4
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1439,8 +1439,8 @@
   function consoleError(...args) {
     ((consoleError2) => consoleError2(...args))(console.error);
   }
-  function consoleWarn2(...args) {
-    ((consoleWarn3) => consoleWarn3(...args))(console.warn);
+  function consoleWarn(...args) {
+    ((consoleWarn2) => consoleWarn2(...args))(console.warn);
   }
   var defaultEncoding = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
   function numberToEncoded(number, encoding = defaultEncoding) {
@@ -1459,7 +1459,7 @@
   }
   function encodedToNumber(encoded, encoding = defaultEncoding) {
     if (typeof encoded !== "string") {
-      consoleWarn2(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.
+      consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.
 Returning zero...`);
       return 0;
     }
@@ -1745,10 +1745,13 @@ Returning zero...`);
      * @since 0.91.39
      */
     async updateUserStorage() {
+      console.log("User Settings before attempted save: ", JSON.stringify(this.userSettings));
       await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
       this.userSettings["windowStates"] = __privateGet(this, _windowStatesObjectEncoded);
       const userSettingsCurrent = JSON.stringify(this.userSettings);
       const userSettingsOld = JSON.stringify(this.userSettingsOld);
+      console.log("Old user settings: ", userSettingsOld);
+      console.log("New user settings: ", userSettingsCurrent);
       if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
         await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent);
         this.userSettingsOld = structuredClone(this.userSettings);
@@ -1819,7 +1822,7 @@ Returning zero...`);
     decodeFilteredColorBitFlags(encodedString) {
       const shouldColorBeFiltered = /* @__PURE__ */ new Map();
       if (typeof encodedString !== "string") {
-        consoleWarn2("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
+        consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
         return shouldColorBeFiltered;
       }
       if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
@@ -1955,6 +1958,7 @@ Returning zero...`);
     } else if (indexOfChange != -1) {
       userStorageNew.slice(indexOfChange, 1);
     }
+    console.log("New Highlight Settings: ", userStorageNew);
     this.userSettings["highlight"] = userStorageNew;
     button.disabled = false;
   };
@@ -2070,7 +2074,7 @@ Returning zero...`);
     console.log("Recieved window state to decode: ", windowState);
     const decodeCommonStates = (encodedString) => {
       if (typeof encodedString !== "string" || encodedString.length == 0) {
-        consoleWarn2(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
+        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
 Assuming all common states are zeros...`);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       }
@@ -3530,7 +3534,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
           consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
         },
         ontimeout: () => {
-          consoleWarn2(`Download of template '${templateFileName}' has timed out!`);
+          consoleWarn(`Download of template '${templateFileName}' has timed out!`);
         }
       });
     }
@@ -4225,7 +4229,7 @@ Did you try clicking the canvas first?`);
         if (typeof callback === "function") {
           callback(blobData);
         } else {
-          consoleWarn2(`%c${name2}%c: Attempted to retrieve a blob (%s) from queue, but the blobID was not a function! Skipping...`, consoleStyle2, "", blobID);
+          consoleWarn(`%c${name2}%c: Attempted to retrieve a blob (%s) from queue, but the blobID was not a function! Skipping...`, consoleStyle2, "", blobID);
         }
         fetchedBlobQueue.delete(blobID);
       }
@@ -4394,7 +4398,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           if (paletteToolbar) {
             paletteToolbar.appendChild(move);
           } else {
-            consoleWarn2("Could not find palette toolbar to inject Move button into!");
+            consoleWarn("Could not find palette toolbar to inject Move button into!");
           }
         }
       });
