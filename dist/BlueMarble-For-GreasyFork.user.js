@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.15
+// @version         0.94.16
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -3705,7 +3705,7 @@ Version: ${this.version}`);
         let templateBeforeFilter32 = template.chunked32.slice();
         const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
         const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
-        if (this.shouldFilterColor.size == 0 && !templateHasErased) {
+        if (this.shouldFilterColor.size == 0 && !templateHasErased && highlightDisabled) {
           context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
         }
         if (!templateBeforeFilter32) {
