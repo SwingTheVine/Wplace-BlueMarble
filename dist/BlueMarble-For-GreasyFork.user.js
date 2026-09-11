@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.10
+// @version         0.94.11
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1934,7 +1934,7 @@ Returning zero...`);
    * @param {Array<number, number>} coords - The relative coordinates of the button
    * @since 0.91.46
    */
-  updateHighlightSettings_fn = function(button, coords2) {
+  updateHighlightSettings_fn = function(button, coords) {
     button.disabled = true;
     const status = button.dataset["status"];
     const userStorageOld = this.userSettings?.highlight ?? [[1, 0, 1], [2, 0, 0], [1, -1, 0], [1, 1, 0], [1, 0, -1]];
@@ -1945,19 +1945,19 @@ Returning zero...`);
       case "Disabled":
         button.dataset["status"] = "Incorrect";
         button.ariaLabel = "Sub-pixel incorrect";
-        userStorageChange = [1, ...coords2];
+        userStorageChange = [1, ...coords];
         break;
       // If the button was in the "Incorrect" state
       case "Incorrect":
         button.dataset["status"] = "Template";
         button.ariaLabel = "Sub-pixel template";
-        userStorageChange = [2, ...coords2];
+        userStorageChange = [2, ...coords];
         break;
       // If the button was in the "Template" state
       case "Template":
         button.dataset["status"] = "Disabled";
         button.ariaLabel = "Sub-pixel disabled";
-        userStorageChange = [0, ...coords2];
+        userStorageChange = [0, ...coords];
         break;
     }
     const indexOfChange = userStorageOld.findIndex(([, x, y]) => x == userStorageChange[1] && y == userStorageChange[2]);
@@ -2143,7 +2143,7 @@ Assuming all common states are zeros...`);
       authorID = "",
       url = "",
       file = null,
-      coords: coords2 = null,
+      coords = null,
       chunked = null,
       chunked32 = {},
       tileSize = 1e3
@@ -2154,7 +2154,7 @@ Assuming all common states are zeros...`);
       this.authorID = authorID;
       this.url = url;
       this.file = file;
-      this.coords = coords2;
+      this.coords = coords;
       this.chunked = chunked;
       this.chunked32 = chunked32;
       this.tileSize = tileSize;
@@ -2438,7 +2438,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     return _colorpalette;
   };
 
-  // src/confetttiManager.js
+  // src/confettiManager.js
   var ConfettiManager = class {
     /** The constructor for the confetti manager.
      * @since 0.88.356
@@ -3098,13 +3098,13 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           const sortID = Number(templateKeyArray?.[0]);
           const authorID = encodedToNumber(templateKeyArray?.[1] || "0", this.templateManager.encodingBase);
           const displayName = templateValue.name || `Template ${sortID || ""}`;
-          const coords2 = templateValue?.coords?.split(",")?.map(Number);
+          const coords = templateValue?.coords?.split(",")?.map(Number);
           const totalPixelCount = templateValue.pixels?.total ?? void 0;
           const templateImage = void 0;
           const sortIDLocalized = typeof sortID == "number" ? localizeNumber(sortID) : "???";
           const authorIDLocalized = typeof authorID == "number" ? localizeNumber(authorID) : "???";
           const totalPixelCountLocalized = typeof totalPixelCount == "number" ? localizeNumber(totalPixelCount) : "???";
-          templateList.addDiv({ "class": "bm-container bm-flex-center" }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column; gap: 0;" }).addDiv({ "class": "bm-wizard-template-container-image", "textContent": templateImage || "\u{1F5BC}\uFE0F" }).buildElement().addSmall({ "textContent": `#${sortIDLocalized}` }).buildElement().buildElement().addDiv({ "class": "bm-flex-center bm-wizard-template-container-flavor" }).addHeader(3, { "textContent": displayName }).buildElement().addSpan({ "textContent": `Uploaded by user #${authorIDLocalized}` }).buildElement().addSpan({ "textContent": `Coordinates: ${coords2?.join(", ") ?? "MissingNo."}` }).buildElement().addSpan({ "textContent": `Total Pixels: ${totalPixelCountLocalized}` }).buildElement().buildElement().buildElement();
+          templateList.addDiv({ "class": "bm-container bm-flex-center" }).addDiv({ "class": "bm-flex-center", "style": "flex-direction: column; gap: 0;" }).addDiv({ "class": "bm-wizard-template-container-image", "textContent": templateImage || "\u{1F5BC}\uFE0F" }).buildElement().addSmall({ "textContent": `#${sortIDLocalized}` }).buildElement().buildElement().addDiv({ "class": "bm-flex-center bm-wizard-template-container-flavor" }).addHeader(3, { "textContent": displayName }).buildElement().addSpan({ "textContent": `Uploaded by user #${authorIDLocalized}` }).buildElement().addSpan({ "textContent": `Coordinates: ${coords?.join(", ") ?? "MissingNo."}` }).buildElement().addSpan({ "textContent": `Total Pixels: ${totalPixelCountLocalized}` }).buildElement().buildElement().buildElement();
         }
       }
       templateList.buildElement().buildOverlay(templateListParentElement);
@@ -3234,15 +3234,15 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         { "class": "bm-button-circle bm-button-pin", "style": "margin-top: 0;", "innerHTML": '<svg viewBox="0 0 4 6"><path d="M.5,3.4A2,2 0 1 1 3.5,3.4L2,6"/><circle cx="2" cy="2" r=".7" fill="#fff"/></svg>' },
         (instance, button) => {
           button.onclick = () => {
-            const coords2 = instance.apiManager?.coordsTilePixel;
-            if (!coords2?.[0]) {
+            const coords = instance.apiManager?.coordsTilePixel;
+            if (!coords?.[0]) {
               instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
               return;
             }
-            instance.updateInnerHTML("bm-input-tx", coords2?.[0] || "");
-            instance.updateInnerHTML("bm-input-ty", coords2?.[1] || "");
-            instance.updateInnerHTML("bm-input-px", coords2?.[2] || "");
-            instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
+            instance.updateInnerHTML("bm-input-tx", coords?.[0] || "");
+            instance.updateInnerHTML("bm-input-ty", coords?.[1] || "");
+            instance.updateInnerHTML("bm-input-px", coords?.[2] || "");
+            instance.updateInnerHTML("bm-input-py", coords?.[3] || "");
           };
         }
       ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "value": initTemplateCoords?.[0], "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
@@ -3357,20 +3357,20 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
   coordinateInputPaste_fn = async function(instance, input, event) {
     event.preventDefault();
     const data = await getClipboardData(event);
-    const coords2 = data.split(/[^a-zA-Z0-9]+/).filter((index) => index).map(Number).filter(
+    const coords = data.split(/[^a-zA-Z0-9]+/).filter((index) => index).map(Number).filter(
       (number) => !isNaN(number)
       // Removes NaN `[4]`
     );
-    if (coords2.length == 2 && input.id == "bm-input-px") {
-      instance.updateInnerHTML("bm-input-px", coords2?.[0] || "");
-      instance.updateInnerHTML("bm-input-py", coords2?.[1] || "");
-    } else if (coords2.length == 1) {
-      instance.updateInnerHTML(input.id, coords2?.[0] || "");
+    if (coords.length == 2 && input.id == "bm-input-px") {
+      instance.updateInnerHTML("bm-input-px", coords?.[0] || "");
+      instance.updateInnerHTML("bm-input-py", coords?.[1] || "");
+    } else if (coords.length == 1) {
+      instance.updateInnerHTML(input.id, coords?.[0] || "");
     } else {
-      instance.updateInnerHTML("bm-input-tx", coords2?.[0] || "");
-      instance.updateInnerHTML("bm-input-ty", coords2?.[1] || "");
-      instance.updateInnerHTML("bm-input-px", coords2?.[2] || "");
-      instance.updateInnerHTML("bm-input-py", coords2?.[3] || "");
+      instance.updateInnerHTML("bm-input-tx", coords?.[0] || "");
+      instance.updateInnerHTML("bm-input-ty", coords?.[1] || "");
+      instance.updateInnerHTML("bm-input-px", coords?.[2] || "");
+      instance.updateInnerHTML("bm-input-py", coords?.[3] || "");
     }
   };
 
@@ -3438,19 +3438,19 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
      * @param {Array<number, number, number, number>} coords - The coordinates of the top left corner of the template
      * @since 0.65.77
      */
-    async createTemplate(blob, name2, coords2) {
+    async createTemplate(blob, name2, coords) {
       if (!this.templatesJSON) {
         this.templatesJSON = await this.createJSON();
         console.log(`Creating JSON...`);
       }
-      this.windowMain.handleDisplayStatus(`Creating template at ${coords2.join(", ")}...`);
+      this.windowMain.handleDisplayStatus(`Creating template at ${coords.join(", ")}...`);
       const template = new Template({
         displayName: name2,
         sortID: 0,
         // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
         authorID: numberToEncoded(this.userID || 0),
         file: blob,
-        coords: coords2
+        coords
       });
       const shouldSkipTransTiles = !this.settingsManager?.userSettings?.flags?.includes("hl-noSkip");
       const shouldAggSkipTransTiles = this.settingsManager?.userSettings?.flags?.includes("hl-agSkip");
@@ -3461,7 +3461,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
       this.templatesJSON.templates[`${template.sortID} ${template.authorID}`] = {
         "name": template.displayName,
         // Display name of template
-        "coords": coords2.join(", "),
+        "coords": coords.join(", "),
         // The coords of the template
         "enabled": true,
         "pixels": _pixels,
@@ -3471,7 +3471,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
       };
       this.templatesArray = [];
       this.templatesArray.push(template);
-      this.windowMain.handleDisplayStatus(`Template created at ${coords2.join(", ")}!`);
+      this.windowMain.handleDisplayStatus(`Template created at ${coords.join(", ")}!`);
       console.log(Object.keys(this.templatesJSON.templates).length);
       console.log(this.templatesJSON);
       console.log(this.templatesArray);
@@ -3653,13 +3653,13 @@ Canvas Height: ${canvasHeight}`);
           return null;
         }
         const matchingTileBlobs = matchingTiles.map((tile) => {
-          const coords2 = tile.split(",");
+          const coords = tile.split(",");
           return {
             instance: template,
             bitmap: template.chunked[tile],
             chunked32: template.chunked32?.[tile],
-            tileCoords: [coords2[0], coords2[1]],
-            pixelCoords: [coords2[2], coords2[3]]
+            tileCoords: [coords[0], coords[1]],
+            pixelCoords: [coords[2], coords[3]]
           };
         });
         return matchingTileBlobs?.[0];
@@ -4028,9 +4028,12 @@ Could not fetch userdata.`);
             const coordsTile = data["endpoint"].split("?")[0].split("/").filter((s) => s && !isNaN(Number(s)));
             const payloadExtractor = new URLSearchParams(data["endpoint"].split("?")[1]);
             const coordsPixel = [payloadExtractor.get("x"), payloadExtractor.get("y")];
-            if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
+            const coordsTileIsValid = coordsTile.length === 2 && coordsTile.every((coord) => Number(coord) <= 2047 && Number(coord) >= 0 && coord !== null && coord !== "");
+            const coordsPixelIsValid = coordsPixel.length === 2 && coordsPixel.every((coord) => Number(coord) <= 999 && Number(coord) >= 0 && coord !== null && coord !== "");
+            if (this.coordsTilePixel.length && (!coordsTileIsValid || !coordsPixelIsValid)) {
               overlay.handleDisplayError(`Coordinates are malformed!
-Did you try clicking the canvas first?`);
+Did you try clicking the canvas first?
+Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsPixel?.[1]}`);
               return;
             }
             this.coordsTilePixel = [...coordsTile, ...coordsPixel];
