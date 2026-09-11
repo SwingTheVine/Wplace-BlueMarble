@@ -5,7 +5,7 @@
  */
 
 import TemplateManager from "./templateManager.js";
-import { consoleError, escapeHTML, localizeNumber, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
+import { consoleError, consoleWarn, escapeHTML, localizeNumber, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
 
 export default class ApiManager {
 
@@ -92,13 +92,18 @@ export default class ApiManager {
           break;
 
         case 'pixel': // Request to retrieve pixel data
+        /** @type {Array<number, number>} */
           const coordsTile = data['endpoint'].split('?')[0].split('/').filter(s => s && !isNaN(Number(s))); // Retrieves the tile coords as [x, y]
           const payloadExtractor = new URLSearchParams(data['endpoint'].split('?')[1]); // Declares a new payload deconstructor and passes in the fetch request payload
           const coordsPixel = [payloadExtractor.get('x'), payloadExtractor.get('y')]; // Retrieves the deconstructed pixel coords from the payload
           
+          // Are there two coordinates of each type, and are they within range?
+          const coordsTileIsValid = ((coordsTile.length === 2) && (coordsTile.every((coord) => (Number(coord) <= 2047) && (Number(coord) >= 0) && (coord !== null) && (coord !== ''))));
+          const coordsPixelIsValid = ((coordsPixel.length === 2) && (coordsPixel.every((coord) => (Number(coord) <= 999) && (Number(coord) >= 0) && (coord !== null) && (coord !== ''))));
+
           // Don't save the coords if there are previous coords that could be used
-          if (this.coordsTilePixel.length && (!coordsTile.length || !coordsPixel.length)) {
-            overlay.handleDisplayError(`Coordinates are malformed!\nDid you try clicking the canvas first?`);
+          if (this.coordsTilePixel.length && (!coordsTileIsValid || !coordsPixelIsValid)) {
+            overlay.handleDisplayError(`Coordinates are malformed!\nDid you try clicking the canvas first?\nReceived: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsPixel?.[1]}`);
             return; // Returns early
           }
           
