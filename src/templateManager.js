@@ -593,9 +593,12 @@ export default class TemplateManager {
       const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
       const coordYtoDrawAt = Number(template.pixelCoords[1]) * this.drawMult;
 
+      // Condition for fastest template render (template is never modified)
       // Draws the template to the tile if there are no colors to filter, and there are no Erased pixels
-      if ((this.shouldFilterColor.size == 0) && !templateHasErased) {
+      if ((this.shouldFilterColor.size == 0) && !templateHasErased && highlightDisabled) {
+        // Since we are not manipulating the stored template in ANY way, we draw the image directly
         context.drawImage(template.bitmap, coordXtoDrawAt, coordYtoDrawAt);
+        // Don't return early, because we still gotta calculate correct pixels 'n stuff
       }
 
       // If we failed to get the template for this tile, we use a shoddy, buggy, failsafe
@@ -628,6 +631,7 @@ export default class TemplateManager {
         pixelsCorrectTotal += total; // Add the current total for this color to the summed total of all correct
       }
 
+      // Condition for slowest template render (template must be modified)
       // If there are colors to filter, then we draw the filtered template on the canvas
       // Or, if there are Erased (#deface) pixels, then we draw the modified template on the canvas
       // Or, if the user has enabled highlighting, then we draw the modified template on the canvas
