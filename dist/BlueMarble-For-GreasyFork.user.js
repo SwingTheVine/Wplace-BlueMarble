@@ -2,14 +2,14 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.0
+// @version         0.94.6
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
 // @license         MPL-2.0
 // @supportURL      https://discord.gg/tpeBPy46hf
 // @homepageURL     https://bluemarble.lol/
-// @icon            https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/98c47de88de0b2e7a1756f0030822cf3225a4566/dist/assets/Favicon.png
+// @icon            https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/9173d0624fc7e4aaf3d4938c04d89c553937a976/dist/assets/Favicon.png
 // @updateURL       https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @downloadURL     https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @match           https://wplace.live/*
@@ -22,7 +22,7 @@
 // @grant           GM.xmlhttpRequest
 // @grant           GM.download
 // @connect         telemetry.thebluecorner.net
-// @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/98c47de88de0b2e7a1756f0030822cf3225a4566/dist/BlueMarble-For-GreasyFork.user.css
+// @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/9173d0624fc7e4aaf3d4938c04d89c553937a976/dist/BlueMarble-For-GreasyFork.user.css
 // @require         https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @antifeature     tracking Anonymous opt-in telemetry data
 // @noframes
@@ -1755,13 +1755,10 @@ Returning zero...`);
      * @since 0.91.39
      */
     async updateUserStorage() {
-      console.log("User Settings before attempted save: ", JSON.stringify(this.userSettings));
       await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
       this.userSettings["windowStates"] = __privateGet(this, _windowStatesObjectEncoded);
       const userSettingsCurrent = JSON.stringify(this.userSettings);
       const userSettingsOld = JSON.stringify(this.userSettingsOld);
-      console.log("Old user settings: ", userSettingsOld);
-      console.log("New user settings: ", userSettingsCurrent);
       if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
         await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent);
         this.userSettingsOld = structuredClone(this.userSettings);
@@ -2048,7 +2045,6 @@ Returning zero...`);
    */
   updateWindowState_fn = function() {
     const obtainCommonStates = (windowElement, userStorageID) => {
-      console.log(__privateGet(this, _windowStatesObjectEncoded)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength));
       const commonStatesOld = __privateGet(this, _windowStatesObjectEncoded)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       if (!windowElement) {
         return commonStatesOld.slice(0, 1) + numberToEncoded(set32BitPosition(encodedToNumber(commonStatesOld.slice(1, 2)), 0, false)) + commonStatesOld.slice(2);
@@ -2104,7 +2100,6 @@ Assuming all common states are zeros...`);
       const xAxisShiftTrans = encodedToNumber(encodedString.slice(2, 5));
       const yAxisShiftTrans = encodedToNumber(encodedString.slice(5, 8));
       const commonStates = [drawDepth, isWindowInDOM, isWindowMinimized, hasWindowBeenMoved, xAxisSignIsNegative, yAxisSignIsNegative, reservedCommonFlag, xAxisShiftTrans, yAxisShiftTrans];
-      console.log(commonStates);
       return commonStates;
     };
     const mainWindowStateDefault = "!#!!!!!!!!!!!!!!!!";
@@ -4237,6 +4232,7 @@ Did you try clicking the canvas first?`);
     const name2 = script?.getAttribute("bm-name") || "Blue Marble";
     const consoleStyle2 = script?.getAttribute("bm-cStyle") || "";
     const fetchedBlobQueue = /* @__PURE__ */ new Map();
+    console.log(`%c${name2}%c: Starting spy code initialization... (1/4)`, consoleStyle2, "");
     window.addEventListener("message", (event) => {
       const { source, endpoint, blobID, blobData, blink } = event.data;
       const elapsed = Date.now() - blink;
@@ -4254,7 +4250,9 @@ Did you try clicking the canvas first?`);
         fetchedBlobQueue.delete(blobID);
       }
     });
+    console.log(`%c${name2}%c: Spy code finished initalizing message hook. (2/4)`, consoleStyle2, "");
     const originalFetch = window.fetch;
+    console.log(`%c${name2}%c: Spy code finished retrieving window.fetch (3/4)`, consoleStyle2, "");
     window.fetch = async function(...args) {
       const response = await originalFetch.apply(this, args);
       const cloned = response.clone();
@@ -4306,21 +4304,30 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       }
       return response;
     };
+    console.log(`%c${name2}%c: Spy code finished initializing! (4/4)`, consoleStyle2, "");
   };
   function inject(callback) {
     consoleLog("DOM has finished loading!");
+    console.log(`DOM is ${document.readyState}!`);
     const script = document.createElement("script");
     script.setAttribute("bm-name", name);
     script.setAttribute("bm-cStyle", consoleStyle);
     script.textContent = `(${callback})();`;
     document.documentElement?.appendChild(script);
+    if (document.querySelector("script[bm-name]")) {
+      console.log("Spy Code script exists in DOM!");
+    }
     script.remove();
+    consoleLog("Removed spy code from DOM!");
+  }
+  function injectSpyCode() {
+    inject(injectionCode);
   }
   if (document.readyState === "loading") {
     consoleLog("DOM is still loading! Using an event listener to wait until the page is ready...");
-    document.addEventListener("DOMContentLoaded", inject(injectionCode));
+    document.addEventListener("DOMContentLoaded", injectSpyCode);
   } else {
-    inject(injectionCode);
+    injectSpyCode();
   }
   (async () => {
     const prayThisIsNotTrue = document.querySelector("#bm-window-main");
