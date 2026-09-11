@@ -25,6 +25,8 @@ const injectionCode = () => {
   const consoleStyle = script?.getAttribute('bm-cStyle') || ''; // Gets the console style value that was passed in. Defaults to no styling if nothing was found
   const fetchedBlobQueue = new Map(); // Blobs being processed
 
+  console.log(`%c${name}%c: Starting spy code initialization... (1/4)`, consoleStyle, '');
+
   window.addEventListener('message', (event) => {
     const { source, endpoint, blobID, blobData, blink } = event.data;
 
@@ -55,8 +57,12 @@ const injectionCode = () => {
     }
   });
 
+  console.log(`%c${name}%c: Spy code finished initalizing message hook. (2/4)`, consoleStyle, '');
+
   // Spys on "spontaneous" fetch requests made by the client
   const originalFetch = window.fetch; // Saves a copy of the original fetch
+
+  console.log(`%c${name}%c: Spy code finished retrieving window.fetch (3/4)`, consoleStyle, '');
 
   // Overrides fetch
   window.fetch = async function(...args) {
@@ -143,6 +149,8 @@ const injectionCode = () => {
 
     return response; // Returns the original response
   };
+
+  console.log(`%c${name}%c: Spy code finished initializing! (4/4)`, consoleStyle, '');
 };
 
 /** Injects code into the client
@@ -152,23 +160,34 @@ const injectionCode = () => {
  */
 function inject(callback) {
   consoleLog('DOM has finished loading!');
+  console.log(`DOM is ${document.readyState}!`);
   const script = document.createElement('script');
   script.setAttribute('bm-name', name); // Passes in the name value
   script.setAttribute('bm-cStyle', consoleStyle); // Passes in the console style value
   script.textContent = `(${callback})();`;
   document.documentElement?.appendChild(script);
+  if (document.querySelector('script[bm-name]')) {console.log('Spy Code script exists in DOM!');}
   script.remove();
+  consoleLog('Removed spy code from DOM!');
 }
+
+/** Injects the spy code into the client.
+ * This is a wrapper function designed so no parameters need to be passed in.
+ * Specifically, it is so we can do something like `inject(foo)` while also supporting `inject` (no params).
+ * We *could* modify `inject()` to not use parameters, but if we need to inject unrelated code in the future, we can't.
+ * @since 0.94.6
+ */
+function injectSpyCode() {inject(injectionCode);}
 
 if (document.readyState === 'loading') {
 
   // If the DOM is still loading, (when done) we inject the code using an event listener
   consoleLog('DOM is still loading! Using an event listener to wait until the page is ready...');
-  document.addEventListener('DOMContentLoaded', inject(injectionCode));
+  document.addEventListener('DOMContentLoaded', injectSpyCode);
 } else {
 
   // Else, the DOM is ready, so we inject directly
-  inject(injectionCode);
+  injectSpyCode();
 }
 
 // ----- START OF BLUE MARBLE EXECUTION -----

@@ -113,7 +113,7 @@ export default class SettingsManager extends WindowSettings {
    */
   async updateUserStorage() {
 
-    console.log('User Settings before attempted save: ', JSON.stringify(this.userSettings));
+    //console.log('User Settings before attempted save: ', JSON.stringify(this.userSettings));
 
     await this.#updateFilteredColors(); // Update the encoded string of filtered colors
 
@@ -123,8 +123,8 @@ export default class SettingsManager extends WindowSettings {
     const userSettingsCurrent = JSON.stringify(this.userSettings);
     const userSettingsOld = JSON.stringify(this.userSettingsOld);
 
-    console.log('Old user settings: ', userSettingsOld);
-    console.log('New user settings: ', userSettingsCurrent);
+    //console.log('Old user settings: ', userSettingsOld);
+    //console.log('New user settings: ', userSettingsCurrent);
 
     // If the user settings have changed, AND the last update to user storage was over 5 seconds ago (5sec throttle)...
     if ((userSettingsCurrent != userSettingsOld) && ((Date.now() - this.lastUpdateTime) > this.updateFrequency)) {
@@ -503,7 +503,7 @@ export default class SettingsManager extends WindowSettings {
       // Retrieves the hottest stored common state for this window.
       // This is the memory version, as opposed to disk version, which is cold
       // If it can't retrieve the common state, we use zeros, because either the window is new, or something went VERY wrong somewhere else, so a little data loss here is fine compared to the alternative (crashing)
-      console.log(this.#windowStatesObjectEncoded?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength));
+      //console.log(this.#windowStatesObjectEncoded?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength));
       const commonStatesOld = this.#windowStatesObjectEncoded?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       // This is ONLY the common states of the window
 
@@ -623,7 +623,7 @@ export default class SettingsManager extends WindowSettings {
       const yAxisShiftTrans = encodedToNumber(encodedString.slice(5, 8));
 
       const commonStates = [drawDepth, isWindowInDOM, isWindowMinimized, hasWindowBeenMoved, xAxisSignIsNegative, yAxisSignIsNegative, reservedCommonFlag, xAxisShiftTrans, yAxisShiftTrans];
-      console.log(commonStates);
+      //console.log(commonStates);
       return commonStates;
     };
 
