@@ -92,7 +92,6 @@ export default class ApiManager {
           break;
 
         case 'pixel': // Request to retrieve pixel data
-        /** @type {Array<number, number>} */
           const coordsTile = data['endpoint'].split('?')[0].split('/').filter(s => s && !isNaN(Number(s))); // Retrieves the tile coords as [x, y]
           const payloadExtractor = new URLSearchParams(data['endpoint'].split('?')[1]); // Declares a new payload deconstructor and passes in the fetch request payload
           const coordsPixel = [payloadExtractor.get('x'), payloadExtractor.get('y')]; // Retrieves the deconstructed pixel coords from the payload
@@ -123,48 +122,59 @@ export default class ApiManager {
             if (elementTextTrimmed.includes(displayTP[0]) && elementTextTrimmed.includes(displayTP[1])) {
 
               let displayCoords = document.querySelector('#bm-display-coords'); // Find the additional pixel coords span
+              const displayCoordsStyle = 'display: flex; flex-wrap: wrap; gap: 0 1ch; font-size: small;';
 
-              const text = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
-              
+              // If we could not find the addition coord span, we make it
+              if (!displayCoords) {
+                displayCoords = document.createElement('span');
+                displayCoords.id = 'bm-display-coords';
+                displayCoords.style = displayCoordsStyle;
+
+                const ourSibling = element.closest(
+                  'div.flex[class^="mt-"]:has(div[class*="md"][class*="hidden"]), div.flex[class*=" mt-"]:has(div[class*="md"][class*="hidden"])'
+                )
+
+                // Adds the display coordinate flexbox container to the pixel info menu
+                ourSibling.insertAdjacentElement('afterend', displayCoords);
+              } else {
+                // Else, we delete the current contents of the display coords
+                displayCoords.innerHTML = '';
+              }
+
               // All 4 coordinate labels, IDs, and values
               const coordsLabel = ['Tl X:', 'Tl Y:', 'Px X:', 'Px Y:'];
               const coordsID = ['bm-tile-x', 'bm-tile-y', 'bm-pixel-x', 'bm-pixel-y'];
               const coordsCombined = [...coordsTile, ...coordsPixel];
 
-              // If we could not find the addition coord span, we make it then update the textContent with the new coords
-              if (!displayCoords) {
-                displayCoords = document.createElement('span');
-                displayCoords.id = 'bm-display-coords';
-                displayCoords.style = 'display: flex; flex-wrap: wrap; gap: 0 1ch; font-size: small;';
+              const coordsTileContainer = document.createElement('span');
+              const coordsPixelContainer = document.createElement('span');
+              coordsTileContainer.style = displayCoordsStyle;
+              coordsPixelContainer.style = displayCoordsStyle;
 
-                // For each of the 4 coordinates...
-                for (const [coordIndex, coordValue] of coordsCombined.entries()) {
+              // For each of the 4 coordinates...
+              for (const [coordIndex, coordValue] of coordsCombined.entries()) {
 
-                  const coordElement = document.createElement('span'); // Creates a `<span>` element
+                const coordElement = document.createElement('span'); // Creates a `<span>` element
 
-                  coordElement.id = coordsID[coordsCombined.indexOf(coordValue) ?? '']; // Applys the ID to the coord element
+                coordElement.id = coordsID[coordIndex]; // Applys the ID to the coord element
 
-                  // Outputs something like "Tl X: 483"
-                  coordElement.textContent = `${coordsLabel[coordIndex] ?? '??:'} ${coordValue}`;
-                  // Or if the amount of labels is less than the provided values, it outputs something like "??: 483" instead of failing
+                // Outputs something like "Tl X: 483"
+                coordElement.textContent = `${coordsLabel[coordIndex] ?? '??:'} ${coordValue}`;
+                // Or if the amount of labels is less than the provided values, it outputs something like "??: 483" instead of failing
 
+                // Adds the children to their containers (or fallback)
+                if (coordIndex <= 1) {
+                  coordsTileContainer.appendChild(coordElement);
+                } else if (coordIndex <= 3) {
+                  coordsPixelContainer.appendChild(coordElement);
+                } else {
                   displayCoords.appendChild(coordElement); // Adds the span coordinate as a child for the flexbox container
                 }
-
-                // Adds the display coordinate flexbox container to the pixel info menu
-                element.parentNode.parentNode.parentNode.insertAdjacentElement('afterend', displayCoords);
-              } else {
-                
-                // For each of the 4 coordinates...
-                for (const [coordIndex, coordID] of coordsID.entries()) {
-
-                  const coordElement = document.getElementById(coordID); // Obtains the coordinate element
-
-                  // Outputs something like "Tl X: 483"
-                  coordElement.textContent = `${coordsLabel[coordIndex] ?? '??:'} ${coordsCombined[coordIndex]}`;
-                  // Or if the amount of labels is less than the provided values, it outputs something like "??: 483" instead of failing
-                }
               }
+
+              // Adds the containers to the display coordinate span
+              displayCoords.appendChild(coordsTileContainer);
+              displayCoords.appendChild(coordsPixelContainer);
             }
           }
           break;
