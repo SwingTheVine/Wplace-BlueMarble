@@ -330,7 +330,7 @@ if (document.readyState === 'loading') {
         move.dataset['screenPosition'] = 'bottom';
         move.className = 'btn btn-soft';
         move.onclick = function() {
-          const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"])'); // Obtains the visible palette window
+          const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"]))'); // Obtains the visible palette window
           const paletteWindow = paletteWindowVisible.closest('div:is([class~="bottom-0"], [class~="top-0"])'); // Obtains the entire palette window (includes wrappers)
           // Specifically, `paletteWindow` should be the element anchoring the window to the bottom of the screen
           

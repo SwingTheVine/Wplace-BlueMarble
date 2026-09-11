@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.6
+// @version         0.94.7
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -3790,7 +3790,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
   parseBlueMarble_fn = async function(json) {
     console.log(`Parsing BlueMarble...`);
     const templates = json.templates;
-    console.log(`BlueMarble length: ${Object.keys(templates).length}`);
+    console.log(`Number of templates: ${Object.keys(templates).length}`);
     const schemaVersion = json?.schemaVersion;
     const schemaVersionArray = schemaVersion.split(/[-\.\+]/);
     const schemaVersionBleedingEdge = this.schemaVersion.split(/[-\.\+]/);
@@ -4410,7 +4410,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           move.dataset["screenPosition"] = "bottom";
           move.className = "btn btn-soft";
           move.onclick = function() {
-            const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"])');
+            const paletteWindowVisible = this.closest('div:has(dialog):not(:has([id="map"]))');
             const paletteWindow = paletteWindowVisible.closest('div:is([class~="bottom-0"], [class~="top-0"])');
             const shouldMoveUp = this.dataset?.["screenPosition"] == "bottom";
             paletteWindow.className = paletteWindow?.className?.replace(shouldMoveUp ? "bottom-0" : "top-0", shouldMoveUp ? "top-0" : "bottom-0");
