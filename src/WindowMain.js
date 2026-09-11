@@ -1,4 +1,4 @@
-import ConfettiManager from "./confetttiManager";
+import ConfettiManager from "./confettiManager";
 import Overlay from "./Overlay";
 import { getClipboardData } from "./utils";
 import WindowCredts from "./WindowCredits";

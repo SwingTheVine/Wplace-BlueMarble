@@ -78,7 +78,7 @@ export default class Overlay {
       this.overlay = element; // Declare it the highest overlay element
       this.currentParent = element;
     } else {
-      this.currentParent?.appendChild(element); // ...else delcare it the child of the last element
+      this.currentParent?.appendChild(element); // ...else declare it the child of the last element
       this.parentStack.push(this.currentParent);
       this.currentParent = element;
     }

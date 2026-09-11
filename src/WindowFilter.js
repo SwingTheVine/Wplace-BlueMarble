@@ -1,4 +1,4 @@
-import ConfettiManager from "./confetttiManager";
+import ConfettiManager from "./confettiManager";
 import Overlay from "./Overlay";
 import { calculateRelativeLuminance, localizeDate, localizeNumber, localizePercent, rgbToHex } from "./utils";
 
