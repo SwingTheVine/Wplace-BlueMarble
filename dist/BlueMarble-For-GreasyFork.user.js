@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.11
+// @version         0.94.15
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -4043,27 +4043,39 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
               const elementTextTrimmed = element.textContent.trim();
               if (elementTextTrimmed.includes(displayTP[0]) && elementTextTrimmed.includes(displayTP[1])) {
                 let displayCoords = document.querySelector("#bm-display-coords");
-                const text = `(Tl X: ${coordsTile[0]}, Tl Y: ${coordsTile[1]}, Px X: ${coordsPixel[0]}, Px Y: ${coordsPixel[1]})`;
-                const coordsLabel = ["Tl X:", "Tl Y:", "Px X:", "Px Y:"];
-                const coordsID = ["bm-tile-x", "bm-tile-y", "bm-pixel-x", "bm-pixel-y"];
-                const coordsCombined = [...coordsTile, ...coordsPixel];
+                const displayCoordsStyle = "display: flex; flex-wrap: wrap; gap: 0 1ch; font-size: small;";
                 if (!displayCoords) {
                   displayCoords = document.createElement("span");
                   displayCoords.id = "bm-display-coords";
-                  displayCoords.style = "display: flex; flex-wrap: wrap; gap: 0 1ch; font-size: small;";
-                  for (const [coordIndex, coordValue] of coordsCombined.entries()) {
-                    const coordElement = document.createElement("span");
-                    coordElement.id = coordsID[coordsCombined.indexOf(coordValue) ?? ""];
-                    coordElement.textContent = `${coordsLabel[coordIndex] ?? "??:"} ${coordValue}`;
+                  displayCoords.style = displayCoordsStyle;
+                  const ourSibling = element.closest(
+                    'div.flex[class^="mt-"]:has(div[class*="md"][class*="hidden"]), div.flex[class*=" mt-"]:has(div[class*="md"][class*="hidden"])'
+                  );
+                  ourSibling.insertAdjacentElement("afterend", displayCoords);
+                } else {
+                  displayCoords.innerHTML = "";
+                }
+                const coordsLabel = ["Tl X:", "Tl Y:", "Px X:", "Px Y:"];
+                const coordsID = ["bm-tile-x", "bm-tile-y", "bm-pixel-x", "bm-pixel-y"];
+                const coordsCombined = [...coordsTile, ...coordsPixel];
+                const coordsTileContainer = document.createElement("span");
+                const coordsPixelContainer = document.createElement("span");
+                coordsTileContainer.style = displayCoordsStyle;
+                coordsPixelContainer.style = displayCoordsStyle;
+                for (const [coordIndex, coordValue] of coordsCombined.entries()) {
+                  const coordElement = document.createElement("span");
+                  coordElement.id = coordsID[coordIndex];
+                  coordElement.textContent = `${coordsLabel[coordIndex] ?? "??:"} ${coordValue}`;
+                  if (coordIndex <= 1) {
+                    coordsTileContainer.appendChild(coordElement);
+                  } else if (coordIndex <= 3) {
+                    coordsPixelContainer.appendChild(coordElement);
+                  } else {
                     displayCoords.appendChild(coordElement);
                   }
-                  element.parentNode.parentNode.parentNode.insertAdjacentElement("afterend", displayCoords);
-                } else {
-                  for (const [coordIndex, coordID] of coordsID.entries()) {
-                    const coordElement = document.getElementById(coordID);
-                    coordElement.textContent = `${coordsLabel[coordIndex] ?? "??:"} ${coordsCombined[coordIndex]}`;
-                  }
                 }
+                displayCoords.appendChild(coordsTileContainer);
+                displayCoords.appendChild(coordsPixelContainer);
               }
             }
             break;
