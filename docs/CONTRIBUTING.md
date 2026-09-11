@@ -34,7 +34,7 @@
     <td>&emsp;<a href="#how-to-contribute">How to Contribute</a></td>
   </tr>
   <tr>
-    <td>&emsp;<a href="#production-enviroment">Production Enviroment</a></td>
+    <td>&emsp;<a href="#production-environment">Production Environment</a></td>
   </tr>
   <tr>
     <td>&emsp;&emsp;<a href="#npm-run">Npm Run</a></td>
@@ -60,7 +60,7 @@
 <h2>Summary</h2>
 <p>
   <ul>
-    <li>I don't want to waste your time, so double check with me before starting a big change like adding a new feature. For example, imagine you spend 50 hours making a bot that automatically places pixels, then your pull request was rejected because a bot that automatically places pixles does not align with the "Mission" of Blue Marble. That would be sad :(</li>
+    <li>I don't want to waste your time, so double check with me before starting a big change like adding a new feature. For example, imagine you spend 50 hours making a bot that automatically places pixels, then your pull request was rejected because a bot that automatically places pixels does not align with the "Mission" of Blue Marble. That would be sad :(</li>
     <li>Follow the style of the project. E.g., if all overlays are made by calling <code>Overlay()</code>, and you want to make a new overlay, you should probably call <code>Overlay()</code> as well.</li>
     <li>Low quality code will be rejected. If I can't maintain the code, it will be rejected.</li>
     <li>Low quality Pull Requests will be rejected. Communicate with the reviewers, make changes to your Pull Request when asked, and take responsibility for the code until the PR is merged. If you make a PR and abandon the PR, it will be rejected.
@@ -153,7 +153,7 @@
   </ol>
 </p>
 
-<h2>Production Enviroment</h2>
+<h2>Production Environment</h2>
 <p>
   Here lies information that may be of interest to those who wish to modify Blue Marble.
 
