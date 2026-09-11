@@ -675,7 +675,7 @@ export default class TemplateManager {
 
     const templates = json.templates;
 
-    console.log(`BlueMarble length: ${Object.keys(templates).length}`);
+    console.log(`Number of templates: ${Object.keys(templates).length}`);
 
     const schemaVersion = json?.schemaVersion;
     const schemaVersionArray = schemaVersion.split(/[-\.\+]/); // SemVer -> string[]
