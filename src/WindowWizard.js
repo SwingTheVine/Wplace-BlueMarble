@@ -213,7 +213,7 @@ export default class WindowWizard extends Overlay {
           const sortID = Number(templateKeyArray?.[0]); // Sort ID of the template
           const authorID = encodedToNumber(templateKeyArray?.[1] || '0', this.templateManager.encodingBase); // User ID of the person who exported the template
           const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
-          const coords = templateValue?.coords?.split(',').map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
+          const coords = templateValue?.coords?.split(',')?.map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
           const totalPixelCount = templateValue.pixels?.total ?? undefined;
           const templateImage = undefined; // TODO: Add template image
 
@@ -232,7 +232,7 @@ export default class WindowWizard extends Overlay {
             .addDiv({'class': 'bm-flex-center bm-wizard-template-container-flavor'})
               .addHeader(3, {'textContent': displayName}).buildElement()
               .addSpan({'textContent': `Uploaded by user #${authorIDLocalized}`}).buildElement()
-              .addSpan({'textContent': `Coordinates: ${coords.join(', ')}`}).buildElement()
+              .addSpan({'textContent': `Coordinates: ${coords?.join(', ') ?? 'MissingNo.'}`}).buildElement()
               .addSpan({'textContent': `Total Pixels: ${totalPixelCountLocalized}`}).buildElement()
             .buildElement()
           .buildElement()
