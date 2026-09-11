@@ -449,11 +449,12 @@ export function hexToRGB(hex) {
 }
 
 /** Returns the coordinate input fields
+ * @param {Document} document - The page document
  * @returns {Element[]} The 4 coordinate Inputs
  * @since 0.74.0
  */
 export function selectAllCoordinateInputs(document) {
-  coords = [];
+  const coords = [];
 
   coords.push(document.querySelector('#bm-input-tx'));
   coords.push(document.querySelector('#bm-input-ty'));
