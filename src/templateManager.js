@@ -779,7 +779,7 @@ export default class TemplateManager {
             // Creates a new Template class instance
             const template = new Template({
               displayName: displayName,
-              sortID: sortID || this.templatesArray?.length || 0,
+              sortID: sortID || templatesArray?.length || 0,
               authorID: authorID || '',
               //coords: coords,
             });
@@ -788,7 +788,7 @@ export default class TemplateManager {
             template.chunked32 = templateTiles32;
             
             templatesArray.push(template);
-            console.log(this.templatesArray);
+            console.log(templatesArray);
             console.log(`^^^ This ^^^`);
           }
         }
