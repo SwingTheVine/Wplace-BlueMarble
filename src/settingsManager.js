@@ -1,5 +1,6 @@
 import ApiManager from "./apiManager";
 import { consoleError, consoleWarn, encodedToNumber, numberToEncoded, numberUnsignedTo32BitBooleanArray, set32BitPosition, sleep } from "./utils";
+import WindowFilter from "./WindowFilter";
 import WindowSettings from "./WindowSettings";
 
 /** Documentation for `windowState` encoding.
@@ -88,6 +89,10 @@ export default class SettingsManager extends WindowSettings {
     this.onethEncodingAlphabetCharacter = numberToEncoded(1);
 
     this.windowMain = null; // The Main Blue Marble window
+    this.windowFilter = null; // The Color Filter window
+    this.windowCredits = null; // The Credits window
+    this.windowWizard = null; // The Template Wizard window
+    this.windowSettings = null; // The Settings window
     this.templateManager = null; // The template manager instance
     this.apiManager = null; // The API manager
 
@@ -126,10 +131,11 @@ export default class SettingsManager extends WindowSettings {
     //console.log('Old user settings: ', userSettingsOld);
     //console.log('New user settings: ', userSettingsCurrent);
 
-    // If the user settings have changed, AND the last update to user storage was over 5 seconds ago (5sec throttle)...
+    // If the user settings have changed, AND the last update to user storage was over 2 seconds ago (2 sec throttle)...
     if ((userSettingsCurrent != userSettingsOld) && ((Date.now() - this.lastUpdateTime) > this.updateFrequency)) {
       await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent); // Updates user storage
       this.userSettingsOld = structuredClone(this.userSettings); // Updates the old user settings with a duplicate of the current user settings
+      this.#windowStatesObject = this.#decodeWindowStateToObject(this.#windowStatesObjectEncoded) ?? {}; // Update the in-memory window state Object
       this.lastUpdateTime = Date.now(); // Updates the variable that contains the last time updated
       console.log(userSettingsCurrent);
     }
@@ -562,7 +568,6 @@ export default class SettingsManager extends WindowSettings {
     
     // Obtains the window ID for the main window
     const windowMainID = this.windowMain?.windowID;
-    
     // Obtains the main window element itself
     const windowMainElement = windowMainID ? document.querySelector('#' + this.windowMain?.windowID) : undefined;
     // Obtains the most-up-to-date common window state for the main window
@@ -573,13 +578,25 @@ export default class SettingsManager extends WindowSettings {
     const windowMainTemplateCoordinateX = Math.min(2047999, Math.max(0, (Number(windowMainElement?.querySelector('#bm-input-tx')?.value ?? 0) * 1000) + Number(windowMainElement?.querySelector('#bm-input-px')?.value ?? 0)));
     // Stores the Y coordinates for the "Upload Template" coordinate input fields. Fallback is zero. Note: This is a user-specified field
     const windowMainTemplateCoordinateY = Math.min(2047999, Math.max(0, (Number(windowMainElement?.querySelector('#bm-input-ty')?.value ?? 0) * 1000) + Number(windowMainElement?.querySelector('#bm-input-py')?.value ?? 0)));
+    // Save the window state, or fallback to zeros
     const windowMainState = windowMainCommonStates
       + numberToEncoded(windowMainUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2) // Ensures this is always two characters
       + numberToEncoded(windowMainTemplateCoordinateX).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4) // Ensures this is always four characters
       + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4); // Ensures this is always four characters
-
-    // Save the window state, or fallback to zeros
     this.#windowStatesObjectEncoded['bm'] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
+
+    // Obtains the window ID for the Credits window
+    const windowCreditsID = this.windowCredits?.windowID;
+    // Obtains the Credits window element itself
+    const windowCreditsElement = windowCreditsID ? document.querySelector('#' + this.windowCredits?.windowID) : undefined;
+    // Obtains the most-up-to-date common window state for the Credits window
+    const windowCreditsCommonStates = obtainCommonStates(windowCreditsElement, 'crdt');
+    // Stores 13 bit flags unique to this window
+    let windowCreditsUniqueStatesMutable = 0; // Currently there are none, so this is the final verison
+    // Save the window state, or fallback to zeros
+    const windowCreditsState = windowCreditsCommonStates
+      + numberToEncoded(windowCreditsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
+    this.#windowStatesObjectEncoded['crdt'] = windowCreditsState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
   }
 
   /** Decodes & builds the window state object.
@@ -628,6 +645,7 @@ export default class SettingsManager extends WindowSettings {
     };
 
     const mainWindowStateDefault = '!#!!!!!!!!!!!!!!!!'; // Default state of the main window
+    const creditsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Credits Window
 
     // Main Window
     const mainWindowEncodedState = windowState['bm'] ?? mainWindowStateDefault; // The entire encoded window state. Fallback to default
@@ -644,8 +662,19 @@ export default class SettingsManager extends WindowSettings {
 
     console.log(mainWindowState);
 
+    // Credits Window
+    const creditsWindowEncodedState = windowState['crdt'] ?? creditsWindowStateDefault; // The entire encoded window state. Fallback to default
+    const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
+    const creditsWindowEncodedFlags = creditsWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const creditsWindowState = 
+      decodeCommonStates(creditsWindowEncodedCommon).concat(
+        numberUnsignedTo32BitBooleanArray(encodedToNumber(creditsWindowEncodedFlags) >>> 0).slice(-13) // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      );
+    // creditsWindowState is an Array where each index is a variable. The order is preserved.
+
     return {
-      'bm': mainWindowState
+      'bm': mainWindowState,
+      'crdt': creditsWindowState
     };
   }
 
@@ -706,11 +735,35 @@ export default class SettingsManager extends WindowSettings {
     return windowState[index]; // Returns the value
   }
 
-  /** Populates the windowMain variable with the windowMain class.
-   * @param {WindowMain} windowMain - The windowMain class instance
+  /** Populates the windowMain variable with the WindowMain class.
+   * @param {WindowMain} windowMain - The WindowMain class instance
    * @since 0.92.23
    */
   setWindowMain(windowMain) {this.windowMain = windowMain;}
+
+  /** Populates the windowFilter variable with the WindowFilter class.
+   * @param {WindowFilter} windowFilter - The windowFilter class instance
+   * @since 0.94.17
+   */
+  setWindowFilter(windowFilter) {this.windowFilter = windowFilter;}
+
+  /** Populates the windowCredits variable with the WindowCredits class.
+   * @param {WindowCredits} windowCredits - The windowCredits class instance
+   * @since 0.94.17
+   */
+  setWindowCredits(windowCredits) {this.windowCredits = windowCredits;}
+
+  /** Populates the windowWizard variable with the WindowWizard class.
+   * @param {WindowWizard} windowWizard - The windowWizard class instance
+   * @since 0.94.17
+   */
+  setWindowWizard(windowWizard) {this.windowWizard = windowWizard;}
+
+  /** Populates the windowSettings variable with the WindowSettings class.
+   * @param {WindowSettings} windowSettings - The windowSettings class instance
+   * @since 0.94.17
+   */
+  setWindowSettings(windowSettings) {this.windowSettings = windowSettings;}
 
   /** Populates the templateManager variable with the templateManager class.
    * @param {TemplateManager} templateManager - The templateManager class instance

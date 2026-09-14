@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.16
+// @version         0.94.26
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1649,795 +1649,6 @@ Returning zero...`);
     { "id": 63, "premium": true, "name": "Light Stone", "rgb": [205, 197, 158] }
   ];
 
-  // src/WindowSettings.js
-  var _WindowSettings_instances, errorOverrideFailure_fn;
-  var WindowSettings = class extends Overlay {
-    /** Constructor for the Settings window
-     * @param {string} name - The name of the userscript
-     * @param {string} version - The version of the userscript
-     * @since 0.91.11
-     * @see {@link Overlay#constructor} for examples
-     */
-    constructor(name2, version2) {
-      super(name2, version2);
-      __privateAdd(this, _WindowSettings_instances);
-      this.window = null;
-      this.windowID = "bm-window-settings";
-      this.windowParent = document.body;
-    }
-    /** Spawns a Settings window.
-     * If another settings window already exists, we DON'T spawn another!
-     * Parent/child relationships in the DOM structure below are indicated by indentation.
-     * @since 0.91.11
-     */
-    buildWindow() {
-      if (document.querySelector(`#${this.windowID}`)) {
-        document.querySelector(`#${this.windowID}`).remove();
-        return;
-      }
-      this.windowParent = document.body;
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
-        button.onclick = () => instance.handleMinimization(button);
-        button.ontouchend = () => {
-          button.click();
-        };
-      }).buildElement().addDiv().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Color Filter"' }, (instance, button) => {
-        button.onclick = () => {
-          document.querySelector(`#${this.windowID}`)?.remove();
-        };
-        button.ontouchend = () => {
-          button.click();
-        };
-      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Settings" }).buildElement().buildElement().addHr().buildElement().addP({ "textContent": "Settings take 2 seconds to save." }).buildElement().addDiv({ "class": "bm-container bm-scrollable" }, (instance, div) => {
-        this.buildHighlight();
-        this.buildTemplate();
-      }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
-      this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
-    }
-    /** Builds the highlight section of the window.
-     * This should be overriden by {@link SettingsManager}
-     * @since 0.91.11
-     */
-    buildHighlight() {
-      __privateMethod(this, _WindowSettings_instances, errorOverrideFailure_fn).call(this, "Pixel Highlight");
-    }
-    /** Builds the template section of the window.
-     * This should be overriden by {@link SettingsManager}
-     * @since 0.91.68
-     */
-    buildTemplate() {
-      __privateMethod(this, _WindowSettings_instances, errorOverrideFailure_fn).call(this, "Template");
-    }
-  };
-  _WindowSettings_instances = new WeakSet();
-  /** Displays an error when a settings category fails to load.
-   * @param {string} name - The name of the category
-   * @since 0.91.11
-   */
-  errorOverrideFailure_fn = function(name2) {
-    this.window = this.addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": name2 }).buildElement().addHr().buildElement().addP({ "innerHTML": `An error occured loading the ${name2} category. <code>SettingsManager</code> failed to override the ${name2} function inside <code>WindowSettings</code>.` }).buildElement().buildElement();
-  };
-
-  // src/settingsManager.js
-  var _windowStatesObject, _windowStatesObjectEncoded, _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn, updateWindowState_fn, decodeWindowStateToObject_fn;
-  var SettingsManager = class extends WindowSettings {
-    /** Constructor for the SettingsManager class
-     * @param {string} name - The name of the userscript
-     * @param {string} version - The version of the userscript
-     * @param {Object} userSettings - The user settings as an object
-     * @since 0.91.11
-     */
-    constructor(name2, version2, userSettings) {
-      var _a;
-      super(name2, version2);
-      __privateAdd(this, _SettingsManager_instances);
-      __privateAdd(this, _windowStatesObject);
-      __privateAdd(this, _windowStatesObjectEncoded);
-      this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
-      this.onethEncodingAlphabetCharacter = numberToEncoded(1);
-      this.windowMain = null;
-      this.templateManager = null;
-      this.apiManager = null;
-      this.userSettings = userSettings;
-      (_a = this.userSettings).flags ?? (_a.flags = []);
-      this.userSettingsOld = structuredClone(this.userSettings);
-      this.userSettingsSaveLocation = "bmUserSettings";
-      this.commonStatesByteLength = 8;
-      __privateSet(this, _windowStatesObjectEncoded, this.userSettings?.windowStates ?? {});
-      __privateSet(this, _windowStatesObject, __privateMethod(this, _SettingsManager_instances, decodeWindowStateToObject_fn).call(this, __privateGet(this, _windowStatesObjectEncoded)) ?? {});
-      this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i);
-      this.updateFrequency = 2e3;
-      this.lastUpdateTime = 0;
-      setInterval(__privateMethod(this, _SettingsManager_instances, updateWindowState_fn).bind(this), this.updateFrequency * 0.6);
-      setInterval(this.updateUserStorage.bind(this), this.updateFrequency);
-    }
-    /** Updates the user settings in userscript storage
-     * @since 0.91.39
-     */
-    async updateUserStorage() {
-      await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
-      this.userSettings["windowStates"] = __privateGet(this, _windowStatesObjectEncoded);
-      const userSettingsCurrent = JSON.stringify(this.userSettings);
-      const userSettingsOld = JSON.stringify(this.userSettingsOld);
-      if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
-        await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent);
-        this.userSettingsOld = structuredClone(this.userSettings);
-        this.lastUpdateTime = Date.now();
-        console.log(userSettingsCurrent);
-      }
-    }
-    /** Toggles a boolean flag to the state that was passed in.
-     * If no state was passed in, the flag will flip to the opposite state.
-     * The existence of the flag determines its state. If it exists, it is `true`.
-     * @param {string} flagName - The name of the flag to toggle
-     * @param {boolean} [state=undefined] - (Optional) The state to change the flag to
-     * @since 0.91.60
-     */
-    toggleFlag(flagName, state = void 0) {
-      console.log("Flag Settings:", this.userSettings?.flags);
-      const flagIndex = this.userSettings?.flags?.indexOf(flagName) ?? -1;
-      console.log(`Flag '${flagName}' is requested to become '${state}' (currently ${flagIndex})`);
-      if (flagIndex != -1 && state !== true) {
-        console.log(`Setting flag '${flagName}' to false!`);
-        this.userSettings?.flags?.splice(flagIndex, 1);
-      } else if (flagIndex == -1 && state !== false) {
-        console.log(`Setting flag '${flagName}' to true! (Adding to storage)`);
-        this.userSettings?.flags?.push(flagName);
-      }
-      console.log("Flag Settings Final: ", this.userSettings?.flags);
-    }
-    // This is one of the most insane OOP setups I have ever laid my eyes on
-    /** Builds the "highlight" category of the settings window
-     * @since 0.91.18
-     * @see WindowSettings#buildHighlight
-     */
-    buildHighlight() {
-      const highlightPresetOff = '<svg viewBox="0 0 3 3"><path d="M0,0H3V3H0ZM0,1H3M0,2H3M1,0V3M2,0V3" fill="#fff"/><path d="M1,1H2V2H1Z" fill="#2f4f4f"/></svg>';
-      const highlightPresetCross = '<svg viewBox="0 0 3 3"><path d="M0,0H3V3H0Z" fill="#fff"/><path d="M1,0H2V1H3V2H2V3H1V2H0V1H1Z" fill="brown"/><path d="M1,1H2V2H1Z" fill="#2f4f4f"/></svg>';
-      const storedHighlight = this.userSettings?.highlight ?? [[1, 0, 1], [2, 0, 0], [1, -1, 0], [1, 1, 0], [1, 0, -1]];
-      this.window = this.addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Pixel Highlight" }).buildElement().addHr().buildElement().addDiv({ "class": "bm-container", "style": "margin-left: 1.5ch;" }).addCheckbox({ "textContent": "Highlight transparent pixels" }, (instance, label, checkbox) => {
-        checkbox.checked = !this.userSettings?.flags?.includes("hl-noTrans");
-        checkbox.onchange = (event) => this.toggleFlag("hl-noTrans", !event.target.checked);
-      }).buildElement().addP({ "id": "bm-highlight-preset-label", "textContent": "Choose a preset:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-flex-center", "role": "group", "aria-labelledby": "bm-highlight-preset-label" }).addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "None" }).buildElement().addButton({ "innerHTML": highlightPresetOff, "aria-label": 'Preset "None"' }, (instance, button) => {
-        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "None");
-      }).buildElement().buildElement().addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "Cross" }).buildElement().addButton({ "innerHTML": highlightPresetCross, "aria-label": 'Preset "Cross Shape"' }, (instance, button) => {
-        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "Cross");
-      }).buildElement().buildElement().addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "X" }).buildElement().addButton({ "innerHTML": highlightPresetCross.replace('d="M1,0H2V1H3V2H2V3H1V2H0V1H1Z"', 'd="M0,0V1H3V0H2V3H3V2H0V3H1V0Z"'), "aria-label": 'Preset "X Shape"' }, (instance, button) => {
-        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "X");
-      }).buildElement().buildElement().addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "Full" }).buildElement().addButton({ "innerHTML": highlightPresetOff.replace("#fff", "#2f4f4f"), "aria-label": 'Preset "Full Template"' }, (instance, button) => {
-        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "Full");
-      }).buildElement().buildElement().buildElement().addP({ "id": "bm-highlight-grid-label", "textContent": "Create a custom pattern:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-highlight-grid", "role": "group", "aria-labelledby": "bm-highlight-grid-label" });
-      for (let buttonY = -1; buttonY <= 1; buttonY++) {
-        for (let buttonX = -1; buttonX <= 1; buttonX++) {
-          const buttonState = storedHighlight[storedHighlight.findIndex(([, x, y]) => x == buttonX && y == buttonY)]?.[0] ?? 0;
-          let buttonStateName = "Disabled";
-          if (buttonState == 1) {
-            buttonStateName = "Incorrect";
-          } else if (buttonState == 2) {
-            buttonStateName = "Template";
-          }
-          this.window = this.addButton({
-            "data-status": buttonStateName,
-            "aria-label": `Sub-pixel ${buttonStateName.toLowerCase()}`
-          }, (instance, button) => {
-            button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightSettings_fn).call(this, button, [buttonX, buttonY]);
-          }).buildElement();
-        }
-      }
-      this.window = this.buildElement().buildElement().buildElement();
-    }
-    /** Decodes the filtered color bit flags that came from user storage.
-     * @param {string} encodedString - The filtered color save-state from user storage
-     * @returns {Map<number, boolean>} A map containing only entries of colors to filter
-     * @since 0.92.18
-     */
-    decodeFilteredColorBitFlags(encodedString) {
-      const shouldColorBeFiltered = /* @__PURE__ */ new Map();
-      if (typeof encodedString !== "string") {
-        consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
-        return shouldColorBeFiltered;
-      }
-      if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
-        return shouldColorBeFiltered;
-      }
-      const minSupportedBitFlag = -32;
-      const maxSupportedBitFlag = 63;
-      const supportedEncodedBitFlags = encodedString.slice(0, 15);
-      const bitFlagsNegSmall = encodedToNumber(supportedEncodedBitFlags.slice(0, 5));
-      const bitFlagsPosSmall = encodedToNumber(supportedEncodedBitFlags.slice(5, 10));
-      const bitFlagsPosLarge = encodedToNumber(supportedEncodedBitFlags.slice(10, 15));
-      for (let id = minSupportedBitFlag; id <= maxSupportedBitFlag; id++) {
-        let isBitTrue = false;
-        if (id >= -32 && id <= -1) {
-          isBitTrue = (bitFlagsNegSmall & 1 << id + 32) !== 0;
-        } else if (id >= 0 && id <= 31) {
-          isBitTrue = (bitFlagsPosSmall & 1 << id) !== 0;
-        } else if (id >= 32 && id <= 63) {
-          isBitTrue = (bitFlagsPosLarge & 1 << id - 32) !== 0;
-        }
-        if (isBitTrue) {
-          shouldColorBeFiltered.set(id, true);
-        }
-      }
-      return shouldColorBeFiltered;
-    }
-    /** Build the "template" category of settings window
-     * @since 0.91.68
-     * @see WindowSettings#buildTemplate
-     */
-    buildTemplate() {
-      this.window = this.addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Template" }).buildElement().addHr().buildElement().addDiv({ "class": "bm-container", "style": "margin-left: 1.5ch;" }).addCheckbox({ "textContent": "Template creation should skip transparent tiles" }, (instance, label, checkbox) => {
-        checkbox.checked = !this.userSettings?.flags?.includes("hl-noSkip");
-        checkbox.onchange = (event) => this.toggleFlag("hl-noSkip", !event.target.checked);
-      }).buildElement().addCheckbox({ "innerHTML": "Experimental: Template creation should <em>aggressively</em> skip transparent tiles" }, (instance, label, checkbox) => {
-        checkbox.checked = this.userSettings?.flags?.includes("hl-agSkip");
-        checkbox.onchange = (event) => this.toggleFlag("hl-agSkip", event.target.checked);
-      }).buildElement().buildElement().buildElement();
-    }
-    /** Returns the decoded window states
-     * @since 0.92.69
-     * @returns {Object} An object containing window states
-     */
-    getWindowStatesObject() {
-      console.log("#windowStatesObject: ", __privateGet(this, _windowStatesObject));
-      return __privateGet(this, _windowStatesObject);
-    }
-    /** Returns the corresponding variable's value from the window state.
-     * This was specifically so an enum value could be passed in as the `index`.
-     * @param {string} tinyID - The ID for the window that is ONLY used inside user storage
-     * @param {number} index - The Array index that contains the value
-     * @since 0.92.77
-     * @returns {number | boolean}
-     */
-    getWindowStateVariable(tinyID, index) {
-      if (typeof tinyID !== "string" || typeof index !== "number") {
-        consoleError(`Attempted to get window state variable with type (string, number), but recieved type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})
-Returning zero...`);
-        return 0;
-      }
-      const windowState = __privateGet(this, _windowStatesObject)?.[tinyID];
-      if (!Number.isInteger(index) || index < 0 || index > windowState.length - 1) {
-        consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}
- Returning zero...`);
-        return 0;
-      }
-      return windowState[index];
-    }
-    /** Populates the windowMain variable with the windowMain class.
-     * @param {WindowMain} windowMain - The windowMain class instance
-     * @since 0.92.23
-     */
-    setWindowMain(windowMain) {
-      this.windowMain = windowMain;
-    }
-    /** Populates the templateManager variable with the templateManager class.
-     * @param {TemplateManager} templateManager - The templateManager class instance
-     * @since 0.92.22
-     */
-    setTemplateManager(templateManager) {
-      this.templateManager = templateManager;
-    }
-    /** Populates the apiManager variable with the apiManager class.
-     * @param {ApiManager} apiManager - The apiManager class instance
-     * @since 0.92.23
-     */
-    setApiManager(apiManager) {
-      this.apiManager = apiManager;
-    }
-  };
-  _windowStatesObject = new WeakMap();
-  _windowStatesObjectEncoded = new WeakMap();
-  _SettingsManager_instances = new WeakSet();
-  /** Updates the display of the highlight buttons in the settings window.
-   * Additionally, it will update user settings with the new selection.
-   * @param {HTMLButtonElement} button - The button that was pressed
-   * @param {Array<number, number>} coords - The relative coordinates of the button
-   * @since 0.91.46
-   */
-  updateHighlightSettings_fn = function(button, coords) {
-    button.disabled = true;
-    const status = button.dataset["status"];
-    const userStorageOld = this.userSettings?.highlight ?? [[1, 0, 1], [2, 0, 0], [1, -1, 0], [1, 1, 0], [1, 0, -1]];
-    let userStorageChange = [2, 0, 0];
-    const userStorageNew = userStorageOld;
-    switch (status) {
-      // If the button was in the "Disabled" state
-      case "Disabled":
-        button.dataset["status"] = "Incorrect";
-        button.ariaLabel = "Sub-pixel incorrect";
-        userStorageChange = [1, ...coords];
-        break;
-      // If the button was in the "Incorrect" state
-      case "Incorrect":
-        button.dataset["status"] = "Template";
-        button.ariaLabel = "Sub-pixel template";
-        userStorageChange = [2, ...coords];
-        break;
-      // If the button was in the "Template" state
-      case "Template":
-        button.dataset["status"] = "Disabled";
-        button.ariaLabel = "Sub-pixel disabled";
-        userStorageChange = [0, ...coords];
-        break;
-    }
-    const indexOfChange = userStorageOld.findIndex(([, x, y]) => x == userStorageChange[1] && y == userStorageChange[2]);
-    if (userStorageChange[0] != 0) {
-      if (indexOfChange != -1) {
-        userStorageNew[indexOfChange] = userStorageChange;
-      } else {
-        userStorageNew.push(userStorageChange);
-      }
-    } else if (indexOfChange != -1) {
-      userStorageNew.splice(indexOfChange, 1);
-    }
-    console.log("New Highlight Settings: ", userStorageNew);
-    this.userSettings["highlight"] = userStorageNew;
-    button.disabled = false;
-  };
-  updateHighlightToPreset_fn = async function(preset) {
-    const presetButtons = document.querySelectorAll(".bm-highlight-preset-container button");
-    for (const button of presetButtons) {
-      button.disabled = true;
-    }
-    let presetArray = [0, 0, 0, 0, 2, 0, 0, 0, 0];
-    switch (preset) {
-      case "Cross":
-        presetArray = [0, 1, 0, 1, 2, 1, 0, 1, 0];
-        break;
-      case "X":
-        presetArray = [1, 0, 1, 0, 2, 0, 1, 0, 1];
-        break;
-      case "Full":
-        presetArray = [2, 2, 2, 2, 2, 2, 2, 2, 2];
-        break;
-    }
-    const buttons = document.querySelector(".bm-highlight-grid")?.childNodes ?? [];
-    for (let buttonIndex = 0; buttonIndex < buttons.length; buttonIndex++) {
-      const button = buttons[buttonIndex];
-      let buttonState = button.dataset["status"];
-      buttonState = buttonState != "Disabled" ? buttonState != "Incorrect" ? 2 : 1 : 0;
-      let buttonStateDelta = presetArray[buttonIndex] - buttonState;
-      if (buttonStateDelta == 0) {
-        continue;
-      }
-      buttonStateDelta += buttonStateDelta < 0 ? 3 : 0;
-      button.click();
-      if (buttonStateDelta == 2) {
-        for (let timeWaited = 0; timeWaited < 200; timeWaited += 10) {
-          if (!button.disabled) {
-            break;
-          }
-          await sleep(10);
-        }
-        button.click();
-      }
-    }
-    for (const button of presetButtons) {
-      button.disabled = false;
-    }
-  };
-  updateFilteredColors_fn = async function() {
-    const filteredColorMap = this.templateManager.shouldFilterColor;
-    if (!filteredColorMap.size) {
-      this.userSettings.filter = this.zerothEncodingAlphabetCharacter.repeat(15);
-      return;
-    }
-    let mutableBitFlagsNegSmall = 0;
-    let mutableBitFlagsPosSmall = 0;
-    let mutableBitFlagsPosLarge = 0;
-    for (const [id, value] of filteredColorMap) {
-      if (id >= -32 && id <= -1) {
-        mutableBitFlagsNegSmall = set32BitPosition(mutableBitFlagsNegSmall, id + 32, value);
-      } else if (id >= 0 && id <= 31) {
-        mutableBitFlagsPosSmall = set32BitPosition(mutableBitFlagsPosSmall, id, value);
-      } else if (id >= 32 && id <= 63) {
-        mutableBitFlagsPosLarge = set32BitPosition(mutableBitFlagsPosLarge, id - 32, value);
-      } else {
-        consoleError(`Attempted to store filter color with ID #${id} but this ID number is out of bounds (-32 to 63)! The color will not be stored.`);
-      }
-    }
-    const encodedBitFlags = numberToEncoded(mutableBitFlagsNegSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
-    this.userSettings.filter = encodedBitFlags;
-  };
-  /** Retrieves all window states, and *overrides* the user storage version stored in `this.userStorage.windowStates`.
-   * This encodes window states.
-   * @since 0.92.23
-   */
-  updateWindowState_fn = function() {
-    const obtainCommonStates = (windowElement, userStorageID) => {
-      const commonStatesOld = __privateGet(this, _windowStatesObjectEncoded)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
-      if (!windowElement) {
-        return commonStatesOld.slice(0, 1) + numberToEncoded(set32BitPosition(encodedToNumber(commonStatesOld.slice(1, 2)), 0, false)) + commonStatesOld.slice(2);
-      }
-      const drawDepth = Math.max(0, Math.min(Number(windowElement.dataset["drawDepth"] ?? 0), 91));
-      let bitFlagsMutable = set32BitPosition(0, 0, true);
-      const windowMinimizationButton = windowElement.querySelector("button[data-button-status]");
-      const isWindowMinimized = windowMinimizationButton?.dataset["buttonStatus"] == "collapsed";
-      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 1, isWindowMinimized);
-      const windowStyle = windowElement.style;
-      const matches = this.commonWindowStateTranslateRegEx.exec(windowStyle.getPropertyValue("transform") ?? "");
-      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 2, !!matches);
-      const xTransCoord = Number(matches?.[1] ?? 0);
-      const yTransCoord = Number(matches?.[2] ?? 0);
-      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 3, !(Math.sign(xTransCoord) + 1));
-      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 4, !(Math.sign(yTransCoord) + 1));
-      const windowCoordinateMaximum = 778687;
-      const windowTransX = numberToEncoded(Math.min(Math.abs(xTransCoord), windowCoordinateMaximum));
-      const windowTransY = numberToEncoded(Math.min(Math.abs(yTransCoord), windowCoordinateMaximum));
-      return numberToEncoded(drawDepth).slice(-1) + numberToEncoded(bitFlagsMutable).slice(-1) + windowTransX.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3) + windowTransY.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3);
-    };
-    const windowMainID = this.windowMain?.windowID;
-    const windowMainElement = windowMainID ? document.querySelector("#" + this.windowMain?.windowID) : void 0;
-    const windowMainCommonStates = obtainCommonStates(windowMainElement, "bm");
-    let windowMainUniqueStatesMutable = 0;
-    const windowMainTemplateCoordinateX = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-tx")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-px")?.value ?? 0)));
-    const windowMainTemplateCoordinateY = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-ty")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-py")?.value ?? 0)));
-    const windowMainState = windowMainCommonStates + numberToEncoded(windowMainUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2) + numberToEncoded(windowMainTemplateCoordinateX).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4) + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4);
-    __privateGet(this, _windowStatesObjectEncoded)["bm"] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
-  };
-  /** Decodes & builds the window state object.
-   * This function parses user storage into a readable format,
-   * then passes it to the {@link SettingsManager}, which is the owner of the windows state object.
-   * @param {Object} windowState - The encoded state of all windows saved in user storage
-   * @since 0.92.23
-   */
-  decodeWindowStateToObject_fn = function(windowState) {
-    console.log("Recieved window state to decode: ", windowState);
-    const decodeCommonStates = (encodedString) => {
-      if (typeof encodedString !== "string" || encodedString.length == 0) {
-        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
-Assuming all common states are zeros...`);
-        encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
-      }
-      const drawDepth = encodedToNumber(encodedString.slice(0, 1));
-      const bitFlags = encodedToNumber(encodedString.slice(1, 2));
-      const isWindowInDOM = (bitFlags & 1 << 0) !== 0;
-      const isWindowMinimized = (bitFlags & 1 << 1) !== 0;
-      const hasWindowBeenMoved = (bitFlags & 1 << 2) !== 0;
-      const xAxisSignIsNegative = (bitFlags & 1 << 3) !== 0;
-      const yAxisSignIsNegative = (bitFlags & 1 << 4) !== 0;
-      const reservedCommonFlag = false;
-      const xAxisShiftTrans = encodedToNumber(encodedString.slice(2, 5));
-      const yAxisShiftTrans = encodedToNumber(encodedString.slice(5, 8));
-      const commonStates = [drawDepth, isWindowInDOM, isWindowMinimized, hasWindowBeenMoved, xAxisSignIsNegative, yAxisSignIsNegative, reservedCommonFlag, xAxisShiftTrans, yAxisShiftTrans];
-      return commonStates;
-    };
-    const mainWindowStateDefault = "!#!!!!!!!!!!!!!!!!";
-    const mainWindowEncodedState = windowState["bm"] ?? mainWindowStateDefault;
-    const mainWindowEncodedCommon = mainWindowEncodedState?.slice(0, this.commonStatesByteLength);
-    const mainWindowEncodedFlags = mainWindowEncodedState?.slice(this.commonStatesByteLength, 10);
-    const mainWindowTemplateCoordX = encodedToNumber(mainWindowEncodedState?.slice(10, 14));
-    const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18));
-    const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(
-      numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0).slice(-13),
-      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
-      mainWindowTemplateCoordX,
-      mainWindowTemplateCoordY
-    );
-    console.log(mainWindowState);
-    return {
-      "bm": mainWindowState
-    };
-  };
-
-  // src/Template.js
-  var _Template_instances, calculateTotalPixelsFromImageData_fn;
-  var Template = class {
-    /** The constructor for the {@link Template} class with enhanced pixel tracking.
-     * @param {Object} [params={}] - Object containing all optional parameters
-     * @param {string} [params.displayName='My template'] - The display name of the template
-     * @param {number} [params.sortID=0] - The sort number of the template for rendering priority
-     * @param {string} [params.authorID=''] - The user ID of the person who exported the template (prevents sort ID collisions)
-     * @param {string} [params.url=''] - The URL to the source image
-     * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
-     * @param {Array<number, number, number, number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
-     * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
-     * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
-     * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
-     * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
-     * @since 0.65.2
-     */
-    constructor({
-      displayName = "My template",
-      sortID = 0,
-      authorID = "",
-      url = "",
-      file = null,
-      coords = null,
-      chunked = null,
-      chunked32 = {},
-      tileSize = 1e3
-    } = {}) {
-      __privateAdd(this, _Template_instances);
-      this.displayName = displayName;
-      this.sortID = sortID;
-      this.authorID = authorID;
-      this.url = url;
-      this.file = file;
-      this.coords = coords;
-      this.chunked = chunked;
-      this.chunked32 = chunked32;
-      this.tileSize = tileSize;
-      this.pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() };
-      this.shouldSkipTransTiles = true;
-      this.shouldAggSkipTransTiles = false;
-    }
-    /** Creates chunks of the template for each tile.
-     * @param {Number} tileSize - Size of the tile as determined by templateManager
-     * @param {Object} paletteBM - An collection of Uint32Arrays containing the palette BM uses
-     * @param {boolean} shouldSkipTransTiles - Should transparent tiles be skipped over when creating the template?
-     * @param {boolean} shouldAggSkipTransTiles - Should transparent tiles be aggressively skipped over when creating the template?
-     * @returns {Object} Collection of template bitmaps & buffers organized by tile coordinates
-     * @since 0.65.4
-     */
-    async createTemplateTiles(tileSize, paletteBM, shouldSkipTransTiles, shouldAggSkipTransTiles) {
-      console.log("Template coordinates:", this.coords);
-      this.shouldSkipTransTiles = shouldSkipTransTiles;
-      this.shouldAggSkipTransTiles = shouldAggSkipTransTiles;
-      const shreadSize = 3;
-      const bitmap = await createImageBitmap(this.file);
-      const imageWidth = bitmap.width;
-      const imageHeight = bitmap.height;
-      this.tileSize = tileSize;
-      const templateTiles = {};
-      const templateTilesBuffers = {};
-      const canvas = new OffscreenCanvas(this.tileSize, this.tileSize);
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-      const transCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
-      const transContext = transCanvas.getContext("2d", { willReadFrequently: true });
-      transContext.globalCompositeOperation = "destination-over";
-      canvas.width = imageWidth;
-      canvas.height = imageHeight;
-      context.imageSmoothingEnabled = false;
-      context.drawImage(bitmap, 0, 0);
-      let timer = Date.now();
-      const totalPixelMap = __privateMethod(this, _Template_instances, calculateTotalPixelsFromImageData_fn).call(this, context.getImageData(0, 0, imageWidth, imageHeight), paletteBM);
-      console.log(`Calculating total pixels took ${(Date.now() - timer) / 1e3} seconds`);
-      let totalPixels = 0;
-      const transparentColorID = 0;
-      for (const [color, total] of totalPixelMap) {
-        if (color == transparentColorID) {
-          continue;
-        }
-        totalPixels += total;
-      }
-      this.pixelCount = { total: totalPixels, colors: totalPixelMap };
-      timer = Date.now();
-      const canvasMask = new OffscreenCanvas(3, 3);
-      const contextMask = canvasMask.getContext("2d");
-      contextMask.clearRect(0, 0, 3, 3);
-      contextMask.fillStyle = "white";
-      contextMask.fillRect(1, 1, 1, 1);
-      for (let pixelY = this.coords[3]; pixelY < imageHeight + this.coords[3]; ) {
-        const drawSizeY = Math.min(this.tileSize - pixelY % this.tileSize, imageHeight - (pixelY - this.coords[3]));
-        console.log(`Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`);
-        for (let pixelX = this.coords[2]; pixelX < imageWidth + this.coords[2]; ) {
-          console.log(`Pixel X: ${pixelX}
-Pixel Y: ${pixelY}`);
-          const drawSizeX = Math.min(this.tileSize - pixelX % this.tileSize, imageWidth - (pixelX - this.coords[2]));
-          if (shouldSkipTransTiles) {
-            const isTemplateTileTransparent = !this.calculateCanvasTransparency({
-              bitmap,
-              bitmapParams: [pixelX - this.coords[2], pixelY - this.coords[3], drawSizeX, drawSizeY],
-              // Top left X, Top left Y, Width, Height
-              transCanvas,
-              transContext
-            });
-            console.log(`Tile contains template: ${!isTemplateTileTransparent}`);
-            if (isTemplateTileTransparent) {
-              pixelX += drawSizeX;
-              continue;
-            }
-          }
-          console.log(`Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`);
-          console.log(`Draw Size X: ${drawSizeX}
-Draw Size Y: ${drawSizeY}`);
-          const canvasWidth = drawSizeX * shreadSize;
-          const canvasHeight = drawSizeY * shreadSize;
-          canvas.width = canvasWidth;
-          canvas.height = canvasHeight;
-          console.log(`Draw X: ${drawSizeX}
-Draw Y: ${drawSizeY}
-Canvas Width: ${canvasWidth}
-Canvas Height: ${canvasHeight}`);
-          context.imageSmoothingEnabled = false;
-          console.log(`Getting X ${pixelX}-${pixelX + drawSizeX}
-Getting Y ${pixelY}-${pixelY + drawSizeY}`);
-          context.clearRect(0, 0, canvasWidth, canvasHeight);
-          context.drawImage(
-            bitmap,
-            // Bitmap image to draw
-            pixelX - this.coords[2],
-            // Coordinate X to draw *from*
-            pixelY - this.coords[3],
-            // Coordinate Y to draw *from*
-            drawSizeX,
-            // X width to draw *from*
-            drawSizeY,
-            // Y height to draw *from*
-            0,
-            // Coordinate X to draw *at*
-            0,
-            // Coordinate Y to draw *at*
-            drawSizeX * shreadSize,
-            // X width to draw *at*
-            drawSizeY * shreadSize
-            // Y height to draw *at*
-          );
-          context.save();
-          context.globalCompositeOperation = "destination-in";
-          console.log(`Should Skip: ${shouldSkipTransTiles}; Should Agg Skip: ${shouldAggSkipTransTiles}`);
-          context.fillStyle = context.createPattern(canvasMask, "repeat");
-          context.fillRect(0, 0, canvasWidth, canvasHeight);
-          context.restore();
-          const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
-          console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
-          const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
-          this.chunked32[templateTileName] = new Uint32Array(imageData.data.buffer);
-          templateTiles[templateTileName] = await createImageBitmap(canvas);
-          const canvasBlob = await canvas.convertToBlob();
-          const canvasBuffer = await canvasBlob.arrayBuffer();
-          const canvasBufferBytes = Array.from(new Uint8Array(canvasBuffer));
-          templateTilesBuffers[templateTileName] = uint8ToBase64(canvasBufferBytes);
-          console.log(templateTiles);
-          pixelX += drawSizeX;
-        }
-        pixelY += drawSizeY;
-      }
-      console.log(`Parsing template took ${(Date.now() - timer) / 1e3} seconds`);
-      console.log("Template Tiles: ", templateTiles);
-      console.log("Template Tiles Buffers: ", templateTilesBuffers);
-      console.log("Template Tiles Uint32Array: ", this.chunked32);
-      return { templateTiles, templateTilesBuffers };
-    }
-    /** Detects if the canvas is transparent.
-     * @param {Object} param - Object that contains the parameters for the function
-     * @param {ImageBitmap} param.bitmap - The bitmap template image
-     * @param {Array<number, number, number, number>} param.bitmapParams - The parameters to obtain the template tile image from the bitmap
-     * @param {OffscreenCanvas | HTMLCanvasElement} param.transCanvas - The canvas to draw to in order to calculate this
-     * @param {OffscreenCanvasRenderingContext2D} param.transContext - The context for the transparent canvas to draw to
-     * @return {boolean} Is the canvas transparent? If transparent, then `true` is returned. Otherwise, `false`.
-     * @since 0.91.75
-     */
-    calculateCanvasTransparency({
-      bitmap,
-      bitmapParams,
-      transCanvas,
-      transContext
-    }) {
-      console.log(`Calculating template tile transparency...`);
-      console.log(`Should Skip: ${this.shouldSkipTransTiles}; Should Agg: ${this.shouldAggSkipTransTiles}`);
-      const timer = Date.now();
-      const duplicationCoordinateArray = [
-        [0, 1],
-        // E.g. move 0 on the x axis, and 1 down on the y axis
-        [1, 0],
-        [0, -2],
-        // E.g. move 0 on the x axis, and 2 up on the y axis
-        [-2, 0],
-        [0, 4],
-        [4, 0],
-        [0, -8],
-        [-8, 0],
-        [0, 16],
-        [16, 0],
-        [0, -32],
-        [-32, 0]
-      ];
-      const transCanvasWidth = bitmapParams[2];
-      const transCanvasHeight = bitmapParams[3];
-      transCanvas.width = transCanvasWidth;
-      transCanvas.height = transCanvasHeight;
-      transContext.clearRect(0, 0, transCanvasWidth, transCanvasHeight);
-      if (this.shouldAggSkipTransTiles) {
-        transContext.drawImage(
-          bitmap,
-          ...bitmapParams,
-          // Bitmap image parameters (x, y, width, height)
-          0,
-          0,
-          // The coordinate draw the output *at*
-          10,
-          10
-          // The width and height of the output
-        );
-      } else {
-        transContext.drawImage(
-          bitmap,
-          ...bitmapParams,
-          // Bitmap image parameters (x, y, width, height)
-          0,
-          0,
-          // The coordinate draw the output *at*
-          transCanvasWidth,
-          transCanvasHeight
-          // Stretch to canvas (the canvas should already be the same size as the template image)
-        );
-        for (const [relativeX, relativeY] of duplicationCoordinateArray) {
-          transContext.drawImage(
-            transCanvas,
-            // The canvas we are drawing to *is* the source image
-            0,
-            0,
-            transCanvasWidth,
-            transCanvasHeight,
-            // The entire canvas (as a source image)
-            relativeX,
-            relativeY,
-            transCanvasWidth,
-            transCanvasHeight
-            // The output coordinates and size on the same canvas
-          );
-        }
-        transContext.drawImage(
-          transCanvas,
-          // The canvas we are drawing to *is* the source image
-          0,
-          0,
-          transCanvasWidth,
-          transCanvasHeight,
-          // The entire canvas (as a source image)
-          0,
-          0,
-          10,
-          10
-          // The output coordinates and size on the same canvas
-        );
-      }
-      const shunkCanvas = transContext.getImageData(0, 0, 10, 10);
-      const shunkCanvas32 = new Uint32Array(shunkCanvas.data.buffer);
-      console.log(`Calculated canvas transparency in ${(Date.now() - timer) / 1e3} seconds.`);
-      for (const pixel of shunkCanvas32) {
-        if (!!pixel) {
-          return true;
-        }
-      }
-      return false;
-    }
-    /** Calculates top left coordinate of template.
-     * It uses `Template.chunked` to update `Template.coords`
-     * @since 0.88.504
-     */
-    calculateCoordsFromChunked() {
-      let topLeftCoord = [Infinity, Infinity, Infinity, Infinity];
-      const tileKeys = Object.keys(this.chunked).sort();
-      tileKeys.forEach((key, index) => {
-        const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
-        if (tileY < topLeftCoord[1] || tileY == topLeftCoord[1] && tileX < topLeftCoord[0]) {
-          topLeftCoord = [tileX, tileY, pixelX, pixelY];
-        }
-      });
-      this.coords = topLeftCoord;
-    }
-  };
-  _Template_instances = new WeakSet();
-  /** Calculates the total pixels for each color for the image.
-   * 
-   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
-   * @param {Object} paletteBM - The palette Blue Marble uses for colors
-   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
-   * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
-   * @since 0.88.6
-   */
-  calculateTotalPixelsFromImageData_fn = function(imageData, paletteBM) {
-    const buffer32Arr = new Uint32Array(imageData.data.buffer);
-    const { palette: _, LUT: lookupTable } = paletteBM;
-    const _colorpalette = /* @__PURE__ */ new Map();
-    for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
-      const pixel = buffer32Arr[pixelIndex];
-      let bestColorID = -2;
-      if (pixel >>> 24 == 0) {
-        bestColorID = 0;
-      } else {
-        bestColorID = lookupTable.get(pixel) ?? -2;
-      }
-      const colorIDcount = _colorpalette.get(bestColorID);
-      _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
-    }
-    console.log(_colorpalette);
-    return _colorpalette;
-  };
-
   // src/confettiManager.js
   var ConfettiManager = class {
     /** The constructor for the confetti manager.
@@ -2476,64 +1687,6 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
   var BlueMarbleConfettiPiece = class extends HTMLElement {
   };
   customElements.define("confetti-piece", BlueMarbleConfettiPiece);
-
-  // src/WindowCredits.js
-  var WindowCredts = class extends Overlay {
-    /** Constructor for the Credits window
-     * @param {string} name - The name of the userscript
-     * @param {string} version - The version of the userscript
-     * @since 0.90.9
-     * @see {@link Overlay#constructor} for examples
-     */
-    constructor(name2, version2) {
-      super(name2, version2);
-      this.window = null;
-      this.windowID = "bm-window-credits";
-      this.windowParent = document.body;
-    }
-    /** Spawns a Credits window.
-     * If another credits window already exists, we DON'T spawn another!
-     * Parent/child relationships in the DOM structure below are indicated by indentation.
-     * @since 0.90.9
-     */
-    buildWindow() {
-      const ascii = `
-\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557     \u2588\u2588\u2557   \u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
-\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D
-\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2557  
-\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255D  
-\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
-\u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D
-
-\u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557     \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
-\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D
-\u2588\u2588\u2554\u2588\u2588\u2588\u2588\u2554\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2557  
-\u2588\u2588\u2551\u255A\u2588\u2588\u2554\u255D\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u255D  
-\u2588\u2588\u2551 \u255A\u2550\u255D \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
-\u255A\u2550\u255D     \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D
-`;
-      if (document.querySelector(`#${this.windowID}`)) {
-        document.querySelector(`#${this.windowID}`).remove();
-        return;
-      }
-      this.windowParent = document.body;
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }, (instance, div) => {
-      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Credits"', "data-button-status": "expanded" }, (instance, button) => {
-        button.onclick = () => instance.handleMinimization(button);
-        button.ontouchend = () => {
-          button.click();
-        };
-      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Credits"' }, (instance, button) => {
-        button.onclick = () => {
-          document.querySelector(`#${this.windowID}`)?.remove();
-        };
-        button.ontouchend = () => {
-          button.click();
-        };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Credits" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addSpan({ "role": "img", "aria-label": this.name }).addSpan({ "innerHTML": ascii, "class": "bm-ascii", "aria-hidden": "true" }).buildElement().buildElement().addBr().buildElement().addHr().buildElement().addBr().buildElement().addSpan({ "textContent": '"Blue Marble" userscript is made by SwingTheVine.' }).buildElement().addBr().buildElement().addSpan({ "innerHTML": 'The <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble Website</a> is made by <a href="https://github.com/crqch" target="_blank" rel="noopener noreferrer">crqch</a>.' }).buildElement().addBr().buildElement().addSpan({ "textContent": `The Blue Marble Website used until ${localizeDate(new Date(1756069320 * 1e3))} was made by Camille Daguin.` }).buildElement().addBr().buildElement().addSpan({ "textContent": 'The favicon "Blue Marble" is owned by NASA. (The image of the Earth is owned by NASA)' }).buildElement().addBr().buildElement().addSpan({ "textContent": "Special Thanks:" }).buildElement().addUl().addLi({ "textContent": "Espresso, Meqa, and Robot for moderating SwingTheVine's community." }).buildElement().addLi({ "innerHTML": 'nof, <a href="https://github.com/TouchedByDarkness" target="_blank" rel="noopener noreferrer">darkness</a> for creating similar userscripts!' }).buildElement().addLi({ "innerHTML": '<a href="https://wondapon.net/" target="_blank" rel="noopener noreferrer">Wonda</a> for the Blue Marble banner image!' }).buildElement().addLi({ "innerHTML": '<a href="https://crqch.dev/" target="_blank" rel="noopener noreferrer">crqch</a> for creating, maintaining, and hosting the <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble website</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/BullStein" target="_blank" rel="noopener noreferrer">BullStein</a>, <a href="https://github.com/allanf181" target="_blank" rel="noopener noreferrer">allanf181</a> for being early beta testers!' }).buildElement().addLi({ "innerHTML": 'guidu_ and <a href="https://github.com/Nick-machado" target="_blank" rel="noopener noreferrer">Nick-machado</a> for the original "Minimize" Button code!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/LolipopJ" target="_blank" rel="noopener noreferrer">LolipopJ</a> and <a href="https://github.com/Arttful" target="_blank" rel="noopener noreferrer">Arttful</a> for providing a solution to a bug I could not solve!' }).buildElement().addLi({ "innerHTML": 'Nomad and <a href="https://www.youtube.com/@gustav_vv" target="_blank" rel="noopener noreferrer">Gustav</a> for the tutorials!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/cfpwastaken" target="_blank" rel="noopener noreferrer">cfp</a> for creating the template overlay that Blue Marble was based on!' }).buildElement().addLi({ "innerHTML": '<a href="https://forcenetwork.cloud/" target="_blank" rel="noopener noreferrer">Force Network</a> for hosting the <a href="https://github.com/SwingTheVine/Wplace-TelemetryServer" target="_blank" rel="noopener noreferrer">telemetry server</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://thebluecorner.net" target="_blank" rel="noopener noreferrer">TheBlueCorner</a> for getting me interested in online pixel canvases!' }).buildElement().buildElement().addBr().buildElement().addSpan({ "innerHTML": '<a href="https://ko-fi.com/swingthevine" target="_blank" rel="noopener noreferrer">Donators</a>:' }).buildElement().addUl().addLi({ "textContent": "Soultree" }).buildElement().addLi({ "textContent": "Espresso" }).buildElement().addLi({ "textContent": "BEST FAN" }).buildElement().addLi({ "textContent": "Ferb" }).buildElement().addLi({ "textContent": "FuchsDresden" }).buildElement().addLi({ "textContent": "Jack" }).buildElement().addLi({ "textContent": "raiken_au" }).buildElement().addLi({ "textContent": "Jacob" }).buildElement().addLi({ "textContent": "StupidOne" }).buildElement().addLi({ "textContent": "Glox" }).buildElement().addLi({ "textContent": "PintilieVasile" }).buildElement().addLi({ "textContent": "Corni" }).buildElement().addLi({ "textContent": "Liam" }).buildElement().addLi({ "textContent": "som9" }).buildElement().addLi({ "textContent": "2 Anonymous Supporters" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
-      this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
-    }
-  };
 
   // src/WindowFilter.js
   var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn, calculatePixelStatistics_fn;
@@ -2971,6 +2124,936 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
     this.timeRemainingLocalized = localizeDate(this.timeRemaining);
   };
 
+  // src/WindowSettings.js
+  var _WindowSettings_instances, errorOverrideFailure_fn;
+  var WindowSettings = class extends Overlay {
+    /** Constructor for the Settings window
+     * @param {string} name - The name of the userscript
+     * @param {string} version - The version of the userscript
+     * @since 0.91.11
+     * @see {@link Overlay#constructor} for examples
+     */
+    constructor(name2, version2) {
+      super(name2, version2);
+      __privateAdd(this, _WindowSettings_instances);
+      this.window = null;
+      this.windowID = "bm-window-settings";
+      this.windowParent = document.body;
+    }
+    /** Spawns a Settings window.
+     * If another settings window already exists, we DON'T spawn another!
+     * Parent/child relationships in the DOM structure below are indicated by indentation.
+     * @since 0.91.11
+     */
+    buildWindow() {
+      if (document.querySelector(`#${this.windowID}`)) {
+        document.querySelector(`#${this.windowID}`).remove();
+        return;
+      }
+      this.windowParent = document.body;
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
+        button.onclick = () => instance.handleMinimization(button);
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().addDiv().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Color Filter"' }, (instance, button) => {
+        button.onclick = () => {
+          document.querySelector(`#${this.windowID}`)?.remove();
+        };
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Settings" }).buildElement().buildElement().addHr().buildElement().addP({ "textContent": "Settings take 2 seconds to save." }).buildElement().addDiv({ "class": "bm-container bm-scrollable" }, (instance, div) => {
+        this.buildHighlight();
+        this.buildTemplate();
+      }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+    }
+    /** Builds the highlight section of the window.
+     * This should be overriden by {@link SettingsManager}
+     * @since 0.91.11
+     */
+    buildHighlight() {
+      __privateMethod(this, _WindowSettings_instances, errorOverrideFailure_fn).call(this, "Pixel Highlight");
+    }
+    /** Builds the template section of the window.
+     * This should be overriden by {@link SettingsManager}
+     * @since 0.91.68
+     */
+    buildTemplate() {
+      __privateMethod(this, _WindowSettings_instances, errorOverrideFailure_fn).call(this, "Template");
+    }
+  };
+  _WindowSettings_instances = new WeakSet();
+  /** Displays an error when a settings category fails to load.
+   * @param {string} name - The name of the category
+   * @since 0.91.11
+   */
+  errorOverrideFailure_fn = function(name2) {
+    this.window = this.addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": name2 }).buildElement().addHr().buildElement().addP({ "innerHTML": `An error occured loading the ${name2} category. <code>SettingsManager</code> failed to override the ${name2} function inside <code>WindowSettings</code>.` }).buildElement().buildElement();
+  };
+
+  // src/settingsManager.js
+  var _windowStatesObject, _windowStatesObjectEncoded, _SettingsManager_instances, updateHighlightSettings_fn, updateHighlightToPreset_fn, updateFilteredColors_fn, updateWindowState_fn, decodeWindowStateToObject_fn;
+  var SettingsManager = class extends WindowSettings {
+    /** Constructor for the SettingsManager class
+     * @param {string} name - The name of the userscript
+     * @param {string} version - The version of the userscript
+     * @param {Object} userSettings - The user settings as an object
+     * @since 0.91.11
+     */
+    constructor(name2, version2, userSettings) {
+      var _a;
+      super(name2, version2);
+      __privateAdd(this, _SettingsManager_instances);
+      __privateAdd(this, _windowStatesObject);
+      __privateAdd(this, _windowStatesObjectEncoded);
+      this.zerothEncodingAlphabetCharacter = numberToEncoded(0);
+      this.onethEncodingAlphabetCharacter = numberToEncoded(1);
+      this.windowMain = null;
+      this.windowFilter = null;
+      this.windowCredits = null;
+      this.windowWizard = null;
+      this.windowSettings = null;
+      this.templateManager = null;
+      this.apiManager = null;
+      this.userSettings = userSettings;
+      (_a = this.userSettings).flags ?? (_a.flags = []);
+      this.userSettingsOld = structuredClone(this.userSettings);
+      this.userSettingsSaveLocation = "bmUserSettings";
+      this.commonStatesByteLength = 8;
+      __privateSet(this, _windowStatesObjectEncoded, this.userSettings?.windowStates ?? {});
+      __privateSet(this, _windowStatesObject, __privateMethod(this, _SettingsManager_instances, decodeWindowStateToObject_fn).call(this, __privateGet(this, _windowStatesObjectEncoded)) ?? {});
+      this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i);
+      this.updateFrequency = 2e3;
+      this.lastUpdateTime = 0;
+      setInterval(__privateMethod(this, _SettingsManager_instances, updateWindowState_fn).bind(this), this.updateFrequency * 0.6);
+      setInterval(this.updateUserStorage.bind(this), this.updateFrequency);
+    }
+    /** Updates the user settings in userscript storage
+     * @since 0.91.39
+     */
+    async updateUserStorage() {
+      await __privateMethod(this, _SettingsManager_instances, updateFilteredColors_fn).call(this);
+      this.userSettings["windowStates"] = __privateGet(this, _windowStatesObjectEncoded);
+      const userSettingsCurrent = JSON.stringify(this.userSettings);
+      const userSettingsOld = JSON.stringify(this.userSettingsOld);
+      if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
+        await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent);
+        this.userSettingsOld = structuredClone(this.userSettings);
+        __privateSet(this, _windowStatesObject, __privateMethod(this, _SettingsManager_instances, decodeWindowStateToObject_fn).call(this, __privateGet(this, _windowStatesObjectEncoded)) ?? {});
+        this.lastUpdateTime = Date.now();
+        console.log(userSettingsCurrent);
+      }
+    }
+    /** Toggles a boolean flag to the state that was passed in.
+     * If no state was passed in, the flag will flip to the opposite state.
+     * The existence of the flag determines its state. If it exists, it is `true`.
+     * @param {string} flagName - The name of the flag to toggle
+     * @param {boolean} [state=undefined] - (Optional) The state to change the flag to
+     * @since 0.91.60
+     */
+    toggleFlag(flagName, state = void 0) {
+      console.log("Flag Settings:", this.userSettings?.flags);
+      const flagIndex = this.userSettings?.flags?.indexOf(flagName) ?? -1;
+      console.log(`Flag '${flagName}' is requested to become '${state}' (currently ${flagIndex})`);
+      if (flagIndex != -1 && state !== true) {
+        console.log(`Setting flag '${flagName}' to false!`);
+        this.userSettings?.flags?.splice(flagIndex, 1);
+      } else if (flagIndex == -1 && state !== false) {
+        console.log(`Setting flag '${flagName}' to true! (Adding to storage)`);
+        this.userSettings?.flags?.push(flagName);
+      }
+      console.log("Flag Settings Final: ", this.userSettings?.flags);
+    }
+    // This is one of the most insane OOP setups I have ever laid my eyes on
+    /** Builds the "highlight" category of the settings window
+     * @since 0.91.18
+     * @see WindowSettings#buildHighlight
+     */
+    buildHighlight() {
+      const highlightPresetOff = '<svg viewBox="0 0 3 3"><path d="M0,0H3V3H0ZM0,1H3M0,2H3M1,0V3M2,0V3" fill="#fff"/><path d="M1,1H2V2H1Z" fill="#2f4f4f"/></svg>';
+      const highlightPresetCross = '<svg viewBox="0 0 3 3"><path d="M0,0H3V3H0Z" fill="#fff"/><path d="M1,0H2V1H3V2H2V3H1V2H0V1H1Z" fill="brown"/><path d="M1,1H2V2H1Z" fill="#2f4f4f"/></svg>';
+      const storedHighlight = this.userSettings?.highlight ?? [[1, 0, 1], [2, 0, 0], [1, -1, 0], [1, 1, 0], [1, 0, -1]];
+      this.window = this.addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Pixel Highlight" }).buildElement().addHr().buildElement().addDiv({ "class": "bm-container", "style": "margin-left: 1.5ch;" }).addCheckbox({ "textContent": "Highlight transparent pixels" }, (instance, label, checkbox) => {
+        checkbox.checked = !this.userSettings?.flags?.includes("hl-noTrans");
+        checkbox.onchange = (event) => this.toggleFlag("hl-noTrans", !event.target.checked);
+      }).buildElement().addP({ "id": "bm-highlight-preset-label", "textContent": "Choose a preset:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-flex-center", "role": "group", "aria-labelledby": "bm-highlight-preset-label" }).addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "None" }).buildElement().addButton({ "innerHTML": highlightPresetOff, "aria-label": 'Preset "None"' }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "None");
+      }).buildElement().buildElement().addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "Cross" }).buildElement().addButton({ "innerHTML": highlightPresetCross, "aria-label": 'Preset "Cross Shape"' }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "Cross");
+      }).buildElement().buildElement().addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "X" }).buildElement().addButton({ "innerHTML": highlightPresetCross.replace('d="M1,0H2V1H3V2H2V3H1V2H0V1H1Z"', 'd="M0,0V1H3V0H2V3H3V2H0V3H1V0Z"'), "aria-label": 'Preset "X Shape"' }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "X");
+      }).buildElement().buildElement().addDiv({ "class": "bm-highlight-preset-container" }).addSpan({ "textContent": "Full" }).buildElement().addButton({ "innerHTML": highlightPresetOff.replace("#fff", "#2f4f4f"), "aria-label": 'Preset "Full Template"' }, (instance, button) => {
+        button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightToPreset_fn).call(this, "Full");
+      }).buildElement().buildElement().buildElement().addP({ "id": "bm-highlight-grid-label", "textContent": "Create a custom pattern:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-highlight-grid", "role": "group", "aria-labelledby": "bm-highlight-grid-label" });
+      for (let buttonY = -1; buttonY <= 1; buttonY++) {
+        for (let buttonX = -1; buttonX <= 1; buttonX++) {
+          const buttonState = storedHighlight[storedHighlight.findIndex(([, x, y]) => x == buttonX && y == buttonY)]?.[0] ?? 0;
+          let buttonStateName = "Disabled";
+          if (buttonState == 1) {
+            buttonStateName = "Incorrect";
+          } else if (buttonState == 2) {
+            buttonStateName = "Template";
+          }
+          this.window = this.addButton({
+            "data-status": buttonStateName,
+            "aria-label": `Sub-pixel ${buttonStateName.toLowerCase()}`
+          }, (instance, button) => {
+            button.onclick = () => __privateMethod(this, _SettingsManager_instances, updateHighlightSettings_fn).call(this, button, [buttonX, buttonY]);
+          }).buildElement();
+        }
+      }
+      this.window = this.buildElement().buildElement().buildElement();
+    }
+    /** Decodes the filtered color bit flags that came from user storage.
+     * @param {string} encodedString - The filtered color save-state from user storage
+     * @returns {Map<number, boolean>} A map containing only entries of colors to filter
+     * @since 0.92.18
+     */
+    decodeFilteredColorBitFlags(encodedString) {
+      const shouldColorBeFiltered = /* @__PURE__ */ new Map();
+      if (typeof encodedString !== "string") {
+        consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
+        return shouldColorBeFiltered;
+      }
+      if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
+        return shouldColorBeFiltered;
+      }
+      const minSupportedBitFlag = -32;
+      const maxSupportedBitFlag = 63;
+      const supportedEncodedBitFlags = encodedString.slice(0, 15);
+      const bitFlagsNegSmall = encodedToNumber(supportedEncodedBitFlags.slice(0, 5));
+      const bitFlagsPosSmall = encodedToNumber(supportedEncodedBitFlags.slice(5, 10));
+      const bitFlagsPosLarge = encodedToNumber(supportedEncodedBitFlags.slice(10, 15));
+      for (let id = minSupportedBitFlag; id <= maxSupportedBitFlag; id++) {
+        let isBitTrue = false;
+        if (id >= -32 && id <= -1) {
+          isBitTrue = (bitFlagsNegSmall & 1 << id + 32) !== 0;
+        } else if (id >= 0 && id <= 31) {
+          isBitTrue = (bitFlagsPosSmall & 1 << id) !== 0;
+        } else if (id >= 32 && id <= 63) {
+          isBitTrue = (bitFlagsPosLarge & 1 << id - 32) !== 0;
+        }
+        if (isBitTrue) {
+          shouldColorBeFiltered.set(id, true);
+        }
+      }
+      return shouldColorBeFiltered;
+    }
+    /** Build the "template" category of settings window
+     * @since 0.91.68
+     * @see WindowSettings#buildTemplate
+     */
+    buildTemplate() {
+      this.window = this.addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Template" }).buildElement().addHr().buildElement().addDiv({ "class": "bm-container", "style": "margin-left: 1.5ch;" }).addCheckbox({ "textContent": "Template creation should skip transparent tiles" }, (instance, label, checkbox) => {
+        checkbox.checked = !this.userSettings?.flags?.includes("hl-noSkip");
+        checkbox.onchange = (event) => this.toggleFlag("hl-noSkip", !event.target.checked);
+      }).buildElement().addCheckbox({ "innerHTML": "Experimental: Template creation should <em>aggressively</em> skip transparent tiles" }, (instance, label, checkbox) => {
+        checkbox.checked = this.userSettings?.flags?.includes("hl-agSkip");
+        checkbox.onchange = (event) => this.toggleFlag("hl-agSkip", event.target.checked);
+      }).buildElement().buildElement().buildElement();
+    }
+    /** Returns the decoded window states
+     * @since 0.92.69
+     * @returns {Object} An object containing window states
+     */
+    getWindowStatesObject() {
+      console.log("#windowStatesObject: ", __privateGet(this, _windowStatesObject));
+      return __privateGet(this, _windowStatesObject);
+    }
+    /** Returns the corresponding variable's value from the window state.
+     * This was specifically so an enum value could be passed in as the `index`.
+     * @param {string} tinyID - The ID for the window that is ONLY used inside user storage
+     * @param {number} index - The Array index that contains the value
+     * @since 0.92.77
+     * @returns {number | boolean}
+     */
+    getWindowStateVariable(tinyID, index) {
+      if (typeof tinyID !== "string" || typeof index !== "number") {
+        consoleError(`Attempted to get window state variable with type (string, number), but recieved type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})
+Returning zero...`);
+        return 0;
+      }
+      const windowState = __privateGet(this, _windowStatesObject)?.[tinyID];
+      if (!Number.isInteger(index) || index < 0 || index > windowState.length - 1) {
+        consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}
+ Returning zero...`);
+        return 0;
+      }
+      return windowState[index];
+    }
+    /** Populates the windowMain variable with the WindowMain class.
+     * @param {WindowMain} windowMain - The WindowMain class instance
+     * @since 0.92.23
+     */
+    setWindowMain(windowMain) {
+      this.windowMain = windowMain;
+    }
+    /** Populates the windowFilter variable with the WindowFilter class.
+     * @param {WindowFilter} windowFilter - The windowFilter class instance
+     * @since 0.94.17
+     */
+    setWindowFilter(windowFilter) {
+      this.windowFilter = windowFilter;
+    }
+    /** Populates the windowCredits variable with the WindowCredits class.
+     * @param {WindowCredits} windowCredits - The windowCredits class instance
+     * @since 0.94.17
+     */
+    setWindowCredits(windowCredits) {
+      this.windowCredits = windowCredits;
+    }
+    /** Populates the windowWizard variable with the WindowWizard class.
+     * @param {WindowWizard} windowWizard - The windowWizard class instance
+     * @since 0.94.17
+     */
+    setWindowWizard(windowWizard) {
+      this.windowWizard = windowWizard;
+    }
+    /** Populates the windowSettings variable with the WindowSettings class.
+     * @param {WindowSettings} windowSettings - The windowSettings class instance
+     * @since 0.94.17
+     */
+    setWindowSettings(windowSettings) {
+      this.windowSettings = windowSettings;
+    }
+    /** Populates the templateManager variable with the templateManager class.
+     * @param {TemplateManager} templateManager - The templateManager class instance
+     * @since 0.92.22
+     */
+    setTemplateManager(templateManager) {
+      this.templateManager = templateManager;
+    }
+    /** Populates the apiManager variable with the apiManager class.
+     * @param {ApiManager} apiManager - The apiManager class instance
+     * @since 0.92.23
+     */
+    setApiManager(apiManager) {
+      this.apiManager = apiManager;
+    }
+  };
+  _windowStatesObject = new WeakMap();
+  _windowStatesObjectEncoded = new WeakMap();
+  _SettingsManager_instances = new WeakSet();
+  /** Updates the display of the highlight buttons in the settings window.
+   * Additionally, it will update user settings with the new selection.
+   * @param {HTMLButtonElement} button - The button that was pressed
+   * @param {Array<number, number>} coords - The relative coordinates of the button
+   * @since 0.91.46
+   */
+  updateHighlightSettings_fn = function(button, coords) {
+    button.disabled = true;
+    const status = button.dataset["status"];
+    const userStorageOld = this.userSettings?.highlight ?? [[1, 0, 1], [2, 0, 0], [1, -1, 0], [1, 1, 0], [1, 0, -1]];
+    let userStorageChange = [2, 0, 0];
+    const userStorageNew = userStorageOld;
+    switch (status) {
+      // If the button was in the "Disabled" state
+      case "Disabled":
+        button.dataset["status"] = "Incorrect";
+        button.ariaLabel = "Sub-pixel incorrect";
+        userStorageChange = [1, ...coords];
+        break;
+      // If the button was in the "Incorrect" state
+      case "Incorrect":
+        button.dataset["status"] = "Template";
+        button.ariaLabel = "Sub-pixel template";
+        userStorageChange = [2, ...coords];
+        break;
+      // If the button was in the "Template" state
+      case "Template":
+        button.dataset["status"] = "Disabled";
+        button.ariaLabel = "Sub-pixel disabled";
+        userStorageChange = [0, ...coords];
+        break;
+    }
+    const indexOfChange = userStorageOld.findIndex(([, x, y]) => x == userStorageChange[1] && y == userStorageChange[2]);
+    if (userStorageChange[0] != 0) {
+      if (indexOfChange != -1) {
+        userStorageNew[indexOfChange] = userStorageChange;
+      } else {
+        userStorageNew.push(userStorageChange);
+      }
+    } else if (indexOfChange != -1) {
+      userStorageNew.splice(indexOfChange, 1);
+    }
+    console.log("New Highlight Settings: ", userStorageNew);
+    this.userSettings["highlight"] = userStorageNew;
+    button.disabled = false;
+  };
+  updateHighlightToPreset_fn = async function(preset) {
+    const presetButtons = document.querySelectorAll(".bm-highlight-preset-container button");
+    for (const button of presetButtons) {
+      button.disabled = true;
+    }
+    let presetArray = [0, 0, 0, 0, 2, 0, 0, 0, 0];
+    switch (preset) {
+      case "Cross":
+        presetArray = [0, 1, 0, 1, 2, 1, 0, 1, 0];
+        break;
+      case "X":
+        presetArray = [1, 0, 1, 0, 2, 0, 1, 0, 1];
+        break;
+      case "Full":
+        presetArray = [2, 2, 2, 2, 2, 2, 2, 2, 2];
+        break;
+    }
+    const buttons = document.querySelector(".bm-highlight-grid")?.childNodes ?? [];
+    for (let buttonIndex = 0; buttonIndex < buttons.length; buttonIndex++) {
+      const button = buttons[buttonIndex];
+      let buttonState = button.dataset["status"];
+      buttonState = buttonState != "Disabled" ? buttonState != "Incorrect" ? 2 : 1 : 0;
+      let buttonStateDelta = presetArray[buttonIndex] - buttonState;
+      if (buttonStateDelta == 0) {
+        continue;
+      }
+      buttonStateDelta += buttonStateDelta < 0 ? 3 : 0;
+      button.click();
+      if (buttonStateDelta == 2) {
+        for (let timeWaited = 0; timeWaited < 200; timeWaited += 10) {
+          if (!button.disabled) {
+            break;
+          }
+          await sleep(10);
+        }
+        button.click();
+      }
+    }
+    for (const button of presetButtons) {
+      button.disabled = false;
+    }
+  };
+  updateFilteredColors_fn = async function() {
+    const filteredColorMap = this.templateManager.shouldFilterColor;
+    if (!filteredColorMap.size) {
+      this.userSettings.filter = this.zerothEncodingAlphabetCharacter.repeat(15);
+      return;
+    }
+    let mutableBitFlagsNegSmall = 0;
+    let mutableBitFlagsPosSmall = 0;
+    let mutableBitFlagsPosLarge = 0;
+    for (const [id, value] of filteredColorMap) {
+      if (id >= -32 && id <= -1) {
+        mutableBitFlagsNegSmall = set32BitPosition(mutableBitFlagsNegSmall, id + 32, value);
+      } else if (id >= 0 && id <= 31) {
+        mutableBitFlagsPosSmall = set32BitPosition(mutableBitFlagsPosSmall, id, value);
+      } else if (id >= 32 && id <= 63) {
+        mutableBitFlagsPosLarge = set32BitPosition(mutableBitFlagsPosLarge, id - 32, value);
+      } else {
+        consoleError(`Attempted to store filter color with ID #${id} but this ID number is out of bounds (-32 to 63)! The color will not be stored.`);
+      }
+    }
+    const encodedBitFlags = numberToEncoded(mutableBitFlagsNegSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
+    this.userSettings.filter = encodedBitFlags;
+  };
+  /** Retrieves all window states, and *overrides* the user storage version stored in `this.userStorage.windowStates`.
+   * This encodes window states.
+   * @since 0.92.23
+   */
+  updateWindowState_fn = function() {
+    const obtainCommonStates = (windowElement, userStorageID) => {
+      const commonStatesOld = __privateGet(this, _windowStatesObjectEncoded)?.[userStorageID]?.slice(0, this.commonStatesByteLength) ?? this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
+      if (!windowElement) {
+        return commonStatesOld.slice(0, 1) + numberToEncoded(set32BitPosition(encodedToNumber(commonStatesOld.slice(1, 2)), 0, false)) + commonStatesOld.slice(2);
+      }
+      const drawDepth = Math.max(0, Math.min(Number(windowElement.dataset["drawDepth"] ?? 0), 91));
+      let bitFlagsMutable = set32BitPosition(0, 0, true);
+      const windowMinimizationButton = windowElement.querySelector("button[data-button-status]");
+      const isWindowMinimized = windowMinimizationButton?.dataset["buttonStatus"] == "collapsed";
+      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 1, isWindowMinimized);
+      const windowStyle = windowElement.style;
+      const matches = this.commonWindowStateTranslateRegEx.exec(windowStyle.getPropertyValue("transform") ?? "");
+      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 2, !!matches);
+      const xTransCoord = Number(matches?.[1] ?? 0);
+      const yTransCoord = Number(matches?.[2] ?? 0);
+      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 3, !(Math.sign(xTransCoord) + 1));
+      bitFlagsMutable = set32BitPosition(bitFlagsMutable, 4, !(Math.sign(yTransCoord) + 1));
+      const windowCoordinateMaximum = 778687;
+      const windowTransX = numberToEncoded(Math.min(Math.abs(xTransCoord), windowCoordinateMaximum));
+      const windowTransY = numberToEncoded(Math.min(Math.abs(yTransCoord), windowCoordinateMaximum));
+      return numberToEncoded(drawDepth).slice(-1) + numberToEncoded(bitFlagsMutable).slice(-1) + windowTransX.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3) + windowTransY.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3);
+    };
+    const windowMainID = this.windowMain?.windowID;
+    const windowMainElement = windowMainID ? document.querySelector("#" + this.windowMain?.windowID) : void 0;
+    const windowMainCommonStates = obtainCommonStates(windowMainElement, "bm");
+    let windowMainUniqueStatesMutable = 0;
+    const windowMainTemplateCoordinateX = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-tx")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-px")?.value ?? 0)));
+    const windowMainTemplateCoordinateY = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-ty")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-py")?.value ?? 0)));
+    const windowMainState = windowMainCommonStates + numberToEncoded(windowMainUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2) + numberToEncoded(windowMainTemplateCoordinateX).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4) + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4);
+    __privateGet(this, _windowStatesObjectEncoded)["bm"] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
+    const windowCreditsID = this.windowCredits?.windowID;
+    const windowCreditsElement = windowCreditsID ? document.querySelector("#" + this.windowCredits?.windowID) : void 0;
+    const windowCreditsCommonStates = obtainCommonStates(windowCreditsElement, "crdt");
+    let windowCreditsUniqueStatesMutable = 0;
+    const windowCreditsState = windowCreditsCommonStates + numberToEncoded(windowCreditsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
+    __privateGet(this, _windowStatesObjectEncoded)["crdt"] = windowCreditsState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
+  };
+  /** Decodes & builds the window state object.
+   * This function parses user storage into a readable format,
+   * then passes it to the {@link SettingsManager}, which is the owner of the windows state object.
+   * @param {Object} windowState - The encoded state of all windows saved in user storage
+   * @since 0.92.23
+   */
+  decodeWindowStateToObject_fn = function(windowState) {
+    console.log("Recieved window state to decode: ", windowState);
+    const decodeCommonStates = (encodedString) => {
+      if (typeof encodedString !== "string" || encodedString.length == 0) {
+        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
+Assuming all common states are zeros...`);
+        encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
+      }
+      const drawDepth = encodedToNumber(encodedString.slice(0, 1));
+      const bitFlags = encodedToNumber(encodedString.slice(1, 2));
+      const isWindowInDOM = (bitFlags & 1 << 0) !== 0;
+      const isWindowMinimized = (bitFlags & 1 << 1) !== 0;
+      const hasWindowBeenMoved = (bitFlags & 1 << 2) !== 0;
+      const xAxisSignIsNegative = (bitFlags & 1 << 3) !== 0;
+      const yAxisSignIsNegative = (bitFlags & 1 << 4) !== 0;
+      const reservedCommonFlag = false;
+      const xAxisShiftTrans = encodedToNumber(encodedString.slice(2, 5));
+      const yAxisShiftTrans = encodedToNumber(encodedString.slice(5, 8));
+      const commonStates = [drawDepth, isWindowInDOM, isWindowMinimized, hasWindowBeenMoved, xAxisSignIsNegative, yAxisSignIsNegative, reservedCommonFlag, xAxisShiftTrans, yAxisShiftTrans];
+      return commonStates;
+    };
+    const mainWindowStateDefault = "!#!!!!!!!!!!!!!!!!";
+    const creditsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10);
+    const mainWindowEncodedState = windowState["bm"] ?? mainWindowStateDefault;
+    const mainWindowEncodedCommon = mainWindowEncodedState?.slice(0, this.commonStatesByteLength);
+    const mainWindowEncodedFlags = mainWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const mainWindowTemplateCoordX = encodedToNumber(mainWindowEncodedState?.slice(10, 14));
+    const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18));
+    const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(
+      numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0).slice(-13),
+      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      mainWindowTemplateCoordX,
+      mainWindowTemplateCoordY
+    );
+    console.log(mainWindowState);
+    const creditsWindowEncodedState = windowState["crdt"] ?? creditsWindowStateDefault;
+    const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength);
+    const creditsWindowEncodedFlags = creditsWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const creditsWindowState = decodeCommonStates(creditsWindowEncodedCommon).concat(
+      numberUnsignedTo32BitBooleanArray(encodedToNumber(creditsWindowEncodedFlags) >>> 0).slice(-13)
+      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+    );
+    return {
+      "bm": mainWindowState,
+      "crdt": creditsWindowState
+    };
+  };
+
+  // src/Template.js
+  var _Template_instances, calculateTotalPixelsFromImageData_fn;
+  var Template = class {
+    /** The constructor for the {@link Template} class with enhanced pixel tracking.
+     * @param {Object} [params={}] - Object containing all optional parameters
+     * @param {string} [params.displayName='My template'] - The display name of the template
+     * @param {number} [params.sortID=0] - The sort number of the template for rendering priority
+     * @param {string} [params.authorID=''] - The user ID of the person who exported the template (prevents sort ID collisions)
+     * @param {string} [params.url=''] - The URL to the source image
+     * @param {File} [params.file=null] - The template file (pre-processed File or processed bitmap)
+     * @param {Array<number, number, number, number>} [params.coords=null] - The coordinates of the top left corner as (tileX, tileY, pixelX, pixelY)
+     * @param {Object} [params.chunked=null] - The affected chunks of the template, and their template for each chunk as a bitmap
+     * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
+     * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
+     * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
+     * @since 0.65.2
+     */
+    constructor({
+      displayName = "My template",
+      sortID = 0,
+      authorID = "",
+      url = "",
+      file = null,
+      coords = null,
+      chunked = null,
+      chunked32 = {},
+      tileSize = 1e3
+    } = {}) {
+      __privateAdd(this, _Template_instances);
+      this.displayName = displayName;
+      this.sortID = sortID;
+      this.authorID = authorID;
+      this.url = url;
+      this.file = file;
+      this.coords = coords;
+      this.chunked = chunked;
+      this.chunked32 = chunked32;
+      this.tileSize = tileSize;
+      this.pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() };
+      this.shouldSkipTransTiles = true;
+      this.shouldAggSkipTransTiles = false;
+    }
+    /** Creates chunks of the template for each tile.
+     * @param {Number} tileSize - Size of the tile as determined by templateManager
+     * @param {Object} paletteBM - An collection of Uint32Arrays containing the palette BM uses
+     * @param {boolean} shouldSkipTransTiles - Should transparent tiles be skipped over when creating the template?
+     * @param {boolean} shouldAggSkipTransTiles - Should transparent tiles be aggressively skipped over when creating the template?
+     * @returns {Object} Collection of template bitmaps & buffers organized by tile coordinates
+     * @since 0.65.4
+     */
+    async createTemplateTiles(tileSize, paletteBM, shouldSkipTransTiles, shouldAggSkipTransTiles) {
+      console.log("Template coordinates:", this.coords);
+      this.shouldSkipTransTiles = shouldSkipTransTiles;
+      this.shouldAggSkipTransTiles = shouldAggSkipTransTiles;
+      const shreadSize = 3;
+      const bitmap = await createImageBitmap(this.file);
+      const imageWidth = bitmap.width;
+      const imageHeight = bitmap.height;
+      this.tileSize = tileSize;
+      const templateTiles = {};
+      const templateTilesBuffers = {};
+      const canvas = new OffscreenCanvas(this.tileSize, this.tileSize);
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      const transCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
+      const transContext = transCanvas.getContext("2d", { willReadFrequently: true });
+      transContext.globalCompositeOperation = "destination-over";
+      canvas.width = imageWidth;
+      canvas.height = imageHeight;
+      context.imageSmoothingEnabled = false;
+      context.drawImage(bitmap, 0, 0);
+      let timer = Date.now();
+      const totalPixelMap = __privateMethod(this, _Template_instances, calculateTotalPixelsFromImageData_fn).call(this, context.getImageData(0, 0, imageWidth, imageHeight), paletteBM);
+      console.log(`Calculating total pixels took ${(Date.now() - timer) / 1e3} seconds`);
+      let totalPixels = 0;
+      const transparentColorID = 0;
+      for (const [color, total] of totalPixelMap) {
+        if (color == transparentColorID) {
+          continue;
+        }
+        totalPixels += total;
+      }
+      this.pixelCount = { total: totalPixels, colors: totalPixelMap };
+      timer = Date.now();
+      const canvasMask = new OffscreenCanvas(3, 3);
+      const contextMask = canvasMask.getContext("2d");
+      contextMask.clearRect(0, 0, 3, 3);
+      contextMask.fillStyle = "white";
+      contextMask.fillRect(1, 1, 1, 1);
+      for (let pixelY = this.coords[3]; pixelY < imageHeight + this.coords[3]; ) {
+        const drawSizeY = Math.min(this.tileSize - pixelY % this.tileSize, imageHeight - (pixelY - this.coords[3]));
+        console.log(`Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`);
+        for (let pixelX = this.coords[2]; pixelX < imageWidth + this.coords[2]; ) {
+          console.log(`Pixel X: ${pixelX}
+Pixel Y: ${pixelY}`);
+          const drawSizeX = Math.min(this.tileSize - pixelX % this.tileSize, imageWidth - (pixelX - this.coords[2]));
+          if (shouldSkipTransTiles) {
+            const isTemplateTileTransparent = !this.calculateCanvasTransparency({
+              bitmap,
+              bitmapParams: [pixelX - this.coords[2], pixelY - this.coords[3], drawSizeX, drawSizeY],
+              // Top left X, Top left Y, Width, Height
+              transCanvas,
+              transContext
+            });
+            console.log(`Tile contains template: ${!isTemplateTileTransparent}`);
+            if (isTemplateTileTransparent) {
+              pixelX += drawSizeX;
+              continue;
+            }
+          }
+          console.log(`Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`);
+          console.log(`Draw Size X: ${drawSizeX}
+Draw Size Y: ${drawSizeY}`);
+          const canvasWidth = drawSizeX * shreadSize;
+          const canvasHeight = drawSizeY * shreadSize;
+          canvas.width = canvasWidth;
+          canvas.height = canvasHeight;
+          console.log(`Draw X: ${drawSizeX}
+Draw Y: ${drawSizeY}
+Canvas Width: ${canvasWidth}
+Canvas Height: ${canvasHeight}`);
+          context.imageSmoothingEnabled = false;
+          console.log(`Getting X ${pixelX}-${pixelX + drawSizeX}
+Getting Y ${pixelY}-${pixelY + drawSizeY}`);
+          context.clearRect(0, 0, canvasWidth, canvasHeight);
+          context.drawImage(
+            bitmap,
+            // Bitmap image to draw
+            pixelX - this.coords[2],
+            // Coordinate X to draw *from*
+            pixelY - this.coords[3],
+            // Coordinate Y to draw *from*
+            drawSizeX,
+            // X width to draw *from*
+            drawSizeY,
+            // Y height to draw *from*
+            0,
+            // Coordinate X to draw *at*
+            0,
+            // Coordinate Y to draw *at*
+            drawSizeX * shreadSize,
+            // X width to draw *at*
+            drawSizeY * shreadSize
+            // Y height to draw *at*
+          );
+          context.save();
+          context.globalCompositeOperation = "destination-in";
+          console.log(`Should Skip: ${shouldSkipTransTiles}; Should Agg Skip: ${shouldAggSkipTransTiles}`);
+          context.fillStyle = context.createPattern(canvasMask, "repeat");
+          context.fillRect(0, 0, canvasWidth, canvasHeight);
+          context.restore();
+          const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
+          console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
+          const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
+          this.chunked32[templateTileName] = new Uint32Array(imageData.data.buffer);
+          templateTiles[templateTileName] = await createImageBitmap(canvas);
+          const canvasBlob = await canvas.convertToBlob();
+          const canvasBuffer = await canvasBlob.arrayBuffer();
+          const canvasBufferBytes = Array.from(new Uint8Array(canvasBuffer));
+          templateTilesBuffers[templateTileName] = uint8ToBase64(canvasBufferBytes);
+          console.log(templateTiles);
+          pixelX += drawSizeX;
+        }
+        pixelY += drawSizeY;
+      }
+      console.log(`Parsing template took ${(Date.now() - timer) / 1e3} seconds`);
+      console.log("Template Tiles: ", templateTiles);
+      console.log("Template Tiles Buffers: ", templateTilesBuffers);
+      console.log("Template Tiles Uint32Array: ", this.chunked32);
+      return { templateTiles, templateTilesBuffers };
+    }
+    /** Detects if the canvas is transparent.
+     * @param {Object} param - Object that contains the parameters for the function
+     * @param {ImageBitmap} param.bitmap - The bitmap template image
+     * @param {Array<number, number, number, number>} param.bitmapParams - The parameters to obtain the template tile image from the bitmap
+     * @param {OffscreenCanvas | HTMLCanvasElement} param.transCanvas - The canvas to draw to in order to calculate this
+     * @param {OffscreenCanvasRenderingContext2D} param.transContext - The context for the transparent canvas to draw to
+     * @return {boolean} Is the canvas transparent? If transparent, then `true` is returned. Otherwise, `false`.
+     * @since 0.91.75
+     */
+    calculateCanvasTransparency({
+      bitmap,
+      bitmapParams,
+      transCanvas,
+      transContext
+    }) {
+      console.log(`Calculating template tile transparency...`);
+      console.log(`Should Skip: ${this.shouldSkipTransTiles}; Should Agg: ${this.shouldAggSkipTransTiles}`);
+      const timer = Date.now();
+      const duplicationCoordinateArray = [
+        [0, 1],
+        // E.g. move 0 on the x axis, and 1 down on the y axis
+        [1, 0],
+        [0, -2],
+        // E.g. move 0 on the x axis, and 2 up on the y axis
+        [-2, 0],
+        [0, 4],
+        [4, 0],
+        [0, -8],
+        [-8, 0],
+        [0, 16],
+        [16, 0],
+        [0, -32],
+        [-32, 0]
+      ];
+      const transCanvasWidth = bitmapParams[2];
+      const transCanvasHeight = bitmapParams[3];
+      transCanvas.width = transCanvasWidth;
+      transCanvas.height = transCanvasHeight;
+      transContext.clearRect(0, 0, transCanvasWidth, transCanvasHeight);
+      if (this.shouldAggSkipTransTiles) {
+        transContext.drawImage(
+          bitmap,
+          ...bitmapParams,
+          // Bitmap image parameters (x, y, width, height)
+          0,
+          0,
+          // The coordinate draw the output *at*
+          10,
+          10
+          // The width and height of the output
+        );
+      } else {
+        transContext.drawImage(
+          bitmap,
+          ...bitmapParams,
+          // Bitmap image parameters (x, y, width, height)
+          0,
+          0,
+          // The coordinate draw the output *at*
+          transCanvasWidth,
+          transCanvasHeight
+          // Stretch to canvas (the canvas should already be the same size as the template image)
+        );
+        for (const [relativeX, relativeY] of duplicationCoordinateArray) {
+          transContext.drawImage(
+            transCanvas,
+            // The canvas we are drawing to *is* the source image
+            0,
+            0,
+            transCanvasWidth,
+            transCanvasHeight,
+            // The entire canvas (as a source image)
+            relativeX,
+            relativeY,
+            transCanvasWidth,
+            transCanvasHeight
+            // The output coordinates and size on the same canvas
+          );
+        }
+        transContext.drawImage(
+          transCanvas,
+          // The canvas we are drawing to *is* the source image
+          0,
+          0,
+          transCanvasWidth,
+          transCanvasHeight,
+          // The entire canvas (as a source image)
+          0,
+          0,
+          10,
+          10
+          // The output coordinates and size on the same canvas
+        );
+      }
+      const shunkCanvas = transContext.getImageData(0, 0, 10, 10);
+      const shunkCanvas32 = new Uint32Array(shunkCanvas.data.buffer);
+      console.log(`Calculated canvas transparency in ${(Date.now() - timer) / 1e3} seconds.`);
+      for (const pixel of shunkCanvas32) {
+        if (!!pixel) {
+          return true;
+        }
+      }
+      return false;
+    }
+    /** Calculates top left coordinate of template.
+     * It uses `Template.chunked` to update `Template.coords`
+     * @since 0.88.504
+     */
+    calculateCoordsFromChunked() {
+      let topLeftCoord = [Infinity, Infinity, Infinity, Infinity];
+      const tileKeys = Object.keys(this.chunked).sort();
+      tileKeys.forEach((key, index) => {
+        const [tileX, tileY, pixelX, pixelY] = key.split(",").map(Number);
+        if (tileY < topLeftCoord[1] || tileY == topLeftCoord[1] && tileX < topLeftCoord[0]) {
+          topLeftCoord = [tileX, tileY, pixelX, pixelY];
+        }
+      });
+      this.coords = topLeftCoord;
+    }
+  };
+  _Template_instances = new WeakSet();
+  /** Calculates the total pixels for each color for the image.
+   * 
+   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
+   * @param {Object} paletteBM - The palette Blue Marble uses for colors
+   * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
+   * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
+   * @since 0.88.6
+   */
+  calculateTotalPixelsFromImageData_fn = function(imageData, paletteBM) {
+    const buffer32Arr = new Uint32Array(imageData.data.buffer);
+    const { palette: _, LUT: lookupTable } = paletteBM;
+    const _colorpalette = /* @__PURE__ */ new Map();
+    for (let pixelIndex = 0; pixelIndex < buffer32Arr.length; pixelIndex++) {
+      const pixel = buffer32Arr[pixelIndex];
+      let bestColorID = -2;
+      if (pixel >>> 24 == 0) {
+        bestColorID = 0;
+      } else {
+        bestColorID = lookupTable.get(pixel) ?? -2;
+      }
+      const colorIDcount = _colorpalette.get(bestColorID);
+      _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
+    }
+    console.log(_colorpalette);
+    return _colorpalette;
+  };
+
+  // src/WindowCredits.js
+  var WindowCredits = class extends Overlay {
+    /** Constructor for the Credits window
+     * @param {string} name - The name of the userscript
+     * @param {string} version - The version of the userscript
+     * @since 0.90.9
+     * @see {@link Overlay#constructor} for examples
+     */
+    constructor(name2, version2) {
+      super(name2, version2);
+      this.window = null;
+      this.windowID = "bm-window-credits";
+      this.windowParent = document.body;
+      this.settingsManager = null;
+      this.WStateVariables = Object.freeze({
+        DRAW_DEPTH: 0,
+        WINDOW_EXISTS: 1,
+        WINDOW_MINIMIZED: 2,
+        WINDOW_MOVED: 3,
+        X_TRANSLATION_IS_NEGATIVE: 4,
+        Y_TRANSLATION_IS_NEGATIVE: 5,
+        // Reserved for expansion: 6
+        X_TRANSLATION: 7,
+        Y_TRANSLATION: 8
+        // Bit flags: 9 - 21
+      });
+    }
+    /** Spawns a Credits window.
+     * If another credits window already exists, we DON'T spawn another!
+     * Parent/child relationships in the DOM structure below are indicated by indentation.
+     * @since 0.90.9
+     */
+    buildWindow() {
+      const ascii = `
+\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557     \u2588\u2588\u2557   \u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D
+\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2557  
+\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255D  
+\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D
+
+\u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557     \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D
+\u2588\u2588\u2554\u2588\u2588\u2588\u2588\u2554\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551     \u2588\u2588\u2588\u2588\u2588\u2557  
+\u2588\u2588\u2551\u255A\u2588\u2588\u2554\u255D\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u255D  
+\u2588\u2588\u2551 \u255A\u2550\u255D \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557
+\u255A\u2550\u255D     \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D
+`;
+      if (document.querySelector(`#${this.windowID}`)) {
+        document.querySelector(`#${this.windowID}`).remove();
+        return;
+      }
+      const wStartsExp = !this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.WINDOW_MINIMIZED);
+      const windowWasInDOM = this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.WINDOW_EXISTS);
+      const drawDepthOld = this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.DRAW_DEPTH);
+      const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
+      let translateX = this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.X_TRANSLATION);
+      let translateY = this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.Y_TRANSLATION);
+      console.log(translateX);
+      translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
+      translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
+      console.log(translateX);
+      const startingPosition = !this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.WINDOW_MOVED) ? "" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
+      this.windowParent = document.body;
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": wStartsExp ? "\u25BC" : "\u25B6", "aria-label": wStartsExp ? 'Minimize window "Credits"' : 'Unminimize window "Credits"', "data-button-status": wStartsExp ? "expanded" : "collapsed" }, (instance, button) => {
+        button.onclick = () => instance.handleMinimization(button);
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().addDiv(void 0, (instance, div) => {
+        if (!wStartsExp) {
+          instance.addHeader(1, { "textContent": "Credits" }).buildElement();
+        }
+      }).buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Credits"' }, (instance, button) => {
+        button.onclick = () => {
+          document.querySelector(`#${this.windowID}`)?.remove();
+        };
+        button.ontouchend = () => {
+          button.click();
+        };
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content", "style": wStartsExp ? "" : "height: 0px; display: none;" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Credits" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addSpan({ "role": "img", "aria-label": this.name }).addSpan({ "innerHTML": ascii, "class": "bm-ascii", "aria-hidden": "true" }).buildElement().buildElement().addBr().buildElement().addHr().buildElement().addBr().buildElement().addSpan({ "textContent": '"Blue Marble" userscript is made by SwingTheVine.' }).buildElement().addBr().buildElement().addSpan({ "innerHTML": 'The <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble Website</a> is made by <a href="https://github.com/crqch" target="_blank" rel="noopener noreferrer">crqch</a>.' }).buildElement().addBr().buildElement().addSpan({ "textContent": `The Blue Marble Website used until ${localizeDate(new Date(1756069320 * 1e3))} was made by Camille Daguin.` }).buildElement().addBr().buildElement().addSpan({ "textContent": 'The favicon "Blue Marble" is owned by NASA. (The image of the Earth is owned by NASA)' }).buildElement().addBr().buildElement().addSpan({ "textContent": "Special Thanks:" }).buildElement().addUl().addLi({ "textContent": "Espresso, Meqa, and Robot for moderating SwingTheVine's community." }).buildElement().addLi({ "innerHTML": 'nof, <a href="https://github.com/TouchedByDarkness" target="_blank" rel="noopener noreferrer">darkness</a> for creating similar userscripts!' }).buildElement().addLi({ "innerHTML": '<a href="https://wondapon.net/" target="_blank" rel="noopener noreferrer">Wonda</a> for the Blue Marble banner image!' }).buildElement().addLi({ "innerHTML": '<a href="https://crqch.dev/" target="_blank" rel="noopener noreferrer">crqch</a> for creating, maintaining, and hosting the <a href="https://bluemarble.lol/" target="_blank" rel="noopener noreferrer">Blue Marble website</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/BullStein" target="_blank" rel="noopener noreferrer">BullStein</a>, <a href="https://github.com/allanf181" target="_blank" rel="noopener noreferrer">allanf181</a> for being early beta testers!' }).buildElement().addLi({ "innerHTML": 'guidu_ and <a href="https://github.com/Nick-machado" target="_blank" rel="noopener noreferrer">Nick-machado</a> for the original "Minimize" Button code!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/LolipopJ" target="_blank" rel="noopener noreferrer">LolipopJ</a> and <a href="https://github.com/Arttful" target="_blank" rel="noopener noreferrer">Arttful</a> for providing a solution to a bug I could not solve!' }).buildElement().addLi({ "innerHTML": 'Nomad and <a href="https://www.youtube.com/@gustav_vv" target="_blank" rel="noopener noreferrer">Gustav</a> for the tutorials!' }).buildElement().addLi({ "innerHTML": '<a href="https://github.com/cfpwastaken" target="_blank" rel="noopener noreferrer">cfp</a> for creating the template overlay that Blue Marble was based on!' }).buildElement().addLi({ "innerHTML": '<a href="https://forcenetwork.cloud/" target="_blank" rel="noopener noreferrer">Force Network</a> for hosting the <a href="https://github.com/SwingTheVine/Wplace-TelemetryServer" target="_blank" rel="noopener noreferrer">telemetry server</a>!' }).buildElement().addLi({ "innerHTML": '<a href="https://thebluecorner.net" target="_blank" rel="noopener noreferrer">TheBlueCorner</a> for getting me interested in online pixel canvases!' }).buildElement().buildElement().addBr().buildElement().addSpan({ "innerHTML": '<a href="https://ko-fi.com/swingthevine" target="_blank" rel="noopener noreferrer">Donators</a>:' }).buildElement().addUl().addLi({ "textContent": "Soultree" }).buildElement().addLi({ "textContent": "Espresso" }).buildElement().addLi({ "textContent": "BEST FAN" }).buildElement().addLi({ "textContent": "Ferb" }).buildElement().addLi({ "textContent": "FuchsDresden" }).buildElement().addLi({ "textContent": "Jack" }).buildElement().addLi({ "textContent": "raiken_au" }).buildElement().addLi({ "textContent": "Jacob" }).buildElement().addLi({ "textContent": "StupidOne" }).buildElement().addLi({ "textContent": "Glox" }).buildElement().addLi({ "textContent": "PintilieVasile" }).buildElement().addLi({ "textContent": "Corni" }).buildElement().addLi({ "textContent": "Liam" }).buildElement().addLi({ "textContent": "som9" }).buildElement().addLi({ "textContent": "2 Anonymous Supporters" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
+    }
+    /** Populates the settingsManager variable with the settingsManager class.
+     * @param {SettingsManager} settingsManager - The settingsManager class instance
+     * @since 0.94.19
+     */
+    setSettingsManager(settingsManager) {
+      this.settingsManager = settingsManager;
+    }
+  };
+
   // src/WindowWizard.js
   var _WindowWizard_instances, getTemplateDataFromStorage_fn, displaySchemaHealth_fn, displayTemplateList_fn, convertSchema_1_x_x_To_2_x_x_fn;
   var _WindowWizard = class _WindowWizard extends Overlay {
@@ -3330,7 +3413,9 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         };
       }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F91D}", "title": "Credits" }, (instance, button) => {
         button.onclick = () => {
-          const credits = new WindowCredts(this.name, this.version);
+          const credits = new WindowCredits(this.name, this.version);
+          credits.setSettingsManager(this.settingsManager);
+          this.settingsManager.setWindowCredits(credits);
           credits.buildWindow();
         };
       }).buildElement().buildElement().addSmall({ "textContent": "Made by SwingTheVine", "style": "margin-top: auto;" }).buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
@@ -4410,6 +4495,14 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     windowMain.buildWindow();
     apiManager.spontaneousResponseListener(windowMain);
     observeBlack();
+    const windowStates = settingsManager.getWindowStatesObject();
+    const WINDOW_EXISTS = 1;
+    if (windowStates["crdt"]?.[WINDOW_EXISTS]) {
+      const credits = new WindowCredits(name, version);
+      credits.setSettingsManager(settingsManager);
+      settingsManager.setWindowCredits(credits);
+      credits.buildWindow();
+    }
     consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
     function observeBlack() {
       const observer = new MutationObserver((mutations, observer2) => {
