@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.78
+// @version         0.94.79
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1923,8 +1923,6 @@ Returning zero...`);
       }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
-      console.log("Sort Primary: ", this.sortPrimary);
-      console.log("Sort Secondary: ", this.sortSecondary);
       __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
       __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
     }
@@ -2253,8 +2251,6 @@ Returning zero...`);
       const [flagValue] = secondarySortFlagTrue[0] ?? this.sortSecondary;
       this.sortSecondary = flagValue;
     }
-    console.log("Sort Primary: ", this.sortPrimary);
-    console.log("Sort Secondary: ", this.sortSecondary);
   };
 
   // src/WindowSettings.js
@@ -2790,10 +2786,7 @@ Returning zero...`);
     let windowFilterUniqueStatesMutable = 0;
     const windowFilterIsWindowed = windowFilterElement?.classList?.contains("bm-windowed");
     windowFilterUniqueStatesMutable = set32BitPosition(windowCreditsUniqueStatesMutable, 0, windowFilterIsWindowed);
-    let showUnusedColors = document.querySelector("#bm-filter-show-unused")?.checked;
-    if (typeof showUnusedColors === "undefined") {
-      showUnusedColors = __privateGet(this, _windowStatesObject)["fltr"]?.[1];
-    }
+    let showUnusedColors = document.querySelector("#bm-filter-show-unused")?.checked ?? this.windowFilter?.showUnused ?? false;
     windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, 1, showUnusedColors);
     const selectedSortSecondaryIndex = document.querySelector("#bm-filter-sort-secondary")?.selectedIndex ?? this.windowFilter?.WStateSortFlagsToValues[this.windowFilter?.sortSecondary] - 11 ?? 0;
     windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, this.wStateFilterVarsFlags[selectedSortSecondaryIndex + 2], true);
