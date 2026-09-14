@@ -1,7 +1,7 @@
 import ConfettiManager from "./confettiManager";
 import Overlay from "./Overlay";
 import { getClipboardData } from "./utils";
-import WindowCredts from "./WindowCredits";
+import WindowCredits from "./WindowCredits";
 import WindowFilter from "./WindowFilter";
 import WindowWizard from "./WindowWizard";
 
@@ -262,7 +262,9 @@ export default class WindowMain extends Overlay {
               }).buildElement()
               .addButton({'class': 'bm-button-circle', 'innerHTML': '🤝', 'title': 'Credits'}, (instance, button) => {
                 button.onclick = () => {
-                  const credits = new WindowCredts(this.name, this.version);
+                  const credits = new WindowCredits(this.name, this.version);
+                  credits.setSettingsManager(this.settingsManager);
+                  this.settingsManager.setWindowCredits(credits);
                   credits.buildWindow();
                 }
               }).buildElement()

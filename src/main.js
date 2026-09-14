@@ -9,6 +9,7 @@ import { consoleLog, consoleWarn, consoleInfo, waitForDOMReady } from './utils.j
 import WindowMain from './WindowMain.js';
 import WindowTelemetry from './WindowTelemetry.js';
 import SettingsManager from './settingsManager.js';
+import WindowCredits from './WindowCredits.js';
 
 const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
@@ -307,6 +308,18 @@ if (document.readyState === 'loading') {
   apiManager.spontaneousResponseListener(windowMain); // Reads spontaneous fetch responces
 
   observeBlack(); // Observes the black palette color
+
+  const windowStates = settingsManager.getWindowStatesObject(); // Obtains the decoded (hopefully) window states
+
+  const WINDOW_EXISTS = 1; // Bitflag index for if a window exists (this is to make the code easier to read)
+
+  // If the Credits window exists, build it
+  if (windowStates['crdt']?.[WINDOW_EXISTS]) {
+    const credits = new WindowCredits(name, version);
+    credits.setSettingsManager(settingsManager);
+    settingsManager.setWindowCredits(credits);
+    credits.buildWindow();
+  }
 
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
 
