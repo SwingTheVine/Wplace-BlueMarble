@@ -670,11 +670,7 @@ export default class SettingsManager extends WindowSettings {
     // Modifies the bit flag for "Windowed" mode
     windowFilterUniqueStatesMutable = set32BitPosition(windowCreditsUniqueStatesMutable, 0, windowFilterIsWindowed);
     // Obtains if "Show Unused Colors" checkbox is `true`
-    let showUnusedColors = document.querySelector('#bm-filter-show-unused')?.checked;
-    // Determines if the old unused colors value needs to be used
-    if (typeof showUnusedColors === 'undefined') {
-      showUnusedColors = this.#windowStatesObject['fltr']?.[1];
-    }
+    let showUnusedColors = document.querySelector('#bm-filter-show-unused')?.checked ?? this.windowFilter?.showUnused ?? false;
     // Modifies the bit flag for displaying unused colors
     windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, 1, showUnusedColors);
     // Obtains the secondary sort selected by the user, or falls back to the previous choice
