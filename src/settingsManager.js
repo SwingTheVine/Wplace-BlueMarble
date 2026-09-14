@@ -42,11 +42,23 @@ import WindowSettings from "./WindowSettings";
  * | Main Window |  2  |  8, 10  | Binary  | 13 bit flags, which are unique to this window
  * | Main Window |  4  | 10, 14  | Number  | "Upload Template" input fields for the X coordinates (stored in the 2-coordinate system)
  * | Main Window |  4  | 14, 18  | Number  | "Upload Template" input fields for the Y coordinates (stored in the 2-coordinate system)
- * |    Filter   |  2  |  8, 10  | Binary  | 13 bit flags, which are unique to this window
  * |   Settings  |  2  |  8, 10  | Binary  | 13 bit flags, which are unique to this window
  * | Temp Wizard |  2  |  8, 10  | Binary  | 13 bit flags, which are unique to this window
  * |   Credits   |  2  |  8, 10  | Binary  | 13 bit flags, which are unique to this window
- * 
+ * |    Filter   |  2  |  8, 10  | Binary  | 13 bit flags, which are unique to this window
+ * |    Filter   |     |    ^---0| Boolean |  *Is the window in "Windowed" mode?
+ * |    Filter   |     |   /|\--1| Boolean |  *Are unused colors displayed to the user?
+ * |    Filter   |     |    |---2| Boolean |  *Is the color filter sorted "Ascending"?
+ * |    Filter   |     |    |---3| Boolean |  *Is the color filter sorted "Descending"?
+ * |    Filter   |     |    |---4| Boolean |  *Is the color filter sorted by "Color IDs"?
+ * |    Filter   |     |    |---5| Boolean |  *Is the color filter sorted by "Color Names"?
+ * |    Filter   |     |    |---6| Boolean |  *Is the color filter sorted by "Premium Colors"?
+ * |    Filter   |     |    |---7| Boolean |  *Is the color filter sorted by "Percentage"?
+ * |    Filter   |     |    |---8| Boolean |  *Is the color filter sorted by "Correct Pixels"?
+ * |    Filter   |     |    |---9| Boolean |  *Is the color filter sorted by "Incorrect Pixels"?
+ * |    Filter   |     |    |--10| Boolean |  *Is the color filter sorted by "Total Pixels"?
+ * |    Filter   |     |    |--11| Boolean |  *Reserved
+ * |    Filter   |     |    |--12| Boolean |  *Reserved
  */
 
 /** SettingsManager class for handling user settings and making them persist between sessions.
@@ -67,7 +79,7 @@ import WindowSettings from "./WindowSettings";
  *   "flags": ["hl-noTrans", "ftr-oWin", "te-noSkip"],
  *   "highlight": [[1,0,-1],[1,-1,0],[2,1,0],[1,0,1]],
  *   "filter": "!!#L3/kBp'Gb8]q"
- *   "windowStates": {"ftr": "!!$L4", "bm": "/kBp:"}
+ *   "windowStates": {"fltr": "!!$L4", "bm": "/kBp:"}
  * }
  */
 export default class SettingsManager extends WindowSettings {
@@ -107,6 +119,28 @@ export default class SettingsManager extends WindowSettings {
 
     this.updateFrequency = 2000; // Cooldown between saving to storage (throttle)
     this.lastUpdateTime = 0; // When this unix timestamp is within the last 5 seconds, we should not save this.userSettings to storage
+
+    /** Enum for the bit flags of the Color Filter Window.
+     * This is used to convert `<select>` indexes into bit flag indexes without having to use conditional statements.
+     * This is also used so the list order of the UI options is not tied to the order of the bit flags.
+     * @type {Object<number, number>}
+     * @since 0.94.33
+     */ 
+    this.wStateFilterVarsFlags = Object.freeze({
+      // <select> index: Bit Flag index
+      0: 0, // Is the window in "Windowed" mode?
+      1: 1, // Should unused colors be displayed?
+      2: 2, // Secondary Ascending
+      3: 3, // Secondary Descending
+      4: 4, // Primary Color IDs
+      5: 5, // Primary Color Names
+      6: 6, // Primary Premium Colors
+      7: 7, // Primary Percentage
+      8: 8, // Primary Correct Pixels
+      9: 9, // Primary Incorrect Pixels
+      10: 10, // Primary Total Pixels
+      // 11-12: Reserved
+    })
 
     setInterval(this.#updateWindowState.bind(this), this.updateFrequency * 0.6);
     setInterval(this.updateUserStorage.bind(this), this.updateFrequency); // Runs every X seconds (see updateFrequency)
@@ -622,6 +656,39 @@ export default class SettingsManager extends WindowSettings {
     const windowSettingsState = windowSettingsCommonStates
       + numberToEncoded(windowSettingsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
     this.#windowStatesObjectEncoded['sett'] = windowSettingsState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
+
+    // Obtains the window ID for the Color Filter window
+    const windowFilterID = this.windowFilter?.windowID;
+    // Obtains the Color Filter window element itself
+    const windowFilterElement = windowFilterID ? document.querySelector('#' + this.windowFilter?.windowID) : undefined;
+    // Obtains the most-up-to-date common window state for the Color Filter window
+    const windowFilterCommonStates = obtainCommonStates(windowFilterElement, 'fltr');
+    // Stores 13 bit flags unique to this window
+    let windowFilterUniqueStatesMutable = 0;
+    // Obtains if the window is in "Windowed" mode
+    const windowFilterIsWindowed = windowFilterElement?.classList?.contains('bm-windowed');
+    // Modifies the bit flag for "Windowed" mode
+    windowFilterUniqueStatesMutable = set32BitPosition(windowCreditsUniqueStatesMutable, 0, windowFilterIsWindowed);
+    // Obtains if "Show Unused Colors" checkbox is `true`
+    let showUnusedColors = document.querySelector('#bm-filter-show-unused')?.checked;
+    // Determines if the old unused colors value needs to be used
+    if (typeof showUnusedColors === 'undefined') {
+      showUnusedColors = this.#windowStatesObject['fltr']?.[1];
+    }
+    // Modifies the bit flag for displaying unused colors
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, 1, showUnusedColors);
+    // Obtains the secondary sort selected by the user, or falls back to the previous choice
+    const selectedSortSecondaryIndex = document.querySelector('#bm-filter-sort-secondary')?.selectedIndex ?? this.windowFilter?.WStateSortFlagsToValues[this.windowFilter?.sortSecondary] - 11 ?? 0;
+    // Modifies the bit flag for the selected secondary sort
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, this.wStateFilterVarsFlags[selectedSortSecondaryIndex + 2], true);
+    // Obtains the primary sort selected by the user, or falls back to the previous choice
+    const selectedSortPrimaryIndex = document.querySelector('#bm-filter-sort-primary')?.selectedIndex ?? this.windowFilter?.WStateSortFlagsToValues[this.windowFilter?.sortPrimary] - 13 ?? 0;
+    // Modifies the bit flag for the selected primary sort
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, this.wStateFilterVarsFlags[selectedSortPrimaryIndex + 4], true);
+    // Save the window state, or fallback to zeros
+    const windowFilterState = windowFilterCommonStates
+      + numberToEncoded(windowFilterUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
+    this.#windowStatesObjectEncoded['fltr'] = windowFilterState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
   }
 
   /** Decodes & builds the window state object.
@@ -673,6 +740,7 @@ export default class SettingsManager extends WindowSettings {
     const creditsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Credits Window
     const wizardWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Template Wizard Window
     const settingsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Settings Window
+    const filterWindowStateDefault = '!!!!!!!!!6'; // Default state of the Color Filter Window
 
     // Main Window
     const mainWindowEncodedState = windowState['bm'] ?? mainWindowStateDefault; // The entire encoded window state. Fallback to default
@@ -680,9 +748,10 @@ export default class SettingsManager extends WindowSettings {
     const mainWindowEncodedFlags = mainWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
     const mainWindowTemplateCoordX = encodedToNumber(mainWindowEncodedState?.slice(10, 14)); // The numbers to store in the "Upload Template" input fields
     const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18)); // The numbers to store in the "Upload Template" input fields
+    const mainWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0);
     const mainWindowState = 
       decodeCommonStates(mainWindowEncodedCommon).concat(
-        numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0).slice(-13), // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+        mainWindowDecoded32BitBooleanArray.slice(0, 13), // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
         mainWindowTemplateCoordX, mainWindowTemplateCoordY
       );
     // mainWindowState is an Array where each index is variable. The order is preserved.
@@ -691,9 +760,10 @@ export default class SettingsManager extends WindowSettings {
     const creditsWindowEncodedState = windowState['crdt'] ?? creditsWindowStateDefault; // The entire encoded window state. Fallback to default
     const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
     const creditsWindowEncodedFlags = creditsWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const creditsWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(creditsWindowEncodedFlags) >>> 0);
     const creditsWindowState = 
       decodeCommonStates(creditsWindowEncodedCommon).concat(
-        numberUnsignedTo32BitBooleanArray(encodedToNumber(creditsWindowEncodedFlags) >>> 0).slice(-13) // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+        creditsWindowDecoded32BitBooleanArray.slice(0, 13) // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
       );
     // creditsWindowState is an Array where each index is a variable. The order is preserved.
 
@@ -701,9 +771,10 @@ export default class SettingsManager extends WindowSettings {
     const wizardWindowEncodedState = windowState['wzrd'] ?? wizardWindowStateDefault; // The entire encoded window state. Fallback to default
     const wizardWindowEncodedCommon = wizardWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
     const wizardWindowEncodedFlags = wizardWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const wizardWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(wizardWindowEncodedFlags) >>> 0);
     const wizardWindowState =
       decodeCommonStates(wizardWindowEncodedCommon).concat(
-        numberUnsignedTo32BitBooleanArray(encodedToNumber(wizardWindowEncodedFlags) >>> 0).slice(-13) // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+        wizardWindowDecoded32BitBooleanArray.slice(0, 13) // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
       );
     // wizardWindowState is an Array where each index is a variable. The order is preserved.
 
@@ -711,17 +782,30 @@ export default class SettingsManager extends WindowSettings {
     const settingsWindowEncodedState = windowState['sett'] ?? settingsWindowStateDefault; // The entire encoded window state. Fallback to default
     const settingsWindowEncodedCommon = settingsWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
     const settingsWindowEncodedFlags = settingsWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const settingsWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(settingsWindowEncodedFlags) >>> 0);
     const settingsWindowState =
       decodeCommonStates(settingsWindowEncodedCommon).concat(
-        numberUnsignedTo32BitBooleanArray(encodedToNumber(settingsWindowEncodedFlags) >>> 0).slice(-13) // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+        settingsWindowDecoded32BitBooleanArray.slice(0, 13) // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
       );
     // settingsWindowState is an Array where each index is a variable. The order is preserved.
+
+    // Color Filter Window
+    const filterWindowEncodedState = windowState['fltr'] ?? filterWindowStateDefault; // The entire encoded window state. Fallback to default
+    const filterWindowEncodedCommon = filterWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
+    const filterWindowEncodedFlags = filterWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const filterWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(filterWindowEncodedFlags) >>> 0);
+    const filterWindowState =
+      decodeCommonStates(filterWindowEncodedCommon).concat(
+        filterWindowDecoded32BitBooleanArray.slice(0, 13) // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
+      );
+    // filterWindowState is an Array where each index is a variable. The order is preserved.
 
     return {
       'bm': mainWindowState,
       'crdt': creditsWindowState,
       'wzrd': wizardWindowState,
-      'sett': settingsWindowState
+      'sett': settingsWindowState,
+      'fltr': filterWindowState,
     };
   }
 
