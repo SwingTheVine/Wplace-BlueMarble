@@ -95,7 +95,7 @@ export default class WindowCredits extends Overlay {
     this.windowParent = document.body; // The parent of the window DOM tree
 
     // Creates a new credits window
-    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': `${startingPosition} z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew}, (instance, div) => {})
+    this.window = this.addDiv({'id': this.windowID, 'class': 'bm-window', 'style': `${startingPosition} z-index: ${9000 + drawDepthNew};`, 'data-draw-depth': drawDepthNew})
       .addDragbar()
         .addButton({'class': 'bm-button-circle', 'textContent': wStartsExp ? '▼' : '▶', 'aria-label': wStartsExp ? 'Minimize window "Credits"' : 'Unminimize window "Credits"', 'data-button-status': wStartsExp ? 'expanded' : 'collapsed'}, (instance, button) => {
           button.onclick = () => instance.handleMinimization(button);

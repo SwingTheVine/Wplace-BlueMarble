@@ -330,6 +330,12 @@ if (document.readyState === 'loading') {
     wizard.buildWindow();
   }
 
+  // If the Settings window exists, build it
+  if (windowStates['sett']?.[WINDOW_EXISTS]) {
+    settingsManager.setSettingsManager(settingsManager); // Gives Settings Window access to the settings manager
+    settingsManager.buildWindow(); // Builds the settings window
+  }
+
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
 
   /** Observe the black color, and add the "Move" button.
