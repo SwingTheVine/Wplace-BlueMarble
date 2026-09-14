@@ -92,7 +92,6 @@ export default class SettingsManager extends WindowSettings {
     this.windowFilter = null; // The Color Filter window
     this.windowCredits = null; // The Credits window
     this.windowWizard = null; // The Template Wizard window
-    this.windowSettings = null; // The Settings window
     this.templateManager = null; // The template manager instance
     this.apiManager = null; // The API manager
 
@@ -610,6 +609,19 @@ export default class SettingsManager extends WindowSettings {
     const windowWizardState = windowWizardCommonStates
       + numberToEncoded(windowWizardUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
     this.#windowStatesObjectEncoded['wzrd'] = windowWizardState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
+
+    // Obtains the window ID for the Settings Wizard window
+    const windowSettingsID = this.windowID;
+    // Obtains the Settings window element itself
+    const windowSettingsElement = windowSettingsID ? document.querySelector('#' + this?.windowID) : undefined; // Is there any point in doing optional chaining on `this`?
+    // Obtains the most-up-to-date common window states for the Settings window
+    const windowSettingsCommonStates = obtainCommonStates(windowSettingsElement, 'sett');
+    // Stores 13 bit flags unique to this window
+    let windowSettingsUniqueStatesMutable = 0; // Currently there are none, so this is the final version
+    // Save the window state, or fallback to zeros
+    const windowSettingsState = windowSettingsCommonStates
+      + numberToEncoded(windowSettingsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
+    this.#windowStatesObjectEncoded['sett'] = windowSettingsState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
   }
 
   /** Decodes & builds the window state object.
@@ -660,6 +672,7 @@ export default class SettingsManager extends WindowSettings {
     const mainWindowStateDefault = '!#!!!!!!!!!!!!!!!!'; // Default state of the main window
     const creditsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Credits Window
     const wizardWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Template Wizard Window
+    const settingsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Settings Window
 
     // Main Window
     const mainWindowEncodedState = windowState['bm'] ?? mainWindowStateDefault; // The entire encoded window state. Fallback to default
@@ -694,10 +707,21 @@ export default class SettingsManager extends WindowSettings {
       );
     // wizardWindowState is an Array where each index is a variable. The order is preserved.
 
+    // Settings Window
+    const settingsWindowEncodedState = windowState['sett'] ?? settingsWindowStateDefault; // The entire encoded window state. Fallback to default
+    const settingsWindowEncodedCommon = settingsWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
+    const settingsWindowEncodedFlags = settingsWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const settingsWindowState =
+      decodeCommonStates(settingsWindowEncodedCommon).concat(
+        numberUnsignedTo32BitBooleanArray(encodedToNumber(settingsWindowEncodedFlags) >>> 0).slice(-13) // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      );
+    // settingsWindowState is an Array where each index is a variable. The order is preserved.
+
     return {
       'bm': mainWindowState,
       'crdt': creditsWindowState,
-      'wzrd': wizardWindowState
+      'wzrd': wizardWindowState,
+      'sett': settingsWindowState
     };
   }
 
@@ -781,12 +805,6 @@ export default class SettingsManager extends WindowSettings {
    * @since 0.94.17
    */
   setWindowWizard(windowWizard) {this.windowWizard = windowWizard;}
-
-  /** Populates the windowSettings variable with the WindowSettings class.
-   * @param {WindowSettings} windowSettings - The windowSettings class instance
-   * @since 0.94.17
-   */
-  setWindowSettings(windowSettings) {this.windowSettings = windowSettings;}
 
   /** Populates the templateManager variable with the templateManager class.
    * @param {TemplateManager} templateManager - The templateManager class instance

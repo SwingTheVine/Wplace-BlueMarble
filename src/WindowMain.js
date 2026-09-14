@@ -235,7 +235,11 @@ export default class WindowMain extends Overlay {
               // .addButton({'class': 'bm-button-circle', 'innerHTML': '🖌'}).buildElement()
               .addButton({'class': 'bm-button-circle', 'innerHTML': '⚙️', 'title': 'Settings'}, (instance, button) => {
                 button.onclick = () => {
-                  instance.settingsManager.buildWindow();
+                  // This is very confusing.
+                  // Keep in mind that `settingsManager` extends `WindowSettings`
+                  // We are interacting with both classes when we call `instance.settingsManager`
+                  instance.settingsManager.setSettingsManager(instance.settingsManager); // Gives Settings Window access to the settings manager
+                  instance.settingsManager.buildWindow(); // Builds the settings window
                 }
               }).buildElement()
               .addButton({'class': 'bm-button-circle', 'innerHTML': '🧙', 'title': 'Template Wizard'}, (instance, button) => {
