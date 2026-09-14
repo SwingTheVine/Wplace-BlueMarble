@@ -11,6 +11,7 @@ import WindowTelemetry from './WindowTelemetry.js';
 import SettingsManager from './settingsManager.js';
 import WindowCredits from './WindowCredits.js';
 import WindowWizard from './WindowWizard.js';
+import WindowFilter from './WindowFilter.js';
 
 const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
@@ -334,6 +335,14 @@ if (document.readyState === 'loading') {
   if (windowStates['sett']?.[WINDOW_EXISTS]) {
     settingsManager.setSettingsManager(settingsManager); // Gives Settings Window access to the settings manager
     settingsManager.buildWindow(); // Builds the settings window
+  }
+
+  // If the Color Filter window exists, build it
+  if (windowStates['fltr']?.[WINDOW_EXISTS]) {
+    const filter = new WindowFilter(windowMain); // Supposed to pass in a window class as the executor
+    filter.setSettingsManager(settingsManager);
+    settingsManager.setWindowFilter(filter);
+    filter.buildWindow();
   }
 
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');

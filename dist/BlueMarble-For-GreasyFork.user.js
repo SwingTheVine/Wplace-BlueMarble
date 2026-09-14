@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.32
+// @version         0.94.78
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1689,7 +1689,7 @@ Returning zero...`);
   customElements.define("confetti-piece", BlueMarbleConfettiPiece);
 
   // src/WindowFilter.js
-  var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn, calculatePixelStatistics_fn;
+  var _WindowFilter_instances, buildColorList_fn, sortColorList_fn, selectColorList_fn, calculatePixelStatistics_fn, updateSelectedSortOptions_fn;
   var WindowFilter = class extends Overlay {
     /** Constructor for the color filter window
      * @param {*} executor - The executing class
@@ -1703,7 +1703,10 @@ Returning zero...`);
       this.windowID = "bm-window-filter";
       this.colorListID = "bm-filter-flex";
       this.windowParent = document.body;
+      this.isWindowedMode = false;
+      this.windowHasBeenBuilt = false;
       this.templateManager = executor.apiManager?.templateManager;
+      this.settingsManager = null;
       this.eyeOpen = '<svg viewBox="0 .5 6 3"><path d="M0,2Q3-1 6,2Q3,5 0,2H2A1,1 0 1 0 3,1Q3,2 2,2"/></svg>';
       this.eyeClosed = '<svg viewBox="0 1 12 6"><mask id="a"><path d="M0,0H12V8L0,2" fill="#fff"/></mask><path d="M0,4Q6-2 12,4Q6,10 0,4H4A2,2 0 1 0 6,2Q6,4 4,4ZM1,2L10,6.5L9.5,7L.5,2.5" mask="url(#a)"/></svg>';
       const { palette, LUT: _ } = this.templateManager.paletteBM;
@@ -1719,6 +1722,40 @@ Returning zero...`);
       this.sortPrimary = "id";
       this.sortSecondary = "ascending";
       this.showUnused = false;
+      this.WStateVariables = Object.freeze({
+        DRAW_DEPTH: 0,
+        WINDOW_EXISTS: 1,
+        WINDOW_MINIMIZED: 2,
+        WINDOW_MOVED: 3,
+        X_TRANSLATION_IS_NEGATIVE: 4,
+        Y_TRANSLATION_IS_NEGATIVE: 5,
+        // Reserved for expansion: 6
+        X_TRANSLATION: 7,
+        Y_TRANSLATION: 8,
+        WINDOW_WINDOWED: 9,
+        SHOW_UNUSED_COLORS: 10,
+        SORT_ASCENDING: 11,
+        SORT_DESCENDING: 12,
+        SORT_COLOR_IDS: 13,
+        SORT_COLOR_NAMES: 14,
+        SORT_COLOR_PREMIUM: 15,
+        SORT_PIXEL_PERCENTAGE: 16,
+        SORT_PIXEL_CORRECT: 17,
+        SORT_PIXEL_INCORRECT: 18,
+        SORT_PIXEL_TOTAL: 19
+        // Reserved: 20 - 21
+      });
+      this.WStateSortFlagsToValues = Object.freeze({
+        "ascending": 11,
+        "descending": 12,
+        "id": 13,
+        "name": 14,
+        "premium": 15,
+        "percent": 16,
+        "correct": 17,
+        "incorrect": 18,
+        "total": 19
+      });
     }
     /** Spawns a Color Filter window.
      * If another color filter window already exists, we DON'T spawn another!
@@ -1730,16 +1767,40 @@ Returning zero...`);
         document.querySelector(`#${this.windowID}`).remove();
         return;
       }
+      if (!this.windowHasBeenBuilt) {
+        this.isWindowedMode = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.WINDOW_WINDOWED);
+        this.windowHasBeenBuilt = true;
+      }
+      if (this.isWindowedMode) {
+        this.buildWindowed();
+        return;
+      }
+      const wStartsExp = !this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.WINDOW_MINIMIZED);
+      const windowWasInDOM = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.WINDOW_EXISTS);
+      const drawDepthOld = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.DRAW_DEPTH);
+      const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
+      let translateX = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.X_TRANSLATION);
+      let translateY = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.Y_TRANSLATION);
+      translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
+      translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
+      const startingPosition = !this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.WINDOW_MOVED) ? "" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
+      this.showUnused = !!this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.SHOW_UNUSED_COLORS);
+      __privateMethod(this, _WindowFilter_instances, updateSelectedSortOptions_fn).call(this);
       this.windowParent = document.body;
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window" }, (instance, div) => {
-      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": wStartsExp ? "\u25BC" : "\u25B6", "aria-label": wStartsExp ? 'Minimize window "Color Filter"' : 'Unminimize window "Color Filter"', "data-button-status": wStartsExp ? "expanded" : "collapsed" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D7}", "aria-label": 'Switch to windowed mode for "Color Filter"' }, (instance, button) => {
+      }).buildElement().addDiv(void 0, (instance, div) => {
+        if (!wStartsExp) {
+          instance.addHeader(1, { "textContent": "Color Filter" }).buildElement();
+        }
+      }).buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D7}", "aria-label": 'Switch to windowed mode for "Color Filter"' }, (instance, button) => {
         button.onclick = () => {
           document.querySelector(`#${this.windowID}`)?.remove();
+          this.isWindowedMode = true;
           this.buildWindowed();
         };
         button.ontouchend = () => {
@@ -1752,7 +1813,7 @@ Returning zero...`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "Hide All Colors" }, (instance, button) => {
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content", "style": wStartsExp ? "" : "height: 0px; display: none;" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "Hide All Colors" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
       }).buildElement().addButton({ "textContent": "Refresh Data" }, (instance, button) => {
         button.onclick = () => {
@@ -1762,7 +1823,9 @@ Returning zero...`);
         };
       }).buildElement().addButton({ "textContent": "Show All Colors" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, true);
-      }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-filter-tile-load", "innerHTML": "<b>Tiles Loaded:</b> 0 / ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-correct", "innerHTML": "<b>Correct Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-total", "innerHTML": "<b>Total Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-remaining", "innerHTML": "<b>Complete:</b> ??? (???)" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-completed", "innerHTML": "??? ???" }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addP({ "innerHTML": `Press the \u{1F5D7} button to make this window smaller. Colors with the icon ${this.eyeOpen.replace("<svg", '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace("<svg", '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Hide All Colors" and "Show All Colors" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how many tiles of the template you have loaded since you last opened Wplace.live. If all tiles have been loaded, then the "correct pixel" count is accurate.` }).buildElement().buildElement().addHr().buildElement().addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Sort Colors", "type": "submit" }, (instance, button) => {
+      }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addDiv({ "class": "bm-container", "style": "margin-left: 2.5ch; margin-right: 2.5ch;" }).addDiv({ "class": "bm-container" }).addSpan({ "id": "bm-filter-tile-load", "innerHTML": "<b>Tiles Loaded:</b> 0 / ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-correct", "innerHTML": "<b>Correct Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-total", "innerHTML": "<b>Total Pixels:</b> ???" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-remaining", "innerHTML": "<b>Complete:</b> ??? (???)" }).buildElement().addBr().buildElement().addSpan({ "id": "bm-filter-tot-completed", "innerHTML": "??? ???" }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addP({ "innerHTML": `Press the \u{1F5D7} button to make this window smaller. Colors with the icon ${this.eyeOpen.replace("<svg", '<svg aria-label="Eye Open"')} will be shown on the canvas. Colors with the icon ${this.eyeClosed.replace("<svg", '<svg aria-label="Eye Closed"')} will not be shown on the canvas. The "Hide All Colors" and "Show All Colors" buttons only apply to colors that display in the list below. The amount of correct pixels is dependent on how many tiles of the template you have loaded since you last opened Wplace.live. If all tiles have been loaded, then the "correct pixel" count is accurate.` }).buildElement().buildElement().addHr().buildElement().addForm({ "class": "bm-container" }).addFieldset().addLegend({ "textContent": "Sort Options:", "style": "font-weight: 700;" }).buildElement().addDiv({ "class": "bm-container" }).addSelect({ "id": "bm-filter-sort-primary", "name": "sortPrimary", "textContent": "I want to view " }).addOption({ "value": "id", "textContent": "color IDs" }).buildElement().addOption({ "value": "name", "textContent": "color names" }).buildElement().addOption({ "value": "premium", "textContent": "premium colors" }).buildElement().addOption({ "value": "percent", "textContent": "percentage" }).buildElement().addOption({ "value": "correct", "textContent": "correct pixels" }).buildElement().addOption({ "value": "incorrect", "textContent": "incorrect pixels" }).buildElement().addOption({ "value": "total", "textContent": "total pixels" }).buildElement().buildElement().addSelect({ "id": "bm-filter-sort-secondary", "name": "sortSecondary", "textContent": " in " }).addOption({ "value": "ascending", "textContent": "ascending" }).buildElement().addOption({ "value": "descending", "textContent": "descending" }).buildElement().buildElement().addSpan({ "textContent": " order." }).buildElement().buildElement().addDiv({ "class": "bm-container" }).addCheckbox({ "id": "bm-filter-show-unused", "name": "showUnused", "textContent": "Show unused colors" }, (instance, label, checkbox) => {
+        checkbox.checked = this.showUnused;
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-container" }).addButton({ "textContent": "Sort Colors", "type": "submit" }, (instance, button) => {
         button.onclick = (event) => {
           event.preventDefault();
           const formData = new FormData(document.querySelector(`#${this.windowID} form`));
@@ -1776,6 +1839,14 @@ Returning zero...`);
       }).buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
+      const sortPrimary = document.querySelector("#bm-filter-sort-primary");
+      const sortSecondary = document.querySelector("#bm-filter-sort-secondary");
+      if (sortPrimary) {
+        sortPrimary.value = this.sortPrimary;
+      }
+      if (sortSecondary) {
+        sortSecondary.value = this.sortSecondary;
+      }
       __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
       __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
       this.updateInnerHTML("#bm-filter-tile-load", `<b>Tiles Loaded:</b> ${localizeNumber(this.tilesLoadedTotal)} / ${localizeNumber(this.tilesTotal)}`);
@@ -1794,7 +1865,19 @@ Returning zero...`);
         document.querySelector(`#${this.windowID}`).remove();
         return;
       }
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed" }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Color Filter"', "data-button-status": "expanded" }, (instance, button) => {
+      const wStartsExp = !this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.WINDOW_MINIMIZED);
+      const windowWasInDOM = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.WINDOW_EXISTS);
+      const drawDepthOld = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.DRAW_DEPTH);
+      const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
+      let translateX = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.X_TRANSLATION);
+      let translateY = this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.Y_TRANSLATION);
+      translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
+      translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
+      const startingPosition = !this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.WINDOW_MOVED) ? "" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
+      this.showUnused = !!this.settingsManager.getWindowStateVariable("fltr", this.WStateVariables.SHOW_UNUSED_COLORS);
+      __privateMethod(this, _WindowFilter_instances, updateSelectedSortOptions_fn).call(this);
+      this.windowParent = document.body;
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window bm-windowed", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": wStartsExp ? "\u25BC" : "\u25B6", "aria-label": wStartsExp ? 'Minimize window "Color Filter"' : 'Unminimize window "Color Filter"', "data-button-status": wStartsExp ? "expanded" : "collapsed" }, (instance, button) => {
         button.onclick = () => {
           const windowedColorTotals = document.querySelector("#bm-filter-windowed-color-totals");
           if (windowedColorTotals) {
@@ -1805,9 +1888,16 @@ Returning zero...`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().addSpan({ "id": "bm-filter-windowed-color-totals", "class": "bm-dragbar-text", "style": "font-weight: 700;" }).buildElement().buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D6}", "aria-label": 'Switch to fullscreen mode for "Color Filter"' }, (instance, button) => {
+      }).buildElement().addDiv({}, (instance, div) => {
+        if (wStartsExp) {
+          instance.addSpan({ "id": "bm-filter-windowed-color-totals", "class": "bm-dragbar-text", "style": "font-weight: 700;" }).buildElement();
+        } else {
+          instance.addHeader(1, { "textContent": "Color Filter" }).buildElement();
+        }
+      }).buildElement().addDiv({ "class": "bm-flex-center" }).addButton({ "class": "bm-button-circle", "textContent": "\u{1F5D6}", "aria-label": 'Switch to fullscreen mode for "Color Filter"' }, (instance, button) => {
         button.onclick = () => {
           document.querySelector(`#${this.windowID}`)?.remove();
+          this.isWindowedMode = false;
           this.buildWindow();
         };
         button.ontouchend = () => {
@@ -1820,7 +1910,7 @@ Returning zero...`);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "None" }, (instance, button) => {
+      }).buildElement().buildElement().buildElement().addDiv({ "class": "bm-window-content", "style": wStartsExp ? "" : "height: 0px; display: none;" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Color Filter" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container bm-flex-between bm-center-vertically", "style": "gap: 1.5ch;" }).addButton({ "textContent": "None" }, (instance, button) => {
         button.onclick = () => __privateMethod(this, _WindowFilter_instances, selectColorList_fn).call(this, false);
       }).buildElement().addButton({ "textContent": "Refresh" }, (instance, button) => {
         button.onclick = () => {
@@ -1833,6 +1923,8 @@ Returning zero...`);
       }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       const scrollableContainer = document.querySelector(`#${this.windowID} .bm-container.bm-scrollable`);
+      console.log("Sort Primary: ", this.sortPrimary);
+      console.log("Sort Secondary: ", this.sortSecondary);
       __privateMethod(this, _WindowFilter_instances, buildColorList_fn).call(this, scrollableContainer);
       __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
     }
@@ -1913,6 +2005,13 @@ Returning zero...`);
         }
       }
       __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, this.sortPrimary, this.sortSecondary, this.showUnused);
+    }
+    /** Populates the settingsManager variable with the settingsManager class.
+     * @param {SettingsManager} settingsManager - The settingsManager class instance
+     * @since 0.94.33
+     */
+    setSettingsManager(settingsManager) {
+      this.settingsManager = settingsManager;
     }
   };
   _WindowFilter_instances = new WeakSet();
@@ -2094,6 +2193,8 @@ Returning zero...`);
     this.allPixelsCorrectTotal = 0;
     this.allPixelsCorrect = /* @__PURE__ */ new Map();
     this.allPixelsColor = /* @__PURE__ */ new Map();
+    this.tilesLoadedTotal = 0;
+    this.tilesTotal = 0;
     for (const template of this.templateManager.templatesArray) {
       const total = template.pixelCount?.total ?? 0;
       this.allPixelsTotal += total ?? 0;
@@ -2122,6 +2223,38 @@ Returning zero...`);
     }
     this.timeRemaining = new Date((this.allPixelsTotal - this.allPixelsCorrectTotal) * 30 * 1e3 + Date.now());
     this.timeRemainingLocalized = localizeDate(this.timeRemaining);
+  };
+  /** Updates the class variables for sort options, based on current user settings
+   * @since 0.94.33
+   */
+  updateSelectedSortOptions_fn = function() {
+    const primarySortFlagMinIndex = 13;
+    const primarySortFlagMaxIndex = 19;
+    const primarySortValues = Object.entries(this.WStateSortFlagsToValues).filter(
+      ([, index]) => index >= primarySortFlagMinIndex && index <= primarySortFlagMaxIndex
+    );
+    const filterBitFlags = this.settingsManager?.getWindowStatesObject()?.["fltr"];
+    const primarySortFlagTrue = primarySortValues.filter(([, index]) => filterBitFlags[index]);
+    if (primarySortFlagTrue.length !== 1) {
+      consoleWarn(`WindowFilter expected one enabled primary sort option, but ${primarySortFlagTrue.length} are enabled! Skipping...`);
+    } else {
+      const [flagValue] = primarySortFlagTrue[0] ?? this.sortPrimary;
+      this.sortPrimary = flagValue;
+    }
+    const secondarySortFlagMinIndex = 11;
+    const secondarySortFlagMaxIndex = 12;
+    const secondarySortValues = Object.entries(this.WStateSortFlagsToValues).filter(
+      ([, index]) => index >= secondarySortFlagMinIndex && index <= secondarySortFlagMaxIndex
+    );
+    const secondarySortFlagTrue = secondarySortValues.filter(([, index]) => filterBitFlags[index]);
+    if (secondarySortFlagTrue.length !== 1) {
+      consoleWarn(`WindowFilter expected one enabled secondary sort option, but ${secondarySortFlagTrue.length} are enabled! Skipping...`);
+    } else {
+      const [flagValue] = secondarySortFlagTrue[0] ?? this.sortSecondary;
+      this.sortSecondary = flagValue;
+    }
+    console.log("Sort Primary: ", this.sortPrimary);
+    console.log("Sort Secondary: ", this.sortSecondary);
   };
 
   // src/WindowSettings.js
@@ -2259,6 +2392,32 @@ Returning zero...`);
       this.commonWindowStateTranslateRegEx = new RegExp(/translate\((-?\d*\.?\d*)\w*\s*,?\s*(-?\d*\.?\d*)/i);
       this.updateFrequency = 2e3;
       this.lastUpdateTime = 0;
+      this.wStateFilterVarsFlags = Object.freeze({
+        // <select> index: Bit Flag index
+        0: 0,
+        // Is the window in "Windowed" mode?
+        1: 1,
+        // Should unused colors be displayed?
+        2: 2,
+        // Secondary Ascending
+        3: 3,
+        // Secondary Descending
+        4: 4,
+        // Primary Color IDs
+        5: 5,
+        // Primary Color Names
+        6: 6,
+        // Primary Premium Colors
+        7: 7,
+        // Primary Percentage
+        8: 8,
+        // Primary Correct Pixels
+        9: 9,
+        // Primary Incorrect Pixels
+        10: 10
+        // Primary Total Pixels
+        // 11-12: Reserved
+      });
       setInterval(__privateMethod(this, _SettingsManager_instances, updateWindowState_fn).bind(this), this.updateFrequency * 0.6);
       setInterval(this.updateUserStorage.bind(this), this.updateFrequency);
     }
@@ -2625,6 +2784,23 @@ Returning zero...`);
     let windowSettingsUniqueStatesMutable = 0;
     const windowSettingsState = windowSettingsCommonStates + numberToEncoded(windowSettingsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
     __privateGet(this, _windowStatesObjectEncoded)["sett"] = windowSettingsState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
+    const windowFilterID = this.windowFilter?.windowID;
+    const windowFilterElement = windowFilterID ? document.querySelector("#" + this.windowFilter?.windowID) : void 0;
+    const windowFilterCommonStates = obtainCommonStates(windowFilterElement, "fltr");
+    let windowFilterUniqueStatesMutable = 0;
+    const windowFilterIsWindowed = windowFilterElement?.classList?.contains("bm-windowed");
+    windowFilterUniqueStatesMutable = set32BitPosition(windowCreditsUniqueStatesMutable, 0, windowFilterIsWindowed);
+    let showUnusedColors = document.querySelector("#bm-filter-show-unused")?.checked;
+    if (typeof showUnusedColors === "undefined") {
+      showUnusedColors = __privateGet(this, _windowStatesObject)["fltr"]?.[1];
+    }
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, 1, showUnusedColors);
+    const selectedSortSecondaryIndex = document.querySelector("#bm-filter-sort-secondary")?.selectedIndex ?? this.windowFilter?.WStateSortFlagsToValues[this.windowFilter?.sortSecondary] - 11 ?? 0;
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, this.wStateFilterVarsFlags[selectedSortSecondaryIndex + 2], true);
+    const selectedSortPrimaryIndex = document.querySelector("#bm-filter-sort-primary")?.selectedIndex ?? this.windowFilter?.WStateSortFlagsToValues[this.windowFilter?.sortPrimary] - 13 ?? 0;
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, this.wStateFilterVarsFlags[selectedSortPrimaryIndex + 4], true);
+    const windowFilterState = windowFilterCommonStates + numberToEncoded(windowFilterUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
+    __privateGet(this, _windowStatesObjectEncoded)["fltr"] = windowFilterState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
   };
   /** Decodes & builds the window state object.
    * This function parses user storage into a readable format,
@@ -2657,43 +2833,57 @@ Assuming all common states are zeros...`);
     const creditsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10);
     const wizardWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10);
     const settingsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10);
+    const filterWindowStateDefault = "!!!!!!!!!6";
     const mainWindowEncodedState = windowState["bm"] ?? mainWindowStateDefault;
     const mainWindowEncodedCommon = mainWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const mainWindowEncodedFlags = mainWindowEncodedState?.slice(this.commonStatesByteLength, 10);
     const mainWindowTemplateCoordX = encodedToNumber(mainWindowEncodedState?.slice(10, 14));
     const mainWindowTemplateCoordY = encodedToNumber(mainWindowEncodedState?.slice(14, 18));
+    const mainWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0);
     const mainWindowState = decodeCommonStates(mainWindowEncodedCommon).concat(
-      numberUnsignedTo32BitBooleanArray(encodedToNumber(mainWindowEncodedFlags) >>> 0).slice(-13),
-      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      mainWindowDecoded32BitBooleanArray.slice(0, 13),
+      // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
       mainWindowTemplateCoordX,
       mainWindowTemplateCoordY
     );
     const creditsWindowEncodedState = windowState["crdt"] ?? creditsWindowStateDefault;
     const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const creditsWindowEncodedFlags = creditsWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const creditsWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(creditsWindowEncodedFlags) >>> 0);
     const creditsWindowState = decodeCommonStates(creditsWindowEncodedCommon).concat(
-      numberUnsignedTo32BitBooleanArray(encodedToNumber(creditsWindowEncodedFlags) >>> 0).slice(-13)
-      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      creditsWindowDecoded32BitBooleanArray.slice(0, 13)
+      // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
     );
     const wizardWindowEncodedState = windowState["wzrd"] ?? wizardWindowStateDefault;
     const wizardWindowEncodedCommon = wizardWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const wizardWindowEncodedFlags = wizardWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const wizardWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(wizardWindowEncodedFlags) >>> 0);
     const wizardWindowState = decodeCommonStates(wizardWindowEncodedCommon).concat(
-      numberUnsignedTo32BitBooleanArray(encodedToNumber(wizardWindowEncodedFlags) >>> 0).slice(-13)
-      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      wizardWindowDecoded32BitBooleanArray.slice(0, 13)
+      // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
     );
     const settingsWindowEncodedState = windowState["sett"] ?? settingsWindowStateDefault;
     const settingsWindowEncodedCommon = settingsWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const settingsWindowEncodedFlags = settingsWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const settingsWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(settingsWindowEncodedFlags) >>> 0);
     const settingsWindowState = decodeCommonStates(settingsWindowEncodedCommon).concat(
-      numberUnsignedTo32BitBooleanArray(encodedToNumber(settingsWindowEncodedFlags) >>> 0).slice(-13)
-      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      settingsWindowDecoded32BitBooleanArray.slice(0, 13)
+      // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
+    );
+    const filterWindowEncodedState = windowState["fltr"] ?? filterWindowStateDefault;
+    const filterWindowEncodedCommon = filterWindowEncodedState?.slice(0, this.commonStatesByteLength);
+    const filterWindowEncodedFlags = filterWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const filterWindowDecoded32BitBooleanArray = numberUnsignedTo32BitBooleanArray(encodedToNumber(filterWindowEncodedFlags) >>> 0);
+    const filterWindowState = decodeCommonStates(filterWindowEncodedCommon).concat(
+      filterWindowDecoded32BitBooleanArray.slice(0, 13)
+      // If we don't clamp to the first 13 flags, we will return 19 additional flags that don't exist
     );
     return {
       "bm": mainWindowState,
       "crdt": creditsWindowState,
       "wzrd": wizardWindowState,
-      "sett": settingsWindowState
+      "sett": settingsWindowState,
+      "fltr": filterWindowState
     };
   };
 
@@ -3523,6 +3713,8 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
    */
   buildWindowFilter_fn = function() {
     const windowFilter = new WindowFilter(this);
+    windowFilter.setSettingsManager(this.settingsManager);
+    this.settingsManager?.setWindowFilter(windowFilter);
     windowFilter.buildWindow();
   };
   coordinateInputPaste_fn = async function(instance, input, event) {
@@ -4598,6 +4790,12 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     if (windowStates["sett"]?.[WINDOW_EXISTS]) {
       settingsManager.setSettingsManager(settingsManager);
       settingsManager.buildWindow();
+    }
+    if (windowStates["fltr"]?.[WINDOW_EXISTS]) {
+      const filter = new WindowFilter(windowMain);
+      filter.setSettingsManager(settingsManager);
+      settingsManager.setWindowFilter(filter);
+      filter.buildWindow();
     }
     consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
     function observeBlack() {

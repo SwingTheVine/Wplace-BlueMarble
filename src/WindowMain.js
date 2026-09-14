@@ -292,6 +292,8 @@ export default class WindowMain extends Overlay {
    */
   #buildWindowFilter() {
     const windowFilter = new WindowFilter(this); // Creates a new color filter window instance
+    windowFilter.setSettingsManager(this.settingsManager);
+    this.settingsManager?.setWindowFilter(windowFilter);
     windowFilter.buildWindow();
   }
 
