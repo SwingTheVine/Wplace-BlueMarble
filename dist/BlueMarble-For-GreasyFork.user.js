@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.94.26
+// @version         0.94.31
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2588,6 +2588,12 @@ Returning zero...`);
     let windowCreditsUniqueStatesMutable = 0;
     const windowCreditsState = windowCreditsCommonStates + numberToEncoded(windowCreditsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
     __privateGet(this, _windowStatesObjectEncoded)["crdt"] = windowCreditsState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
+    const windowWizardID = this.windowWizard?.windowID;
+    const windowWizardElement = windowWizardID ? document.querySelector("#" + this.windowWizard?.windowID) : void 0;
+    const windowWizardCommonStates = obtainCommonStates(windowWizardElement, "wzrd");
+    let windowWizardUniqueStatesMutable = 0;
+    const windowWizardState = windowWizardCommonStates + numberToEncoded(windowWizardUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
+    __privateGet(this, _windowStatesObjectEncoded)["wzrd"] = windowWizardState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
   };
   /** Decodes & builds the window state object.
    * This function parses user storage into a readable format,
@@ -2618,6 +2624,7 @@ Assuming all common states are zeros...`);
     };
     const mainWindowStateDefault = "!#!!!!!!!!!!!!!!!!";
     const creditsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10);
+    const wizardWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10);
     const mainWindowEncodedState = windowState["bm"] ?? mainWindowStateDefault;
     const mainWindowEncodedCommon = mainWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const mainWindowEncodedFlags = mainWindowEncodedState?.slice(this.commonStatesByteLength, 10);
@@ -2629,7 +2636,6 @@ Assuming all common states are zeros...`);
       mainWindowTemplateCoordX,
       mainWindowTemplateCoordY
     );
-    console.log(mainWindowState);
     const creditsWindowEncodedState = windowState["crdt"] ?? creditsWindowStateDefault;
     const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const creditsWindowEncodedFlags = creditsWindowEncodedState?.slice(this.commonStatesByteLength, 10);
@@ -2637,9 +2643,17 @@ Assuming all common states are zeros...`);
       numberUnsignedTo32BitBooleanArray(encodedToNumber(creditsWindowEncodedFlags) >>> 0).slice(-13)
       // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
     );
+    const wizardWindowEncodedState = windowState["wzrd"] ?? wizardWindowStateDefault;
+    const wizardWindowEncodedCommon = wizardWindowEncodedState?.slice(0, this.commonStatesByteLength);
+    const wizardWindowEncodedFlags = wizardWindowEncodedState?.slice(this.commonStatesByteLength, 10);
+    const wizardWindowState = decodeCommonStates(wizardWindowEncodedCommon).concat(
+      numberUnsignedTo32BitBooleanArray(encodedToNumber(wizardWindowEncodedFlags) >>> 0).slice(-13)
+      // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+    );
     return {
       "bm": mainWindowState,
-      "crdt": creditsWindowState
+      "crdt": creditsWindowState,
+      "wzrd": wizardWindowState
     };
   };
 
@@ -3019,10 +3033,8 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
       let translateX = this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.X_TRANSLATION);
       let translateY = this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.Y_TRANSLATION);
-      console.log(translateX);
       translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
       translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
-      console.log(translateX);
       const startingPosition = !this.settingsManager.getWindowStateVariable("crdt", this.WStateVariables.WINDOW_MOVED) ? "" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
       this.windowParent = document.body;
       this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
@@ -3074,6 +3086,19 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       this.schemaHealth = void 0;
       this.schemaVersionBleedingEdge = schemaVersionBleedingEdge;
       this.templateManager = templateManager;
+      this.settingsManager = null;
+      this.WStateVariables = Object.freeze({
+        DRAW_DEPTH: 0,
+        WINDOW_EXISTS: 1,
+        WINDOW_MINIMIZED: 2,
+        WINDOW_MOVED: 3,
+        X_TRANSLATION_IS_NEGATIVE: 4,
+        Y_TRANSLATION_IS_NEGATIVE: 5,
+        // Reserved for expansion: 6
+        X_TRANSLATION: 7,
+        Y_TRANSLATION: 8
+        // Bit flags: 9 - 21
+      });
     }
     /** Spawns a Template Wizard window.
      * If another template wizard window already exists, we DON'T spawn another!
@@ -3086,28 +3111,47 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         document.querySelector(`#${this.windowID}`).remove();
         return;
       }
-      let style = "";
+      const wStartsExp = !this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.WINDOW_MINIMIZED);
+      const windowWasInDOM = this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.WINDOW_EXISTS);
+      const drawDepthOld = this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.DRAW_DEPTH);
+      let drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
       if (!document.querySelector(`#bm-window-main`)) {
-        style = style.concat("z-index: 9099;").trim();
+        drawDepthNew = this.handleDrawDepth(90);
       }
+      let translateX = this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.X_TRANSLATION);
+      let translateY = this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.Y_TRANSLATION);
+      translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
+      translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
+      const startingPosition = !this.settingsManager.getWindowStateVariable("wzrd", this.WStateVariables.WINDOW_MOVED) ? "" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
       this.windowParent = document.body;
-      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": style }, (instance, div) => {
-      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": "\u25BC", "aria-label": 'Minimize window "Template Wizard"', "data-button-status": "expanded" }, (instance, button) => {
+      this.window = this.addDiv({ "id": this.windowID, "class": "bm-window", "style": `${startingPosition} z-index: ${9e3 + drawDepthNew};`, "data-draw-depth": drawDepthNew }, (instance, div) => {
+      }).addDragbar().addButton({ "class": "bm-button-circle", "textContent": wStartsExp ? "\u25BC" : "\u25B6", "aria-label": wStartsExp ? 'Minimize window "Template Wizard"' : 'Unminimize window "Template Wizard"', "data-button-status": wStartsExp ? "expanded" : "collapsed" }, (instance, button) => {
         button.onclick = () => instance.handleMinimization(button);
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().addDiv().buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Template Wizard"' }, (instance, button) => {
+      }).buildElement().addDiv(void 0, (instance, div) => {
+        if (!wStartsExp) {
+          instance.addHeader(1, { "textContent": "Template Wizard" }).buildElement();
+        }
+      }).buildElement().addButton({ "class": "bm-button-circle", "textContent": "\u2716", "aria-label": 'Close window "Template Wizard"' }, (instance, button) => {
         button.onclick = () => {
           document.querySelector(`#${this.windowID}`)?.remove();
         };
         button.ontouchend = () => {
           button.click();
         };
-      }).buildElement().buildElement().addDiv({ "class": "bm-window-content" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Status" }).buildElement().addP({ "id": "bm-wizard-status", "textContent": "Loading template storage status..." }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addHeader(2, { "textContent": "Detected templates:" }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
+      }).buildElement().buildElement().addDiv({ "class": "bm-window-content", "style": wStartsExp ? "" : "height: 0px; display: none;" }).addDiv({ "class": "bm-container bm-center-vertically" }).addHeader(1, { "textContent": "Template Wizard" }).buildElement().buildElement().addHr().buildElement().addDiv({ "class": "bm-container" }).addHeader(2, { "textContent": "Status" }).buildElement().addP({ "id": "bm-wizard-status", "textContent": "Loading template storage status..." }).buildElement().buildElement().addDiv({ "class": "bm-container bm-scrollable" }).addHeader(2, { "textContent": "Detected templates:" }).buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
       this.handleDrag(`#${this.windowID}.bm-window`, `#${this.windowID} .bm-dragbar`);
       __privateMethod(this, _WindowWizard_instances, displaySchemaHealth_fn).call(this);
       __privateMethod(this, _WindowWizard_instances, displayTemplateList_fn).call(this);
+    }
+    /** Populates the settingsManager variable with the settingsManager class.
+     * @param {SettingsManager} settingsManager - The settingsManager class instance
+     * @since 0.94.27
+     */
+    setSettingsManager(settingsManager) {
+      this.settingsManager = settingsManager;
     }
   };
   _WindowWizard_instances = new WeakSet();
@@ -3397,6 +3441,8 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         button.onclick = () => {
           const templateManager = instance.apiManager?.templateManager;
           const wizard = new WindowWizard(this.name, this.version, templateManager?.schemaVersion, templateManager);
+          wizard.setSettingsManager(this.settingsManager);
+          this.settingsManager.setWindowWizard(wizard);
           wizard.buildWindow();
         };
       }).buildElement().addButton({ "class": "bm-button-circle", "innerHTML": "\u{1F3A8}", "title": "Template Color Converter" }, (instance, button) => {
@@ -4502,6 +4548,12 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       credits.setSettingsManager(settingsManager);
       settingsManager.setWindowCredits(credits);
       credits.buildWindow();
+    }
+    if (windowStates["wzrd"]?.[WINDOW_EXISTS]) {
+      const wizard = new WindowWizard(name, version, templateManager?.schemaVersion, templateManager);
+      wizard.setSettingsManager(settingsManager);
+      settingsManager.setWindowWizard(wizard);
+      wizard.buildWindow();
     }
     consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
     function observeBlack() {

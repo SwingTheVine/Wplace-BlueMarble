@@ -83,11 +83,11 @@ export default class WindowCredits extends Overlay {
     // Raw translation coordinates
     let translateX = this.settingsManager.getWindowStateVariable('crdt', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('crdt', this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable('crdt', this.WStateVariables.X_TRANSLATION);
     let translateY = this.settingsManager.getWindowStateVariable('crdt', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('crdt', this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable('crdt', this.WStateVariables.Y_TRANSLATION);
-    console.log(translateX);
+    
     // Clampped coordinates, so you can't permanantly lose the window
     translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
     translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
-    console.log(translateX);
+    
     // If the window has NOT been moved, use the default starting location.
     const startingPosition = !this.settingsManager.getWindowStateVariable('crdt', this.WStateVariables.WINDOW_MOVED) ? '' : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
     

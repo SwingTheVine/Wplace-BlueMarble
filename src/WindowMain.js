@@ -242,6 +242,8 @@ export default class WindowMain extends Overlay {
                 button.onclick = () => {
                   const templateManager = instance.apiManager?.templateManager;
                   const wizard = new WindowWizard(this.name, this.version, templateManager?.schemaVersion, templateManager);
+                  wizard.setSettingsManager(this.settingsManager);
+                  this.settingsManager.setWindowWizard(wizard);
                   wizard.buildWindow();
                 }
               }).buildElement()
