@@ -597,6 +597,19 @@ export default class SettingsManager extends WindowSettings {
     const windowCreditsState = windowCreditsCommonStates
       + numberToEncoded(windowCreditsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
     this.#windowStatesObjectEncoded['crdt'] = windowCreditsState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
+
+    // Obtains the window ID for the Template Wizard window
+    const windowWizardID = this.windowWizard?.windowID;
+    // Obtains the Template Wizard window element itself
+    const windowWizardElement = windowWizardID ? document.querySelector('#' + this.windowWizard?.windowID) : undefined;
+    // Obtains the most-up-to-date common window state for the Template Wizard window
+    const windowWizardCommonStates = obtainCommonStates(windowWizardElement, 'wzrd');
+    // Stores 13 bit flags unique to this window
+    let windowWizardUniqueStatesMutable = 0; // Currently there are none, so this is the final version
+    // Save the window state, or fallback to zeros
+    const windowWizardState = windowWizardCommonStates
+      + numberToEncoded(windowWizardUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
+    this.#windowStatesObjectEncoded['wzrd'] = windowWizardState ?? this.zerothEncodingAlphabetCharacter.repeat(10);
   }
 
   /** Decodes & builds the window state object.
@@ -646,6 +659,7 @@ export default class SettingsManager extends WindowSettings {
 
     const mainWindowStateDefault = '!#!!!!!!!!!!!!!!!!'; // Default state of the main window
     const creditsWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Credits Window
+    const wizardWindowStateDefault = this.zerothEncodingAlphabetCharacter.repeat(10); // Default state of the Template Wizard Window
 
     // Main Window
     const mainWindowEncodedState = windowState['bm'] ?? mainWindowStateDefault; // The entire encoded window state. Fallback to default
@@ -660,8 +674,6 @@ export default class SettingsManager extends WindowSettings {
       );
     // mainWindowState is an Array where each index is variable. The order is preserved.
 
-    console.log(mainWindowState);
-
     // Credits Window
     const creditsWindowEncodedState = windowState['crdt'] ?? creditsWindowStateDefault; // The entire encoded window state. Fallback to default
     const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
@@ -672,9 +684,20 @@ export default class SettingsManager extends WindowSettings {
       );
     // creditsWindowState is an Array where each index is a variable. The order is preserved.
 
+    // Template Wizard Window
+    const wizardWindowEncodedState = windowState['wzrd'] ?? wizardWindowStateDefault; // The entire encoded window state. Fallback to default
+    const wizardWindowEncodedCommon = wizardWindowEncodedState?.slice(0, this.commonStatesByteLength); // The encoded window state for common variables
+    const wizardWindowEncodedFlags = wizardWindowEncodedState?.slice(this.commonStatesByteLength, 10); // The encoded window state for bit flags
+    const wizardWindowState =
+      decodeCommonStates(wizardWindowEncodedCommon).concat(
+        numberUnsignedTo32BitBooleanArray(encodedToNumber(wizardWindowEncodedFlags) >>> 0).slice(-13) // If we don't clamp to the last 13 flags, we will return 19 additional flags that don't exist
+      );
+    // wizardWindowState is an Array where each index is a variable. The order is preserved.
+
     return {
       'bm': mainWindowState,
-      'crdt': creditsWindowState
+      'crdt': creditsWindowState,
+      'wzrd': wizardWindowState
     };
   }
 

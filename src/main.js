@@ -10,6 +10,7 @@ import WindowMain from './WindowMain.js';
 import WindowTelemetry from './WindowTelemetry.js';
 import SettingsManager from './settingsManager.js';
 import WindowCredits from './WindowCredits.js';
+import WindowWizard from './WindowWizard.js';
 
 const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
@@ -319,6 +320,14 @@ if (document.readyState === 'loading') {
     credits.setSettingsManager(settingsManager);
     settingsManager.setWindowCredits(credits);
     credits.buildWindow();
+  }
+
+  // If the Template Wizard window exists, build it
+  if (windowStates['wzrd']?.[WINDOW_EXISTS]) {
+    const wizard = new WindowWizard(name, version, templateManager?.schemaVersion, templateManager);
+    wizard.setSettingsManager(settingsManager);
+    settingsManager.setWindowWizard(wizard);
+    wizard.buildWindow();
   }
 
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
