@@ -659,14 +659,14 @@ export default class TemplateManager {
   /** Imports the JSON object, and appends it to any JSON object already loaded
    * @param {string} json - The JSON string to parse
    */
-  importJSON(json) {
+  async importJSON(json) {
 
     console.log(`Importing JSON...`);
     console.log(json);
 
     // If the passed in JSON is a Blue Marble template object...
     if (json?.whoami == 'BlueMarble') {
-      this.#parseBlueMarble(json); // ...parse the template object as Blue Marble
+      await this.#parseBlueMarble(json); // ...parse the template object as Blue Marble
     }
   }
 

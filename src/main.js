@@ -21,7 +21,7 @@ const consoleStyle = 'color: cornflowerblue;'; // The styling for the console lo
  * This code will execute outside of TamperMonkey's sandbox.
  * @since 0.11.15
  */
-const injectionCode = () => {
+const spyCodeInjection = () => {
 
   const script = document.currentScript; // Gets the current script HTML Script Element
   const name = script?.getAttribute('bm-name') || 'Blue Marble'; // Gets the name value that was passed in. Defaults to "Blue Marble" if nothing was found
@@ -158,40 +158,28 @@ const injectionCode = () => {
 
 /** Injects code into the client
  * This code will execute outside of TamperMonkey's sandbox.
+ * @param {string} name - Human-readable identifier that appears in console logs
  * @param {*} callback - The code to execute
  * @since 0.11.15
  */
-function inject(callback) {
-  consoleLog('DOM has finished loading!');
-  console.log(`DOM is ${document.readyState}!`);
+function inject(name, callback) {
+  const injectionUUID = crypto.randomUUID().slice(0, 8);
+  consoleLog(`Injecting code '${name}' (${injectionUUID}) into <html>...`);
+  console.log(`DOM state is ${document.readyState}.`);
   const script = document.createElement('script');
   script.setAttribute('bm-name', name); // Passes in the name value
   script.setAttribute('bm-cStyle', consoleStyle); // Passes in the console style value
+  script.setAttribute('data-uuid', injectionUUID); // Adds the UUID as an attribute to the <script> element
   script.textContent = `(${callback})();`;
   document.documentElement?.appendChild(script);
-  if (document.querySelector('script[bm-name]')) {console.log('Spy Code script exists in DOM!');}
+  if (document.querySelector(`script[data-uuid='${injectionUUID}']`)) {console.log(`Injected code '${name}' (${injectionUUID}) script exists in the DOM tree.`);}
   script.remove();
-  consoleLog('Removed spy code from DOM!');
+  consoleLog(`Removed injection code '${name}' (${injectionUUID}) from the DOM tree.`);
 }
 
-/** Injects the spy code into the client.
- * This is a wrapper function designed so no parameters need to be passed in.
- * Specifically, it is so we can do something like `inject(foo)` while also supporting `inject` (no params).
- * We *could* modify `inject()` to not use parameters, but if we need to inject unrelated code in the future, we can't.
- * @since 0.94.6
- */
-function injectSpyCode() {inject(injectionCode);}
-
-if (document.readyState === 'loading') {
-
-  // If the DOM is still loading, (when done) we inject the code using an event listener
-  consoleLog('DOM is still loading! Using an event listener to wait until the page is ready...');
-  document.addEventListener('DOMContentLoaded', injectSpyCode);
-} else {
-
-  // Else, the DOM is ready, so we inject directly
-  injectSpyCode();
-}
+// Inject the spy code as soon as possible
+// The code will be injected into <html>, which should exist at this point
+inject('Spy Code', spyCodeInjection);
 
 // ----- START OF BLUE MARBLE EXECUTION -----
 (async () => {
@@ -265,7 +253,7 @@ if (document.readyState === 'loading') {
 
   const storageTemplates = JSON.parse(await GM.getValue('bmTemplates', '{}'));
   console.log(storageTemplates);
-  templateManager.importJSON(storageTemplates); // Loads the templates
+  await templateManager.importJSON(storageTemplates); // Loads the templates
 
   console.log(userSettings);
   console.log(Object.keys(userSettings).length);

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.12
+// @version         0.95.14
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1457,8 +1457,8 @@
   var defaultEncoding = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
   function numberToEncoded(number, encoding = defaultEncoding) {
     if (typeof number !== "number") {
-      new Overlay().handleDisplayError(`numberToEncoded() recieved '${typeof number}' and crashed BM to minimize data loss.`);
-      throw new Error(`numberToEncoded expected a number, but recieved a ${typeof number}! Value: ${number}`);
+      new Overlay().handleDisplayError(`numberToEncoded() received '${typeof number}' and crashed BM to minimize data loss.`);
+      throw new Error(`numberToEncoded expected a number, but received a ${typeof number}! Value: ${number}`);
     }
     if (number === 0) return encoding[0];
     let result = "";
@@ -1471,7 +1471,7 @@
   }
   function encodedToNumber(encoded, encoding = defaultEncoding) {
     if (typeof encoded !== "string") {
-      consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.
+      consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but received ${typeof encoded}.
 Returning zero...`);
       return 0;
     }
@@ -2561,7 +2561,7 @@ Returning zero...`);
      */
     getWindowStateVariable(tinyID, index) {
       if (typeof tinyID !== "string" || typeof index !== "number") {
-        consoleError(`Attempted to get window state variable with type (string, number), but recieved type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})
+        consoleError(`Attempted to get window state variable with type (string, number), but received type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})
 Returning zero...`);
         return 0;
       }
@@ -2807,10 +2807,10 @@ Returning zero...`);
    * @since 0.92.23
    */
   decodeWindowStateToObject_fn = function(windowState) {
-    console.log("Recieved window state to decode: ", windowState);
+    console.log("Received window state to decode: ", windowState);
     const decodeCommonStates = (encodedString) => {
       if (typeof encodedString !== "string" || encodedString.length == 0) {
-        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}
+        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but received a '${typeof encodedString}' with value: ${encodedString}
 Assuming all common states are zeros...`);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       }
@@ -3598,7 +3598,7 @@ The Y translation sign is ${this.settingsManager.getWindowStateVariable("bm", th
             const firstCoord = coords?.[0];
             if (typeof firstCoord !== "number" && typeof firstCoord !== "string" || typeof firstCoord === "string" && firstCoord.trim() === "" || !Number.isInteger(Number(firstCoord))) {
               instance.handleDisplayError(`Coordinates are malformed! Did you try clicking on the canvas first?
-Recieved: (${coords?.[0]}, ${coords?.[1]}, ${coords?.[2]}, ${coords?.[3]})
+Received: (${coords?.[0]}, ${coords?.[1]}, ${coords?.[2]}, ${coords?.[3]})
 Types: (${typeof coords?.[0]}, ${typeof coords?.[1]}, ${typeof coords?.[2]}, ${typeof coords?.[3]})
 Total: ${coords?.length}`);
               return;
@@ -4118,11 +4118,11 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     /** Imports the JSON object, and appends it to any JSON object already loaded
      * @param {string} json - The JSON string to parse
      */
-    importJSON(json) {
+    async importJSON(json) {
       console.log(`Importing JSON...`);
       console.log(json);
       if (json?.whoami == "BlueMarble") {
-        __privateMethod(this, _TemplateManager_instances, parseBlueMarble_fn).call(this, json);
+        await __privateMethod(this, _TemplateManager_instances, parseBlueMarble_fn).call(this, json);
       }
     }
     /** Sets the `templatesShouldBeDrawn` boolean to a value.
@@ -4372,7 +4372,7 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
           return;
         }
         const endpointText = data["endpoint"]?.split("?")[0].split("/").filter((s) => s && isNaN(Number(s))).filter((s) => s && !s.includes(".")).pop();
-        console.log(`%cBlue Marble%c: Recieved message about "%s"`, "color: cornflowerblue;", "", endpointText);
+        console.log(`%cBlue Marble%c: Received message about "%s"`, "color: cornflowerblue;", "", endpointText);
         switch (endpointText) {
           case "me":
             if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
@@ -4614,7 +4614,7 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
   var name = GM_info.script.name.toString();
   var version = GM_info.script.version.toString();
   var consoleStyle = "color: cornflowerblue;";
-  var injectionCode = () => {
+  var spyCodeInjection = () => {
     const script = document.currentScript;
     const name2 = script?.getAttribute("bm-name") || "Blue Marble";
     const consoleStyle2 = script?.getAttribute("bm-cStyle") || "";
@@ -4623,7 +4623,7 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
     window.addEventListener("message", (event) => {
       const { source, endpoint, blobID, blobData, blink } = event.data;
       const elapsed = Date.now() - blink;
-      console.groupCollapsed(`%c${name2}%c: ${fetchedBlobQueue.size} Recieved IMAGE message about blob "${blobID}"`, consoleStyle2, "");
+      console.groupCollapsed(`%c${name2}%c: ${fetchedBlobQueue.size} Received IMAGE message about blob "${blobID}"`, consoleStyle2, "");
       console.log(`Blob fetch took %c${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")}%c MM:SS.mmm`, consoleStyle2, "");
       console.log(fetchedBlobQueue);
       console.groupEnd();
@@ -4693,29 +4693,23 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     };
     console.log(`%c${name2}%c: Spy code finished initializing! (4/4)`, consoleStyle2, "");
   };
-  function inject(callback) {
-    consoleLog("DOM has finished loading!");
-    console.log(`DOM is ${document.readyState}!`);
+  function inject(name2, callback) {
+    const injectionUUID = crypto.randomUUID().slice(0, 8);
+    consoleLog(`Injecting code '${name2}'  (${injectionUUID}) into <html>...`);
+    console.log(`DOM state is ${document.readyState}.`);
     const script = document.createElement("script");
-    script.setAttribute("bm-name", name);
+    script.setAttribute("bm-name", name2);
     script.setAttribute("bm-cStyle", consoleStyle);
+    script.setAttribute("data-uuid", injectionUUID);
     script.textContent = `(${callback})();`;
     document.documentElement?.appendChild(script);
-    if (document.querySelector("script[bm-name]")) {
-      console.log("Spy Code script exists in DOM!");
+    if (document.querySelector(`script[data-uuid='${injectionUUID}']`)) {
+      console.log(`Injected code '${name2}' (${injectionUUID}) script exists in the DOM tree.`);
     }
     script.remove();
-    consoleLog("Removed spy code from DOM!");
+    consoleLog(`Removed injection code '${name2}' (${injectionUUID}) from the DOM tree.`);
   }
-  function injectSpyCode() {
-    inject(injectionCode);
-  }
-  if (document.readyState === "loading") {
-    consoleLog("DOM is still loading! Using an event listener to wait until the page is ready...");
-    document.addEventListener("DOMContentLoaded", injectSpyCode);
-  } else {
-    injectSpyCode();
-  }
+  inject("Spy Code", spyCodeInjection);
   (async () => {
     const prayThisIsNotTrue = document.querySelector("#bm-window-main");
     if (prayThisIsNotTrue) {
@@ -4757,7 +4751,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     settingsManager.setApiManager(apiManager);
     const storageTemplates = JSON.parse(await GM.getValue("bmTemplates", "{}"));
     console.log(storageTemplates);
-    templateManager.importJSON(storageTemplates);
+    await templateManager.importJSON(storageTemplates);
     console.log(userSettings);
     console.log(Object.keys(userSettings).length);
     if (Object.keys(userSettings).length == 0) {
