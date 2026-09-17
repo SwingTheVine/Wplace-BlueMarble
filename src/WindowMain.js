@@ -162,14 +162,19 @@ export default class WindowMain extends Overlay {
               (instance, button) => {
                 button.onclick = () => {
                   const coords = instance.apiManager?.coordsTilePixel; // Retrieves the coords from the API manager
-                  if (!coords?.[0]) {
-                    instance.handleDisplayError('Coordinates are malformed! Did you try clicking on the canvas first?');
+                  const firstCoord = coords?.[0]; // The first coordinate in the Array
+                  if (
+                    (typeof firstCoord !== 'number' && typeof firstCoord !== 'string') // Triggers if NOT a number or string
+                    || (typeof firstCoord === 'string' && firstCoord.trim() === '') // Triggers if the string is empty
+                    || (!Number.isInteger(Number(firstCoord))) // Triggers if we can't convert the first coordinate to an integer
+                  ) {
+                    instance.handleDisplayError(`Coordinates are malformed! Did you try clicking on the canvas first?\nRecieved: (${coords?.[0]}, ${coords?.[1]}, ${coords?.[2]}, ${coords?.[3]})\nTypes: (${typeof coords?.[0]}, ${typeof coords?.[1]}, ${typeof coords?.[2]}, ${typeof coords?.[3]})\nTotal: ${coords?.length}`);
                     return;
                   }
-                  instance.updateInnerHTML('bm-input-tx', coords?.[0] || '');
-                  instance.updateInnerHTML('bm-input-ty', coords?.[1] || '');
-                  instance.updateInnerHTML('bm-input-px', coords?.[2] || '');
-                  instance.updateInnerHTML('bm-input-py', coords?.[3] || '');
+                  instance.updateInnerHTML('bm-input-tx', coords?.[0] ?? '');
+                  instance.updateInnerHTML('bm-input-ty', coords?.[1] ?? '');
+                  instance.updateInnerHTML('bm-input-px', coords?.[2] ?? '');
+                  instance.updateInnerHTML('bm-input-py', coords?.[3] ?? '');
                 }
               }
             ).buildElement()
@@ -324,19 +329,19 @@ export default class WindowMain extends Overlay {
     if ((coords.length == 2) && (input.id == 'bm-input-px')) {
       // ...then paste into the pixel inputs
 
-      instance.updateInnerHTML('bm-input-px', coords?.[0] || '');
-      instance.updateInnerHTML('bm-input-py', coords?.[1] || '');
+      instance.updateInnerHTML('bm-input-px', coords?.[0] ?? '');
+      instance.updateInnerHTML('bm-input-py', coords?.[1] ?? '');
     } else if ((coords.length == 1)) {
       // Else if there is only 1 coordinate, we paste into the input like normal
 
-      instance.updateInnerHTML(input.id, coords?.[0] || '');
+      instance.updateInnerHTML(input.id, coords?.[0] ?? '');
     } else {
       // Else we paste like normal
 
-      instance.updateInnerHTML('bm-input-tx', coords?.[0] || '');
-      instance.updateInnerHTML('bm-input-ty', coords?.[1] || '');
-      instance.updateInnerHTML('bm-input-px', coords?.[2] || '');
-      instance.updateInnerHTML('bm-input-py', coords?.[3] || '');
+      instance.updateInnerHTML('bm-input-tx', coords?.[0] ?? '');
+      instance.updateInnerHTML('bm-input-ty', coords?.[1] ?? '');
+      instance.updateInnerHTML('bm-input-px', coords?.[2] ?? '');
+      instance.updateInnerHTML('bm-input-py', coords?.[3] ?? '');
     }
   }
 

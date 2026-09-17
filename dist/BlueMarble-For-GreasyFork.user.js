@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.4
+// @version         0.95.9
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -3591,14 +3591,18 @@ The Y translation sign is ${this.settingsManager.getWindowStateVariable("bm", th
         (instance, button) => {
           button.onclick = () => {
             const coords = instance.apiManager?.coordsTilePixel;
-            if (!coords?.[0]) {
-              instance.handleDisplayError("Coordinates are malformed! Did you try clicking on the canvas first?");
+            const firstCoord = coords?.[0];
+            if (typeof firstCoord !== "number" && typeof firstCoord !== "string" || typeof firstCoord === "string" && firstCoord.trim() === "" || !Number.isInteger(Number(firstCoord))) {
+              instance.handleDisplayError(`Coordinates are malformed! Did you try clicking on the canvas first?
+Recieved: (${coords?.[0]}, ${coords?.[1]}, ${coords?.[2]}, ${coords?.[3]})
+Types: (${typeof coords?.[0]}, ${typeof coords?.[1]}, ${typeof coords?.[2]}, ${typeof coords?.[3]})
+Total: ${coords?.length}`);
               return;
             }
-            instance.updateInnerHTML("bm-input-tx", coords?.[0] || "");
-            instance.updateInnerHTML("bm-input-ty", coords?.[1] || "");
-            instance.updateInnerHTML("bm-input-px", coords?.[2] || "");
-            instance.updateInnerHTML("bm-input-py", coords?.[3] || "");
+            instance.updateInnerHTML("bm-input-tx", coords?.[0] ?? "");
+            instance.updateInnerHTML("bm-input-ty", coords?.[1] ?? "");
+            instance.updateInnerHTML("bm-input-px", coords?.[2] ?? "");
+            instance.updateInnerHTML("bm-input-py", coords?.[3] ?? "");
           };
         }
       ).buildElement().addInput({ "type": "number", "id": "bm-input-tx", "class": "bm-input-coords", "placeholder": "Tl X", "value": initTemplateCoords?.[0], "min": 0, "max": 2047, "step": 1, "required": true }, (instance, input) => {
@@ -3725,15 +3729,15 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
       // Removes NaN `[4]`
     );
     if (coords.length == 2 && input.id == "bm-input-px") {
-      instance.updateInnerHTML("bm-input-px", coords?.[0] || "");
-      instance.updateInnerHTML("bm-input-py", coords?.[1] || "");
+      instance.updateInnerHTML("bm-input-px", coords?.[0] ?? "");
+      instance.updateInnerHTML("bm-input-py", coords?.[1] ?? "");
     } else if (coords.length == 1) {
-      instance.updateInnerHTML(input.id, coords?.[0] || "");
+      instance.updateInnerHTML(input.id, coords?.[0] ?? "");
     } else {
-      instance.updateInnerHTML("bm-input-tx", coords?.[0] || "");
-      instance.updateInnerHTML("bm-input-ty", coords?.[1] || "");
-      instance.updateInnerHTML("bm-input-px", coords?.[2] || "");
-      instance.updateInnerHTML("bm-input-py", coords?.[3] || "");
+      instance.updateInnerHTML("bm-input-tx", coords?.[0] ?? "");
+      instance.updateInnerHTML("bm-input-ty", coords?.[1] ?? "");
+      instance.updateInnerHTML("bm-input-px", coords?.[2] ?? "");
+      instance.updateInnerHTML("bm-input-py", coords?.[3] ?? "");
     }
   };
 
