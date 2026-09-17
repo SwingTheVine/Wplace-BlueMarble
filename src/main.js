@@ -36,7 +36,7 @@ const injectionCode = () => {
     const elapsed = Date.now() - blink;
 
     // Since this code does not run in the userscript, we can't use consoleLog().
-    console.groupCollapsed(`%c${name}%c: ${fetchedBlobQueue.size} Recieved IMAGE message about blob "${blobID}"`, consoleStyle, '');
+    console.groupCollapsed(`%c${name}%c: ${fetchedBlobQueue.size} Received IMAGE message about blob "${blobID}"`, consoleStyle, '');
     console.log(`Blob fetch took %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c MM:SS.mmm`, consoleStyle, '');
     console.log(fetchedBlobQueue);
     console.groupEnd();

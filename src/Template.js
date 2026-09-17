@@ -64,7 +64,7 @@ export default class Template {
     this.shouldSkipTransTiles = shouldSkipTransTiles;
     this.shouldAggSkipTransTiles = shouldAggSkipTransTiles;
 
-    const shreadSize = 3; // Scale image factor for pixel art enhancement (must be odd)
+    const shredSize = 3; // Scale image factor for pixel art enhancement (must be odd)
     const bitmap = await createImageBitmap(this.file); // Create efficient bitmap from uploaded file
     const imageWidth = bitmap.width;
     const imageHeight = bitmap.height;
@@ -164,8 +164,8 @@ export default class Template {
         console.log(`Draw Size X: ${drawSizeX}\nDraw Size Y: ${drawSizeY}`);
 
         // Change the canvas size and wipe the canvas
-        const canvasWidth = drawSizeX * shreadSize;// + (pixelX % this.tileSize) * shreadSize;
-        const canvasHeight = drawSizeY * shreadSize;// + (pixelY % this.tileSize) * shreadSize;
+        const canvasWidth = drawSizeX * shredSize;// + (pixelX % this.tileSize) * shredSize;
+        const canvasHeight = drawSizeY * shredSize;// + (pixelY % this.tileSize) * shredSize;
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
 
@@ -185,8 +185,8 @@ export default class Template {
           drawSizeY, // Y height to draw *from*
           0, // Coordinate X to draw *at*
           0, // Coordinate Y to draw *at*
-          drawSizeX * shreadSize, // X width to draw *at*
-          drawSizeY * shreadSize // Y height to draw *at*
+          drawSizeX * shredSize, // X width to draw *at*
+          drawSizeY * shredSize // Y height to draw *at*
         ); // Coordinates and size of draw area of source image, then canvas
 
         context.save(); // Saves the current context of the canvas
@@ -203,7 +203,7 @@ export default class Template {
 
         const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight); // Data of the image on the canvas
 
-        console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
+        console.log(`shreded pixels for ${pixelX}, ${pixelY}`, imageData);
 
         // Creates the "0000,0000,000,000" key name
         const templateTileName = `${
@@ -359,7 +359,7 @@ export default class Template {
 
   /** Calculates the total pixels for each color for the image.
    * 
-   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
+   * @param {ImageData} imageData - The pre-shreded image "casted" onto a canvas
    * @param {Object} paletteBM - The palette Blue Marble uses for colors
    * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
    * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID

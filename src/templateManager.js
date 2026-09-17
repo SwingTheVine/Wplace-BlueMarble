@@ -708,7 +708,7 @@ export default class TemplateManager {
       });
 
     } else if (schemaVersionArray[0] < schemaVersionBleedingEdge[0]) {
-      // Else if the MAJOR verison is out-of-date
+      // Else if the MAJOR version is out-of-date
 
       // Spawns a new Template Wizard
       const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);

@@ -558,7 +558,7 @@ export default class SettingsManager extends WindowSettings {
       // We immediately set the "is window shown" bit to `true`
       let bitFlagsMutable = set32BitPosition(0, 0, true); // Use only the 6 least-significant bits
 
-      // Figures out if the window is minimized, and sets the cooresponding bit
+      // Figures out if the window is minimized, and sets the corresponding bit
       const windowMinimizationButton = windowElement.querySelector('button[data-button-status]');
       const isWindowMinimized = (windowMinimizationButton?.dataset['buttonStatus'] == 'collapsed');
       bitFlagsMutable = set32BitPosition(bitFlagsMutable, 1, isWindowMinimized);
@@ -606,7 +606,7 @@ export default class SettingsManager extends WindowSettings {
     // Obtains the most-up-to-date common window state for the main window
     const windowMainCommonStates = obtainCommonStates(windowMainElement, 'bm');
     // Stores 13 bit flags unique to this window
-    let windowMainUniqueStatesMutable = 0; // Currently there are none, so this is the final verison
+    let windowMainUniqueStatesMutable = 0; // Currently there are none, so this is the final version
     // Stores the X coordinates for the "Upload Template" coordinate input fields. Fallback is zero. Note: This is a user-specified field
     const windowMainTemplateCoordinateX = Math.min(2047999, Math.max(0, (Number(windowMainElement?.querySelector('#bm-input-tx')?.value ?? 0) * 1000) + Number(windowMainElement?.querySelector('#bm-input-px')?.value ?? 0)));
     // Stores the Y coordinates for the "Upload Template" coordinate input fields. Fallback is zero. Note: This is a user-specified field
@@ -628,7 +628,7 @@ export default class SettingsManager extends WindowSettings {
     // Obtains the most-up-to-date common window state for the Credits window
     const windowCreditsCommonStates = obtainCommonStates(windowCreditsElement, 'crdt');
     // Stores 13 bit flags unique to this window
-    let windowCreditsUniqueStatesMutable = 0; // Currently there are none, so this is the final verison
+    let windowCreditsUniqueStatesMutable = 0; // Currently there are none, so this is the final version
     // Save the window state, or fallback to zeros
     const windowCreditsState = windowCreditsCommonStates
       + numberToEncoded(windowCreditsUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2);
@@ -698,7 +698,7 @@ export default class SettingsManager extends WindowSettings {
    */
   #decodeWindowStateToObject(windowState) {
 
-    console.log('Recieved window state to decode: ', windowState);
+    console.log('Received window state to decode: ', windowState);
 
     /** Decodes the common header data in each encoded value.
      * This is an arrow function so code inside the function can easily access class-level variables (using `this`).
@@ -710,7 +710,7 @@ export default class SettingsManager extends WindowSettings {
 
       // If the passed in encodedString is invalid...
       if ((typeof encodedString !== 'string') || (encodedString.length == 0)) {
-        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but recieved a '${typeof encodedString}' with value: ${encodedString}\nAssuming all common states are zeros...`);
+        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but received a '${typeof encodedString}' with value: ${encodedString}\nAssuming all common states are zeros...`);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       } // The data we are supposed to read is corrupt, so we can zero all bytes and continue as normal.
 
@@ -852,7 +852,7 @@ export default class SettingsManager extends WindowSettings {
 
     // If the passed in arguments are invalid
     if ((typeof tinyID !== 'string') || (typeof index !== 'number')) {
-      consoleError(`Attempted to get window state variable with type (string, number), but recieved type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})\nReturning zero...`);
+      consoleError(`Attempted to get window state variable with type (string, number), but received type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})\nReturning zero...`);
       return 0;
     }
 

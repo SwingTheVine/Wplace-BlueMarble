@@ -168,7 +168,7 @@ export default class WindowMain extends Overlay {
                     || (typeof firstCoord === 'string' && firstCoord.trim() === '') // Triggers if the string is empty
                     || (!Number.isInteger(Number(firstCoord))) // Triggers if we can't convert the first coordinate to an integer
                   ) {
-                    instance.handleDisplayError(`Coordinates are malformed! Did you try clicking on the canvas first?\nRecieved: (${coords?.[0]}, ${coords?.[1]}, ${coords?.[2]}, ${coords?.[3]})\nTypes: (${typeof coords?.[0]}, ${typeof coords?.[1]}, ${typeof coords?.[2]}, ${typeof coords?.[3]})\nTotal: ${coords?.length}`);
+                    instance.handleDisplayError(`Coordinates are malformed! Did you try clicking on the canvas first?\nReceived: (${coords?.[0]}, ${coords?.[1]}, ${coords?.[2]}, ${coords?.[3]})\nTypes: (${typeof coords?.[0]}, ${typeof coords?.[1]}, ${typeof coords?.[2]}, ${typeof coords?.[3]})\nTotal: ${coords?.length}`);
                     return;
                   }
                   instance.updateInnerHTML('bm-input-tx', coords?.[0] ?? '');

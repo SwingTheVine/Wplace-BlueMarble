@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.11
+// @version         0.95.12
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2941,7 +2941,7 @@ Assuming all common states are zeros...`);
       console.log("Template coordinates:", this.coords);
       this.shouldSkipTransTiles = shouldSkipTransTiles;
       this.shouldAggSkipTransTiles = shouldAggSkipTransTiles;
-      const shreadSize = 3;
+      const shredSize = 3;
       const bitmap = await createImageBitmap(this.file);
       const imageWidth = bitmap.width;
       const imageHeight = bitmap.height;
@@ -2999,8 +2999,8 @@ Pixel Y: ${pixelY}`);
           console.log(`Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`);
           console.log(`Draw Size X: ${drawSizeX}
 Draw Size Y: ${drawSizeY}`);
-          const canvasWidth = drawSizeX * shreadSize;
-          const canvasHeight = drawSizeY * shreadSize;
+          const canvasWidth = drawSizeX * shredSize;
+          const canvasHeight = drawSizeY * shredSize;
           canvas.width = canvasWidth;
           canvas.height = canvasHeight;
           console.log(`Draw X: ${drawSizeX}
@@ -3026,9 +3026,9 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
             // Coordinate X to draw *at*
             0,
             // Coordinate Y to draw *at*
-            drawSizeX * shreadSize,
+            drawSizeX * shredSize,
             // X width to draw *at*
-            drawSizeY * shreadSize
+            drawSizeY * shredSize
             // Y height to draw *at*
           );
           context.save();
@@ -3038,7 +3038,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           context.fillRect(0, 0, canvasWidth, canvasHeight);
           context.restore();
           const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
-          console.log(`Shreaded pixels for ${pixelX}, ${pixelY}`, imageData);
+          console.log(`shreded pixels for ${pixelX}, ${pixelY}`, imageData);
           const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
           this.chunked32[templateTileName] = new Uint32Array(imageData.data.buffer);
           templateTiles[templateTileName] = await createImageBitmap(canvas);
@@ -3180,7 +3180,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
   _Template_instances = new WeakSet();
   /** Calculates the total pixels for each color for the image.
    * 
-   * @param {ImageData} imageData - The pre-shreaded image "casted" onto a canvas
+   * @param {ImageData} imageData - The pre-shreded image "casted" onto a canvas
    * @param {Object} paletteBM - The palette Blue Marble uses for colors
    * @param {Number} paletteTolerance - How close an RGB color has to be in order to be considered a palette color. A tolerance of "3" means the sum of the RGB can be up to 3 away from the actual value.
    * @returns {Map<Number, Number>} A map where the key is the color ID, and the value is the total pixels for that color ID
@@ -3452,7 +3452,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         if (templates.hasOwnProperty(template)) {
           const templateKeyArray = templateKey.split(" ");
           const sortID = Number(templateKeyArray?.[0]);
-          const authorID = encodedToNumber(templateKeyArray?.[1] || "0", this.templateManager.encodingBase);
+          const authorID = encodedToNumber(templateKeyArray?.[1] || "0");
           const displayName = templateValue.name || `Template ${sortID || ""}`;
           const coords = templateValue?.coords?.split(",")?.map(Number);
           const totalPixelCount = templateValue.pixels?.total ?? void 0;

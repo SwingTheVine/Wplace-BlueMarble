@@ -228,8 +228,8 @@ export function numberToEncoded(number, encoding = defaultEncoding) {
     // If we return zero, it would result in "unexplained" data loss. (Which, could be massive or cascading, since values don't stop modifying each other after the initial failure)
     // If we continue, it would result in corrupted save data.
     // Therefore, the only reasonable course of action is to crash the thread, in order to minimize data loss.
-    new Overlay().handleDisplayError(`numberToEncoded() recieved '${typeof number}' and crashed BM to minimize data loss.`);
-    throw new Error(`numberToEncoded expected a number, but recieved a ${typeof number}! Value: ${number}`);
+    new Overlay().handleDisplayError(`numberToEncoded() received '${typeof number}' and crashed BM to minimize data loss.`);
+    throw new Error(`numberToEncoded expected a number, but received a ${typeof number}! Value: ${number}`);
   }
 
   if (number === 0) return encoding[0]; // End quickly if number equals 0. No special calculation needed
@@ -264,7 +264,7 @@ export function encodedToNumber(encoded, encoding = defaultEncoding) {
 
   // Terminates if the encoded value was not a string
   if (typeof encoded !== 'string') {
-    consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but recieved ${typeof encoded}.\nReturning zero...`);
+    consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but received ${typeof encoded}.\nReturning zero...`);
     return 0;
   }
 
