@@ -10,10 +10,16 @@ import { consoleCSS, consoleError, consoleWarn, escapeHTML, localizeNumber, numb
 export default class ApiManager {
 
   /** Constructor for ApiManager class
+   * @param {string} name - The name of the userscript
+   * @param {string} version - The version of the userscript
    * @param {TemplateManager} templateManager 
    * @since 0.11.34
    */
-  constructor(templateManager) {
+  constructor(name, version, templateManager) {
+
+    this.name = name; // Name of userscript
+    this.version = version; // Verison of userscript
+
     this.templateManager = templateManager;
     this.disableAll = false; // Should the entire userscript be disabled?
     this.chargeRefillTimerID = ''; // Contains the Charge refill timer element ID attribute so we can update the timer.
@@ -47,9 +53,7 @@ export default class ApiManager {
       // E.g. "wplace.live/api/files/s0/tiles/0/0/0.png" -> "tiles"
       const endpointText = data['endpoint']?.split('?')[0].split('/').filter(s => s && isNaN(Number(s))).filter(s => s && !s.includes('.')).pop();
 
-      console.debug(`Color Test: %cA%cB%cC%cD%cE%cF%cG%cH%c`, consoleCSS.WHITE, consoleCSS.BLACK, consoleCSS.RED, consoleCSS.YELLOW, consoleCSS.GREEN, consoleCSS.BLUE, consoleCSS.MAGENTA, consoleCSS.CYAN, consoleCSS.RESET);
-
-      console.debug(`%cBlue Marble%c: Received message about "%c%s%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, endpointText, consoleCSS.RESET);
+      console.debug(`%c${this.name}%c: Received message about "%c${endpointText}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
 
       // Each case is something that Blue Marble can use from the fetch.
       // For instance, if the fetch was for "me", we can update the overlay stats
@@ -65,11 +69,12 @@ export default class ApiManager {
             return; // Returns early to avoid displaying null userdata
           }
 
-          const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON['level']) * Math.pow(30, 0.65), (1/0.65)) - dataJSON['pixelsPainted']); // Calculates pixels to the next level
+          // Calculates pixels to the next level
+          const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON['level']) * Math.pow(30, 0.65), (1/0.65)) - dataJSON['pixelsPainted']);
 
-          console.log(dataJSON['id']);
+          console.debug(`%c${this.name}%c: User reportedly has the User ID #${dataJSON['id']}`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           if (!!dataJSON['id'] || dataJSON['id'] === 0) {
-            console.log(numberToEncoded(dataJSON['id']));
+            console.debug(`%c${this.name}%c: User ID when encoded: "%c${numberToEncoded(dataJSON['id'])}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           }
           this.templateManager.userID = dataJSON['id'];
 
@@ -184,16 +189,21 @@ export default class ApiManager {
         case 'tile':
         case 'tiles':
 
+          // Retrieves the coordinates from the API endpoint name, and the URL payload
           let tileCoordsTile = data['endpoint'].split('/');
           tileCoordsTile = [parseInt(tileCoordsTile[tileCoordsTile.length - 2]), parseInt(tileCoordsTile[tileCoordsTile.length - 1].replace('.png', ''))];
           
-          const blobUUID = data['blobID'];
-          const blobData = data['blobData'];
+          const blobUUID = data['blobID']; // Retrieves the UUID of the blob for this specific network request
+          const blobData = data['blobData']; // Retrieves the blob of the tile
           
+          // Draws the templates on the tile blob
           const timer = Date.now();
           const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
-          console.log(`Finished loading the tile in ${(Date.now() - timer) / 1000} seconds!`);
+          console.debug(`%c${this.name}%c: Finished drawing templates on tile blob (%c${blobUUID}%c) in %c${(Date.now() - timer) / 1000}%c seconds!`,consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
+          // Sends a message on the window, which contains the processed tile blob.
+          // This is more of a "yeet" since there is no established connection with...
+          // ...the intended receiver, nor do we know if anyone will see it at all.
           window.postMessage({
             source: 'blue-marble',
             blobID: blobUUID,
@@ -212,21 +222,22 @@ export default class ApiManager {
   // Sends a heartbeat to the telemetry server
   async sendHeartbeat(version) {
 
-    console.log('Sending heartbeat to telemetry server...');
+    console.info(`%c${this.name}%c: Sending heartbeat to telemetry server...`, consoleCSS.BLUE, consoleCSS.RESET);
 
-    let userSettings = await GM.getValue('bmUserSettings', '{}')
+    let userSettings = await GM.getValue('bmUserSettings', '{}');
     userSettings = JSON.parse(userSettings);
 
     if (!userSettings || !userSettings.telemetry || !userSettings.uuid) {
-      console.log('Telemetry is disabled, not sending heartbeat.');
+      console.info(`Telemetry is disabled, because %c${!userSettings ? 'userSettings' : !userSettings.telemetry ? 'userSettings.telemetry' : 'userSettings.uuid'}%c is "%c${!userSettings ? typeof userSettings : !userSettings.telemetry ? userSettings.telemetry : userSettings.uuid}%c"! Heartbeat will not be sent.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       return; // If telemetry is disabled, do not send heartbeat
     }
 
+    // Obtains information about the user's computer
     const ua = navigator.userAgent;
     let browser = await this.getBrowserFromUA(ua);
     let os = this.getOS(ua);
 
-    // No await. We are throwing data into the void, and we don't expect anything in return.
+    // Don't await. We are throwing data into the void, and we don't expect anything in return.
     GM.xmlhttpRequest({
       method: 'POST',
       url: 'https://telemetry.thebluecorner.net/heartbeat',
@@ -241,11 +252,11 @@ export default class ApiManager {
       }),
       onload: (response) => {
         if (response.status !== 200) {
-          consoleError('Failed to send heartbeat:', response.statusText);
+          consoleError(`%c${this.name}%c: Failed to send heartbeat! Response: `, consoleCSS.BLUE, consoleCSS.RESET, response.statusText);
         }
       },
       onerror: (error) => {
-        consoleError('Error sending heartbeat:', error);
+        consoleError(`%c${this.name}%c: Error sending heartbeat! Error: `, consoleCSS.BLUE, consoleCSS.RESET, error);
       }
     });
   }

@@ -1,7 +1,7 @@
 import ConfettiManager from "./confettiManager";
 import Overlay from "./Overlay";
 import SettingsManager from "./settingsManager";
-import { calculateRelativeLuminance, consoleWarn, localizeDate, localizeNumber, localizePercent, rgbToHex } from "./utils";
+import { calculateRelativeLuminance, consoleCSS, consoleWarn, localizeDate, localizeNumber, localizePercent, rgbToHex } from "./utils";
 
 /** The overlay builder for the color filter Blue Marble window.
  * @description This class handles the overlay UI for the color filter window of the Blue Marble userscript.
@@ -255,7 +255,7 @@ export default class WindowFilter extends Overlay {
                     for (const [input, value] of formData) {
                       formValues[input] = value;
                     }
-                    console.log(`Primary: ${formValues['sortPrimary']}; Secondary: ${formValues['sortSecondary']}; Unused: ${formValues['showUnused'] == 'on'}`);
+                    console.info(`%c${this.name}%c: User Selection for %cFilter Settings%c:\nPrimary Sort: %c${formValues['sortPrimary']}%c\nSecondary Sort: %c${formValues['sortSecondary']}%c\nUnused: %c${formValues['showUnused'] == 'on'}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
                     
                     // Sort the color list
                     this.#sortColorList(formValues['sortPrimary'], formValues['sortSecondary'], formValues['showUnused'] == 'on');
@@ -423,7 +423,7 @@ export default class WindowFilter extends Overlay {
     const isWindowedMode = parentElement.closest(`#${this.windowID}`)?.classList.contains('bm-windowed');
     // Note: `undefined` is expected to behave as if `false`
     
-    console.log(`Is Windowed Mode: ${isWindowedMode}`);
+    console.debug(`%c${this.name}%c: Value of %cisWindowedMode%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, isWindowedMode);
 
     const colorList = new Overlay(this.name, this.version);
     colorList.addDiv({'id': this.colorListID})
@@ -831,7 +831,7 @@ export default class WindowFilter extends Overlay {
       }
     }
 
-    console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
+    console.debug(`%c${this.name}%c: Tiles loaded: %c${this.tilesLoadedTotal}%c / %c${this.tilesTotal}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     // If the template is complete, and the pixel count is non-zero, and at least 1 template exists, and all template tiles have been loaded this session...
     if ((this.allPixelsCorrectTotal >= this.allPixelsTotal) && !!this.allPixelsTotal && (this.tilesLoadedTotal == this.tilesTotal)) {
@@ -870,7 +870,7 @@ export default class WindowFilter extends Overlay {
     // If there are multiple enabled, fallback to top-of-list option.
     // Otherwise, find the value of the bit flag index
     if (primarySortFlagTrue.length !== 1) {
-      consoleWarn(`WindowFilter expected one enabled primary sort option, but ${primarySortFlagTrue.length} are enabled! Skipping...`);
+      consoleWarn(`%c${this.name}%c: %cWindowFilter%c expected one enabled %cprimary sort%c option, but %c${primarySortFlagTrue.length}%c are enabled! Skipping...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     } else {
       const [flagValue] = primarySortFlagTrue[0] ?? this.sortPrimary;
       this.sortPrimary = flagValue;
@@ -891,7 +891,7 @@ export default class WindowFilter extends Overlay {
     // If there are multiple enabled, fallback to top-of-list option.
     // Otherwise, find the value of the bit flag index
     if (secondarySortFlagTrue.length !== 1) {
-      consoleWarn(`WindowFilter expected one enabled secondary sort option, but ${secondarySortFlagTrue.length} are enabled! Skipping...`);
+      consoleWarn(`%c${this.name}%c: %cWindowFilter%c expected one enabled %csecondary sort%c option, but %c${secondarySortFlagTrue.length}%c are enabled! Skipping...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     } else {
       const [flagValue] = secondarySortFlagTrue[0] ?? this.sortSecondary;
       this.sortSecondary = flagValue;

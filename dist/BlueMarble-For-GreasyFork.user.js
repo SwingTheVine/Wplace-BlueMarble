@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.33
+// @version         0.95.44
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1468,6 +1468,9 @@
     /** Turns the text cyan */
     CYAN: "color: deepskyblue; "
   };
+  function consoleDebug(...args) {
+    ((consoleDebug2) => consoleDebug2(...args))(console.debug);
+  }
   function consoleLog(...args) {
     ((consoleLog2) => consoleLog2(...args))(console.log);
   }
@@ -1497,8 +1500,8 @@
   }
   function encodedToNumber(encoded, encoding = defaultEncoding) {
     if (typeof encoded !== "string") {
-      consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but received ${typeof encoded}.
-Returning zero...`);
+      consoleWarn(`Unknown: Invalid encoded string passed into %cencodedToNumber()%c! Expected string type, but received %c${typeof encoded}%c.
+Returning zero...`, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       return 0;
     }
     let decodedNumber = 0;
@@ -1506,7 +1509,7 @@ Returning zero...`);
     for (const character of encoded) {
       const decodedCharacter = encoding.indexOf(character);
       if (decodedCharacter == -1) {
-        consoleError(`Invalid character '${character}' encountered whilst decoding in encodedToNumber()! Is the decode alphabet/base incorrect?`);
+        consoleError(`Unknown: Invalid character '%c${character}%c' encountered whilst decoding in %cencodedToNumber()%c! Is the decode alphabet/base incorrect?`, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       }
       decodedNumber = decodedNumber * base + decodedCharacter;
     }
@@ -1539,7 +1542,7 @@ Returning zero...`);
   }
   function numberUnsignedTo32BitBooleanArray(number) {
     if (!Number.isInteger(number) || number < 0 || number > 4294967295) {
-      consoleError(`Tried to convert an unsigned 32-bit number to a boolean array, but the ${typeof number} value passed in was not valid! Value: ${number}. Returning zeros...`);
+      consoleError(`Unknown: Tried to convert an unsigned 32-bit number to a boolean array, but the %c${typeof number}%c value passed in was not valid! Value: %c${number}%c. Returning zeros...`, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       const zeros = [];
       for (let i = 0; i <= 31; i++) {
         zeros[i] = false;
@@ -1563,7 +1566,7 @@ Returning zero...`);
     await navigator.clipboard.readText().then((text) => {
       data = text;
     }).catch((error) => {
-      consoleLog(`Failed to retrieve clipboard data using navigator! Using fallback methods...`);
+      consoleLog(`Unknown: Failed to retrieve clipboard data using navigator! Using fallback methods...`);
     });
     if (data.length != 0) {
       return data;
@@ -1862,7 +1865,10 @@ Returning zero...`);
           for (const [input, value] of formData) {
             formValues[input] = value;
           }
-          console.log(`Primary: ${formValues["sortPrimary"]}; Secondary: ${formValues["sortSecondary"]}; Unused: ${formValues["showUnused"] == "on"}`);
+          console.info(`%c${this.name}%c: User Selection for %cFilter Settings%c:
+Primary Sort: %c${formValues["sortPrimary"]}%c
+Secondary Sort: %c${formValues["sortSecondary"]}%c
+Unused: %c${formValues["showUnused"] == "on"}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           __privateMethod(this, _WindowFilter_instances, sortColorList_fn).call(this, formValues["sortPrimary"], formValues["sortSecondary"], formValues["showUnused"] == "on");
         };
       }).buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildElement().buildOverlay(this.windowParent);
@@ -2048,7 +2054,7 @@ Returning zero...`);
    */
   buildColorList_fn = function(parentElement) {
     const isWindowedMode = parentElement.closest(`#${this.windowID}`)?.classList.contains("bm-windowed");
-    console.log(`Is Windowed Mode: ${isWindowedMode}`);
+    console.debug(`%c${this.name}%c: Value of %cisWindowedMode%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, isWindowedMode);
     const colorList = new Overlay(this.name, this.version);
     colorList.addDiv({ "id": this.colorListID });
     const colorStatistics = this.updateColorList();
@@ -2243,7 +2249,7 @@ Returning zero...`);
         }
       }
     }
-    console.log(`Tiles loaded: ${this.tilesLoadedTotal} / ${this.tilesTotal}`);
+    console.debug(`%c${this.name}%c: Tiles loaded: %c${this.tilesLoadedTotal}%c / %c${this.tilesTotal}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     if (this.allPixelsCorrectTotal >= this.allPixelsTotal && !!this.allPixelsTotal && this.tilesLoadedTotal == this.tilesTotal) {
       const confettiManager = new ConfettiManager();
       confettiManager.createConfetti(document.querySelector(`#${this.windowID}`));
@@ -2263,7 +2269,7 @@ Returning zero...`);
     const filterBitFlags = this.settingsManager?.getWindowStatesObject()?.["fltr"];
     const primarySortFlagTrue = primarySortValues.filter(([, index]) => filterBitFlags[index]);
     if (primarySortFlagTrue.length !== 1) {
-      consoleWarn(`WindowFilter expected one enabled primary sort option, but ${primarySortFlagTrue.length} are enabled! Skipping...`);
+      consoleWarn(`%c${this.name}%c: %cWindowFilter%c expected one enabled %cprimary sort%c option, but %c${primarySortFlagTrue.length}%c are enabled! Skipping...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     } else {
       const [flagValue] = primarySortFlagTrue[0] ?? this.sortPrimary;
       this.sortPrimary = flagValue;
@@ -2275,7 +2281,7 @@ Returning zero...`);
     );
     const secondarySortFlagTrue = secondarySortValues.filter(([, index]) => filterBitFlags[index]);
     if (secondarySortFlagTrue.length !== 1) {
-      consoleWarn(`WindowFilter expected one enabled secondary sort option, but ${secondarySortFlagTrue.length} are enabled! Skipping...`);
+      consoleWarn(`%c${this.name}%c: %cWindowFilter%c expected one enabled %csecondary sort%c option, but %c${secondarySortFlagTrue.length}%c are enabled! Skipping...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     } else {
       const [flagValue] = secondarySortFlagTrue[0] ?? this.sortSecondary;
       this.sortSecondary = flagValue;
@@ -2456,10 +2462,11 @@ Returning zero...`);
       const userSettingsOld = JSON.stringify(this.userSettingsOld);
       if (userSettingsCurrent != userSettingsOld && Date.now() - this.lastUpdateTime > this.updateFrequency) {
         await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent);
+        consoleInfo(`%c${this.name}%c: Changes to user settings/preferences were detected. They have been saved to userscript storage.`, consoleCSS.BLUE, consoleCSS.RESET);
+        consoleDebug(`%c${this.name}%c: Updated %cuser settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, userSettingsCurrent);
         this.userSettingsOld = structuredClone(this.userSettings);
         __privateSet(this, _windowStatesObject, __privateMethod(this, _SettingsManager_instances, decodeWindowStateToObject_fn).call(this, __privateGet(this, _windowStatesObjectEncoded)) ?? {});
         this.lastUpdateTime = Date.now();
-        console.log(userSettingsCurrent);
       }
     }
     /** Toggles a boolean flag to the state that was passed in.
@@ -2470,17 +2477,17 @@ Returning zero...`);
      * @since 0.91.60
      */
     toggleFlag(flagName, state = void 0) {
-      console.log("Flag Settings:", this.userSettings?.flags);
+      console.info(`%c${this.name}%c: Flag has been requested to be toggled. %cFlag Settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.userSettings?.flags);
       const flagIndex = this.userSettings?.flags?.indexOf(flagName) ?? -1;
-      console.log(`Flag '${flagName}' is requested to become '${state}' (currently ${flagIndex})`);
+      console.debug(`%c${this.name}%c: Flag '%c${flagName}%c' is requested to become '%c${state}%c' (currently %c${flagIndex}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       if (flagIndex != -1 && state !== true) {
-        console.log(`Setting flag '${flagName}' to false!`);
+        console.debug(`%c${this.name}%c: Setting flag '%c${flagName}%c' to %cfalse%c! (Removing from storage)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         this.userSettings?.flags?.splice(flagIndex, 1);
       } else if (flagIndex == -1 && state !== false) {
-        console.log(`Setting flag '${flagName}' to true! (Adding to storage)`);
+        console.debug(`%c${this.name}%c: Setting flag '%c${flagName}%c' to %ctrue%c! (Adding to storage)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         this.userSettings?.flags?.push(flagName);
       }
-      console.log("Flag Settings Final: ", this.userSettings?.flags);
+      console.info(`%c${this.name}%c: Requested flag has been toggled. %cFlag Settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.userSettings?.flags);
     }
     // This is one of the most insane OOP setups I have ever laid my eyes on
     /** Builds the "highlight" category of the settings window
@@ -2530,7 +2537,7 @@ Returning zero...`);
     decodeFilteredColorBitFlags(encodedString) {
       const shouldColorBeFiltered = /* @__PURE__ */ new Map();
       if (typeof encodedString !== "string") {
-        consoleWarn("Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...");
+        consoleWarn(`%c${this.name}%c: Could not %cdecode filtered colors%c from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
         return shouldColorBeFiltered;
       }
       if (!encodedString || encodedString == this.zerothEncodingAlphabetCharacter.repeat(15)) {
@@ -2575,7 +2582,7 @@ Returning zero...`);
      * @returns {Object} An object containing window states
      */
     getWindowStatesObject() {
-      console.log("#windowStatesObject: ", __privateGet(this, _windowStatesObject));
+      console.debug(`%c${this.name}%c: %cgetWindowStatesObject()%c has been called. Value of %c#windowStatesObject%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, __privateGet(this, _windowStatesObject));
       return __privateGet(this, _windowStatesObject);
     }
     /** Returns the corresponding variable's value from the window state.
@@ -2587,14 +2594,14 @@ Returning zero...`);
      */
     getWindowStateVariable(tinyID, index) {
       if (typeof tinyID !== "string" || typeof index !== "number") {
-        consoleError(`Attempted to get window state variable with type (string, number), but received type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})
-Returning zero...`);
+        consoleError(`%c${this.name}%c: Attempted to get %cwindow state%c variable with type (string, number), but received type (%c${typeof tinyID}%c, %c${typeof index}%c) instead! Value: (%c${tinyID}%c, %c${index}%c)
+Returning zero...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         return 0;
       }
       const windowState = __privateGet(this, _windowStatesObject)?.[tinyID];
       if (!Number.isInteger(index) || index < 0 || index > windowState.length - 1) {
-        consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}
- Returning zero...`);
+        consoleError(`%c${this.name}%c: Attempted to retrieve index %c${index}%c in '%c${tinyID}%c' %cwindow state%c, but the index is out-of-bounds! Valid: %c0%c - %c${windowState.length - 1}%c
+ Returning zero...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         return 0;
       }
       return windowState[index];
@@ -2652,6 +2659,7 @@ Returning zero...`);
    * @since 0.91.46
    */
   updateHighlightSettings_fn = function(button, coords) {
+    console.info(`%c${this.name}%c: Highlight settings have been requested to be changed. %cHighlight settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.userSettings?.highlight);
     button.disabled = true;
     const status = button.dataset["status"];
     const userStorageOld = this.userSettings?.highlight ?? [[1, 0, 1], [2, 0, 0], [1, -1, 0], [1, 1, 0], [1, 0, -1]];
@@ -2687,7 +2695,7 @@ Returning zero...`);
     } else if (indexOfChange != -1) {
       userStorageNew.splice(indexOfChange, 1);
     }
-    console.log("New Highlight Settings: ", userStorageNew);
+    console.info(`%c${this.name}%c: Highlight settings have been updated. %cHighlight settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, userStorageNew);
     this.userSettings["highlight"] = userStorageNew;
     button.disabled = false;
   };
@@ -2750,7 +2758,7 @@ Returning zero...`);
       } else if (id >= 32 && id <= 63) {
         mutableBitFlagsPosLarge = set32BitPosition(mutableBitFlagsPosLarge, id - 32, value);
       } else {
-        consoleError(`Attempted to store filter color with ID #${id} but this ID number is out of bounds (-32 to 63)! The color will not be stored.`);
+        consoleError(`%c${this.name}%c: Attempted to store filter color with ID #%c${id}%c but this ID number is out of bounds (-32 to 63)! The color will not be stored.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       }
     }
     const encodedBitFlags = numberToEncoded(mutableBitFlagsNegSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosSmall).padStart(5, this.zerothEncodingAlphabetCharacter) + numberToEncoded(mutableBitFlagsPosLarge).padStart(5, this.zerothEncodingAlphabetCharacter);
@@ -2791,8 +2799,6 @@ Returning zero...`);
     const windowMainTemplateCoordinateY = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-ty")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-py")?.value ?? 0)));
     const windowMainState = windowMainCommonStates + numberToEncoded(windowMainUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2) + numberToEncoded(windowMainTemplateCoordinateX).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4) + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4);
     __privateGet(this, _windowStatesObjectEncoded)["bm"] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
-    console.log("Saved Main Window State: ", __privateGet(this, _windowStatesObjectEncoded)["bm"]);
-    console.log(`Saved Main Window State Translation: (${encodedToNumber(windowMainCommonStates.slice(2, 5))}, ${encodedToNumber(windowMainCommonStates.slice(5, 8))})`);
     const windowCreditsID = this.windowCredits?.windowID;
     const windowCreditsElement = windowCreditsID ? document.querySelector("#" + this.windowCredits?.windowID) : void 0;
     const windowCreditsCommonStates = obtainCommonStates(windowCreditsElement, "crdt");
@@ -2833,11 +2839,11 @@ Returning zero...`);
    * @since 0.92.23
    */
   decodeWindowStateToObject_fn = function(windowState) {
-    console.log("Received window state to decode: ", windowState);
+    console.info(`%c${this.name}%c: Received %cwindow state%c to decode: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, windowState);
     const decodeCommonStates = (encodedString) => {
       if (typeof encodedString !== "string" || encodedString.length == 0) {
-        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but received a '${typeof encodedString}' with value: ${encodedString}
-Assuming all common states are zeros...`);
+        consoleWarn(`%c${this.name}%c: Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but received a '%c${typeof encodedString}%c' with value: %c${encodedString}%c
+Assuming all common states are zeros...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       }
       const drawDepth = encodedToNumber(encodedString.slice(0, 1));
@@ -2870,7 +2876,7 @@ Assuming all common states are zeros...`);
       mainWindowTemplateCoordX,
       mainWindowTemplateCoordY
     );
-    console.log("Common Main Window States have been decoded! States: ", decodeCommonStates(mainWindowEncodedCommon));
+    console.debug(`%c${this.name}%c: %cCommon Main Window States%c have been decoded! States: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, decodeCommonStates(mainWindowEncodedCommon));
     const creditsWindowEncodedState = windowState["crdt"] ?? creditsWindowStateDefault;
     const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const creditsWindowEncodedFlags = creditsWindowEncodedState?.slice(this.commonStatesByteLength, 10);
@@ -2927,6 +2933,7 @@ Assuming all common states are zeros...`);
      * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
      * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
      * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
+     * @param {string} [params.scriptName='Template'] - The name of the userscript
      * @since 0.65.2
      */
     constructor({
@@ -2939,7 +2946,8 @@ Assuming all common states are zeros...`);
       chunked = null,
       chunked32 = {},
       tileSize = 1e3,
-      pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() }
+      pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() },
+      scriptName = "Template"
     } = {}) {
       __privateAdd(this, _Template_instances);
       this.displayName = displayName;
@@ -2952,6 +2960,7 @@ Assuming all common states are zeros...`);
       this.chunked32 = chunked32;
       this.tileSize = tileSize;
       this.pixelCount = pixelCount;
+      this.scriptName = scriptName;
       this.shouldSkipTransTiles = true;
       this.shouldAggSkipTransTiles = false;
     }
@@ -2964,7 +2973,7 @@ Assuming all common states are zeros...`);
      * @since 0.65.4
      */
     async createTemplateTiles(tileSize, paletteBM, shouldSkipTransTiles, shouldAggSkipTransTiles) {
-      console.log("Template coordinates:", this.coords);
+      console.info(`%c${this.scriptName}%c: Creating template tiles at coordinates: `, consoleCSS.BLUE, consoleCSS.RESET, this.coords);
       this.shouldSkipTransTiles = shouldSkipTransTiles;
       this.shouldAggSkipTransTiles = shouldAggSkipTransTiles;
       const shredSize = 3;
@@ -2985,7 +2994,7 @@ Assuming all common states are zeros...`);
       context.drawImage(bitmap, 0, 0);
       let timer = Date.now();
       const totalPixelMap = __privateMethod(this, _Template_instances, calculateTotalPixelsFromImageData_fn).call(this, context.getImageData(0, 0, imageWidth, imageHeight), paletteBM);
-      console.log(`Calculating total pixels took ${(Date.now() - timer) / 1e3} seconds`);
+      console.debug(`%c${this.scriptName}%c: Calculating total pixels for template "%c${this.displayName}%c" took %c${(Date.now() - timer) / 1e3}%c seconds`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       let totalPixels = 0;
       const transparentColorID = 0;
       for (const [color, total] of totalPixelMap) {
@@ -3003,10 +3012,11 @@ Assuming all common states are zeros...`);
       contextMask.fillRect(1, 1, 1, 1);
       for (let pixelY = this.coords[3]; pixelY < imageHeight + this.coords[3]; ) {
         const drawSizeY = Math.min(this.tileSize - pixelY % this.tileSize, imageHeight - (pixelY - this.coords[3]));
-        console.log(`Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`);
+        console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" draw size Y: Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
         for (let pixelX = this.coords[2]; pixelX < imageWidth + this.coords[2]; ) {
-          console.log(`Pixel X: ${pixelX}
-Pixel Y: ${pixelY}`);
+          console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c"
+Pixel X: %c${pixelX}%c
+Pixel Y: %c${pixelY}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           const drawSizeX = Math.min(this.tileSize - pixelX % this.tileSize, imageWidth - (pixelX - this.coords[2]));
           if (shouldSkipTransTiles) {
             const isTemplateTileTransparent = !this.calculateCanvasTransparency({
@@ -3016,26 +3026,28 @@ Pixel Y: ${pixelY}`);
               transCanvas,
               transContext
             });
-            console.log(`Tile contains template: ${!isTemplateTileTransparent}`);
+            if (!isTemplateTileTransparent) {
+              console.debug(`%c${this.scriptName}%c: Tile (%c${this.coords[0]}%c, %c${this.coords[1]}%c) contains template "%c${this.displayName}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
+            }
             if (isTemplateTileTransparent) {
               pixelX += drawSizeX;
               continue;
             }
           }
-          console.log(`Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`);
-          console.log(`Draw Size X: ${drawSizeX}
-Draw Size Y: ${drawSizeY}`);
+          console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" draw size X: Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
           const canvasWidth = drawSizeX * shredSize;
           const canvasHeight = drawSizeY * shredSize;
           canvas.width = canvasWidth;
           canvas.height = canvasHeight;
-          console.log(`Draw X: ${drawSizeX}
-Draw Y: ${drawSizeY}
-Canvas Width: ${canvasWidth}
-Canvas Height: ${canvasHeight}`);
+          console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c"
+Draw Size X: %c${drawSizeX}%c
+Draw Size Y: %c${drawSizeY}%c
+Canvas Width: %c${canvasWidth}%c
+Canvas Height: %c${canvasHeight}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           context.imageSmoothingEnabled = false;
-          console.log(`Getting X ${pixelX}-${pixelX + drawSizeX}
-Getting Y ${pixelY}-${pixelY + drawSizeY}`);
+          console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c"
+Getting X %c${pixelX}%c-%c${pixelX + drawSizeX}%c
+Getting Y %c${pixelY}%c-%c${pixelY + drawSizeY}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           context.clearRect(0, 0, canvasWidth, canvasHeight);
           context.drawImage(
             bitmap,
@@ -3059,12 +3071,14 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           );
           context.save();
           context.globalCompositeOperation = "destination-in";
-          console.log(`Should Skip: ${shouldSkipTransTiles}; Should Agg Skip: ${shouldAggSkipTransTiles}`);
+          console.debug(`%c${this.scriptName}%c: User Settings:
+Should Skip: %c${shouldSkipTransTiles}%c;
+Should Agg Skip: %c${shouldAggSkipTransTiles}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           context.fillStyle = context.createPattern(canvasMask, "repeat");
           context.fillRect(0, 0, canvasWidth, canvasHeight);
           context.restore();
           const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
-          console.log(`shreded pixels for ${pixelX}, ${pixelY}`, imageData);
+          console.debug(`%c${this.scriptName}%c: Shreded pixels for %c${pixelX}%c, %c${pixelY}%c on template "%c${this.displayName}%c". Image data: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, imageData);
           const templateTileName = `${(this.coords[0] + Math.floor(pixelX / 1e3)).toString().padStart(4, "0")},${(this.coords[1] + Math.floor(pixelY / 1e3)).toString().padStart(4, "0")},${(pixelX % 1e3).toString().padStart(3, "0")},${(pixelY % 1e3).toString().padStart(3, "0")}`;
           this.chunked32[templateTileName] = new Uint32Array(imageData.data.buffer);
           templateTiles[templateTileName] = await createImageBitmap(canvas);
@@ -3072,15 +3086,15 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
           const canvasBuffer = await canvasBlob.arrayBuffer();
           const canvasBufferBytes = Array.from(new Uint8Array(canvasBuffer));
           templateTilesBuffers[templateTileName] = uint8ToBase64(canvasBufferBytes);
-          console.log(templateTiles);
+          console.debug(`%c${this.scriptName}%c: Value of %ctemplateTiles%c for template "%c${this.displayName}%c": `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateTiles);
           pixelX += drawSizeX;
         }
         pixelY += drawSizeY;
       }
-      console.log(`Parsing template took ${(Date.now() - timer) / 1e3} seconds`);
-      console.log("Template Tiles: ", templateTiles);
-      console.log("Template Tiles Buffers: ", templateTilesBuffers);
-      console.log("Template Tiles Uint32Array: ", this.chunked32);
+      console.debug(`%c${this.scriptName}%c: Parsing template "%c${this.displayName}%c" took %c${(Date.now() - timer) / 1e3}%c seconds!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+      console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" Tiles: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateTiles);
+      console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" Tiles Buffers: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateTilesBuffers);
+      console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" Tiles Uint32Array: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.chunked32);
       return { templateTiles, templateTilesBuffers };
     }
     /** Detects if the canvas is transparent.
@@ -3098,8 +3112,10 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       transCanvas,
       transContext
     }) {
-      console.log(`Calculating template tile transparency...`);
-      console.log(`Should Skip: ${this.shouldSkipTransTiles}; Should Agg: ${this.shouldAggSkipTransTiles}`);
+      console.debug(`${this.scriptName}%c: Calculating template tile transparency...`, consoleCSS.BLUE, consoleCSS.RESET);
+      console.debug(`%c${this.scriptName}%c: User Settings:
+Should Skip: %c${this.shouldSkipTransTiles}%c;
+Should Agg Skip: %c${this.shouldAggSkipTransTiles}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       const timer = Date.now();
       const duplicationCoordinateArray = [
         [0, 1],
@@ -3179,7 +3195,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       }
       const shunkCanvas = transContext.getImageData(0, 0, 10, 10);
       const shunkCanvas32 = new Uint32Array(shunkCanvas.data.buffer);
-      console.log(`Calculated canvas transparency in ${(Date.now() - timer) / 1e3} seconds.`);
+      console.debug(`%c${this.scriptName}%c: Calculated canvas transparency in %c${(Date.now() - timer) / 1e3}%c seconds.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       for (const pixel of shunkCanvas32) {
         if (!!pixel) {
           return true;
@@ -3227,7 +3243,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const colorIDcount = _colorpalette.get(bestColorID);
       _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
     }
-    console.log(_colorpalette);
+    console.debug(`%c${this.scriptName}%c: Value of %c_colorpalette%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, _colorpalette);
     return _colorpalette;
   };
 
@@ -3506,7 +3522,8 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
         if (templates.hasOwnProperty(key)) {
           const _template = new Template({
             displayName: template.name,
-            chunked: template.tiles
+            chunked: template.tiles,
+            scriptName: this.name
           });
           _template.calculateCoordsFromChunked();
           const blob = await this.templateManager.convertTemplateToBlob(_template);
@@ -3515,7 +3532,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       }
     }
     if (shouldWindowWizardOpen) {
-      console.log(`Restarting Template Wizard...`);
+      consoleInfo(`%c${this.name}%c: Restarting %cTemplate Wizard%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       document.querySelector(`#${this.windowID}`).remove();
       new _WindowWizard(this.name, this.version, this.schemaVersionBleedingEdge, this.templateManager).buildWindow();
     }
@@ -3574,10 +3591,10 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
       let translateX = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION);
       let translateY = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION);
-      console.log(`The X translation sign is ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE)}.
-The Y translation sign is ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE)}`);
-      console.log(`The raw translation coordinates are (${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION)}, ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION)})`);
-      console.log(`The innerWidth of the window is ${window.innerWidth}, and the innerHeight is ${window.innerHeight}.`);
+      console.debug(`%c${this.name}%c: The X translation sign is %c${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE)}%c.
+The Y translation sign is %c${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE)}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+      console.debug(`%c${this.name}%c: The raw translation coordinates are (%c${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION)}%c, %c${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION)}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+      console.debug(`%c${this.name}%c: The %cinnerWidth%c of the window is %c${window.innerWidth}%cpx, and the %cinnerHeight%c is %c${window.innerHeight}%cpx.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
       translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
       const startingPosition = !this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_MOVED) ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
@@ -3838,7 +3855,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
     async createTemplate(blob, name2, coords) {
       if (!this.templatesJSON) {
         this.templatesJSON = await this.createJSON();
-        console.log(`Creating JSON...`);
+        consoleDebug(`%c${this.name}%c: Creating %cJSON%c for templates...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       }
       this.windowMain.handleDisplayStatus(`Creating template at ${coords.join(", ")}...`);
       const template = new Template({
@@ -3847,11 +3864,14 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
         authorID: numberToEncoded(this.userID || 0),
         file: blob,
-        coords
+        coords,
+        scriptName: this.name
       });
       const shouldSkipTransTiles = !this.settingsManager?.userSettings?.flags?.includes("hl-noSkip");
       const shouldAggSkipTransTiles = this.settingsManager?.userSettings?.flags?.includes("hl-agSkip");
-      console.log(`Should Skip: ${shouldSkipTransTiles}; Should Agg Skip: ${shouldAggSkipTransTiles}`);
+      console.debug(`%c${this.scriptName}%c: User Settings:
+Should Skip: %c${shouldSkipTransTiles}%c;
+Should Agg Skip: %c${shouldAggSkipTransTiles}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize, this.paletteBM, shouldSkipTransTiles, shouldAggSkipTransTiles);
       template.chunked = templateTiles;
       const _pixels = { "total": template.pixelCount.total, "colors": Object.fromEntries(template.pixelCount.colors) };
@@ -3869,10 +3889,10 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
       this.templatesArray = [];
       this.templatesArray.push(template);
       this.windowMain.handleDisplayStatus(`Template created at ${coords.join(", ")}!`);
-      console.log(Object.keys(this.templatesJSON.templates).length);
-      console.log(this.templatesJSON);
-      console.log(this.templatesArray);
-      console.log(JSON.stringify(this.templatesJSON));
+      console.info(`%c${this.scriptName}%c: There are now %c${Object.keys(this.templatesJSON.templates).length}%c templates loaded!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+      console.debug(`%c${this.scriptName}%c: Value of %ctemplatesJSON%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesJSON);
+      console.debug(`%c${this.scriptName}%c: Value of %ctemplatesArray%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesArray);
+      console.debug(`%c${this.scriptName}%c: Value of %ctemplatesJSON%c as a string:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, JSON.stringify(this.templatesJSON));
       await __privateMethod(this, _TemplateManager_instances, storeTemplates_fn).call(this);
     }
     /** Deletes a template from the JSON object.
@@ -3885,7 +3905,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
     async disableTemplate() {
       if (!this.templatesJSON) {
         this.templatesJSON = await this.createJSON();
-        console.log(`Creating JSON...`);
+        consoleDebug(`%c${this.name}%c: Creating %cJSON%c for templates...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       }
     }
     /** Downloads all templates loaded.
@@ -3896,8 +3916,8 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
      * @see {@link downloadAllTemplatesFromStorage()}
      */
     async downloadAllTemplates() {
-      consoleLog(`Downloading all templates...`);
-      console.log(this.templatesArray);
+      consoleInfo(`%c${this.name}%c: Downloading all templates...`, consoleCSS.BLUE, consoleCSS.RESET);
+      consoleDebug(`%c${this.name}%c: Templates to download: `, consoleCSS.BLUE, consoleCSS.RESET, this.templatesArray);
       for (const template of this.templatesArray) {
         await this.downloadTemplate(template);
         await sleep(500);
@@ -3911,7 +3931,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
      */
     async downloadAllTemplatesFromStorage() {
       const templates = JSON.parse(await GM.getValue("bmTemplates", "{}"))?.templates;
-      console.log(templates);
+      console.debug(`%c${this.name}%c: Templates in user storage: `, consoleCSS.BLUE, consoleCSS.RESET, templates);
       if (Object.keys(templates).length > 0) {
         for (const [key, template] of Object.entries(templates)) {
           if (templates.hasOwnProperty(key)) {
@@ -3919,7 +3939,8 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
               displayName: template.name,
               sortID: key.split(" ")?.[0],
               authorID: key.split(" ")?.[1],
-              chunked: template.tiles
+              chunked: template.tiles,
+              scriptName: this.name
             }));
             await sleep(500);
           }
@@ -3939,13 +3960,13 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         name: templateFileName + ".png",
         conflictAction: "uniquify",
         onload: () => {
-          consoleLog(`Download of template '${templateFileName}' complete!`);
+          consoleInfo(`%c${this.name}%c: Download of template '%c${templateFileName}%c' complete!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
         },
         onerror: (error, details) => {
-          consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);
+          consoleError(`%c${this.name}%c: Download of template '%c${templateFileName}%c' failed because ${error}! Details: ${details}`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
         },
         ontimeout: () => {
-          consoleWarn(`Download of template '${templateFileName}' has timed out!`);
+          consoleWarn(`%c${this.name}%c: Download of template '%c${templateFileName}%c' has timed out!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
         }
       });
     }
@@ -3955,7 +3976,7 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
      * @returns {Promise<Blob>} A Promise of a Blob PNG image of the template
      */
     async convertTemplateToBlob(template) {
-      console.log(template);
+      console.debug(`%c${this.name}%c: Template to convert to a blob: `, consoleCSS.BLUE, consoleCSS.RESET, template);
       const templateTiles64 = template.chunked;
       const templateTileKeysSorted = Object.keys(templateTiles64).sort();
       const templateTilesImageSorted = await Promise.all(templateTileKeysSorted.map((tileKey) => convertBase64ToImage(templateTiles64[tileKey])));
@@ -3973,15 +3994,15 @@ Version: ${this.version}`, "readOnly": true }).buildElement().buildElement().add
         absoluteLargestX = Math.max(absoluteLargestX, absoluteX + tileImage.width / this.drawMult);
         absoluteLargestY = Math.max(absoluteLargestY, absoluteY + tileImage.height / this.drawMult);
       });
-      console.log(`Absolute coordinates: (${absoluteSmallestX}, ${absoluteSmallestY}) and (${absoluteLargestX}, ${absoluteLargestY})`);
+      console.debug(`%c${this.name}%c: Absolute coordinates: (%c${absoluteSmallestX}%c, %c${absoluteSmallestY}%c) and (%c${absoluteLargestX}%c, %c${absoluteLargestY}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       const templateWidth = absoluteLargestX - absoluteSmallestX;
       const templateHeight = absoluteLargestY - absoluteSmallestY;
       const canvasWidth = templateWidth * this.drawMult;
       const canvasHeight = templateHeight * this.drawMult;
-      console.log(`Template Width: ${templateWidth}
-Template Height: ${templateHeight}
-Canvas Width: ${canvasWidth}
-Canvas Height: ${canvasHeight}`);
+      console.debug(`%c${this.name}%c: Template Width: %c${templateWidth}%cpx
+Template Height: %c${templateHeight}%cpx
+Canvas Width: %c${canvasWidth}%cpx
+Canvas Height: %c${canvasHeight}%cpx`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
       const context = canvas.getContext("2d");
       templateTileKeysSorted.forEach((key, index) => {
@@ -3989,7 +4010,7 @@ Canvas Height: ${canvasHeight}`);
         const tileImage = templateTilesImageSorted[index];
         const absoluteX = tileX * this.tileSize + pixelX;
         const absoluteY = tileY * this.tileSize + pixelY;
-        console.log(`Drawing tile (${tileX}, ${tileY}, ${pixelX}, ${pixelY}) (${absoluteX}, ${absoluteY}) at (${absoluteX - absoluteSmallestX}, ${absoluteY - absoluteSmallestY}) on the canvas...`);
+        console.debug(`%c${this.name}%c: Drawing tile (%c${tileX}%c, %c${tileY}%c, %c${pixelX}%c, %c${pixelY}%c) (%c${absoluteX}%c, %c${absoluteY}%c) at (%c${absoluteX - absoluteSmallestX}%c, %c${absoluteY - absoluteSmallestY}%c) on the canvas...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         context.drawImage(tileImage, (absoluteX - absoluteSmallestX) * this.drawMult, (absoluteY - absoluteSmallestY) * this.drawMult, tileImage.width, tileImage.height);
       });
       context.globalCompositeOperation = "destination-over";
@@ -4035,13 +4056,13 @@ Canvas Height: ${canvasHeight}`);
       }
       const drawSize = this.tileSize * this.drawMult;
       tileCoords = tileCoords[0].toString().padStart(4, "0") + "," + tileCoords[1].toString().padStart(4, "0");
-      console.log(`Searching for templates in tile: "${tileCoords}"`);
+      console.debug(`%c${this.name}%c: Searching for templates in tile: "%c${tileCoords}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       const templateArray = this.templatesArray;
-      console.log(templateArray);
+      console.debug(`%c${this.name}%c: %ctemplateArray%c before sorting: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateArray);
       templateArray.sort((a, b) => {
         return a.sortID - b.sortID;
       });
-      console.log(templateArray);
+      console.debug(`%c${this.name}%c: %ctemplateArray%c after sorting: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateArray);
       const templatesToDraw = templateArray.map((template) => {
         const matchingTiles = Object.keys(template.chunked).filter(
           (tile) => tile.startsWith(tileCoords)
@@ -4061,9 +4082,9 @@ Canvas Height: ${canvasHeight}`);
         });
         return matchingTileBlobs?.[0];
       }).filter(Boolean);
-      console.log(templatesToDraw);
+      console.debug(`%c${this.name}%c: Templates to draw on tile "%c${tileCoords}%c": `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, templatesToDraw);
       const templateCount = templatesToDraw?.length || 0;
-      console.log(`templateCount = ${templateCount}`);
+      console.debug(`%c${this.name}%c: %ctemplateCount%c = %c${templateCount}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       if (templateCount > 0) {
         const totalPixels = templateArray.filter((template) => {
           const matchingTiles = Object.keys(template.chunked).filter(
@@ -4096,8 +4117,7 @@ Version: ${this.version}`);
       const highlightPatternIndexZero = highlightPattern?.[0];
       const highlightDisabled = highlightPattern?.length == 1 && highlightPatternIndexZero?.[0] == 2 && highlightPatternIndexZero?.[1] == 0 && highlightPatternIndexZero?.[2] == 0;
       for (const template of templatesToDraw) {
-        console.log(`Template:`);
-        console.log(template);
+        console.debug(`%c${this.name}%c: Template to draw on tile "%c${tileCoords}%c": `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, template);
         const templateHasErased = !!template.instance.pixelCount?.colors?.get(-1);
         let templateBeforeFilter32 = template.chunked32.slice();
         const coordXtoDrawAt = Number(template.pixelCoords[0]) * this.drawMult;
@@ -4129,11 +4149,11 @@ Version: ${this.version}`);
           pixelsCorrectTotal += total;
         }
         if (this.shouldFilterColor.size != 0 || templateHasErased || !highlightDisabled) {
-          console.log("Colors to filter: ", this.shouldFilterColor);
+          console.debug(`%c${this.name}%c: Colors to filter: `, consoleCSS.BLUE, consoleCSS.RESET, this.shouldFilterColor);
           context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
         }
-        console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(performance.now() - timer).toFixed(3) / 1e3} seconds!
-There are ${pixelsCorrectTotal} correct pixels.`);
+        console.debug(`%c${this.name}%c: Finished calculating %ccorrect pixels & filtering colors%c for the tile "%c${tileCoords}%c" in %c${(performance.now() - timer).toFixed(3) / 1e3}%c seconds!
+There are %c${pixelsCorrectTotal}%c correct pixels.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         if (typeof template.instance.pixelCount["correct"] == "undefined") {
           template.instance.pixelCount["correct"] = {};
         }
@@ -4145,8 +4165,8 @@ There are ${pixelsCorrectTotal} correct pixels.`);
      * @param {string} json - The JSON string to parse
      */
     async importJSON(json) {
-      console.log(`Importing JSON...`);
-      console.log(json);
+      consoleDebug(`%c${this.name}%c: Importing %cJSON%c for templates...
+JSON:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, json);
       if (json?.whoami == "BlueMarble") {
         await __privateMethod(this, _TemplateManager_instances, parseBlueMarble_fn).call(this, json);
       }
@@ -4177,7 +4197,8 @@ There are ${pixelsCorrectTotal} correct pixels.`);
       sortID: Object.keys(this.templatesJSON.templates).length || 0,
       authorID: numberToEncoded(this.userID || 0),
       pixelCount,
-      chunked: templateObject.tiles
+      chunked: templateObject.tiles,
+      scriptName: this.name
     });
     template.calculateCoordsFromChunked();
     this.templatesArray.push(template);
@@ -4186,14 +4207,15 @@ There are ${pixelsCorrectTotal} correct pixels.`);
     await GM.setValue("bmTemplates", JSON.stringify(this.templatesJSON));
   };
   parseBlueMarble_fn = async function(json) {
-    console.log(`Parsing BlueMarble...`);
+    consoleDebug(`%c${this.name}%c: Parsing %cBlueMarble%c template JSON...
+JSON:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, json);
     const templates = json.templates;
-    console.log(`Number of templates: ${Object.keys(templates).length}`);
+    console.debug(`%c${this.name}%c: Number of templates: %c${Object.keys(templates).length}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     const schemaVersion = json?.schemaVersion;
     const schemaVersionArray = schemaVersion.split(/[-\.\+]/);
     const schemaVersionBleedingEdge = this.schemaVersion.split(/[-\.\+]/);
     const scriptVersion = json?.scriptVersion;
-    console.log(`BlueMarble Template Schema: ${schemaVersion}; Script Version: ${scriptVersion}`);
+    console.debug(`%c${this.name}%c: BlueMarble %cTemplate Schema%c: ${schemaVersion}; %cScript Version%c: ${scriptVersion}`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
       if (schemaVersionArray[1] != schemaVersionBleedingEdge[1]) {
         const windowWizard = new WindowWizard(this.name, this.version, this.schemaVersion, this);
@@ -4220,7 +4242,7 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
         for (const template in templates) {
           const templateKey = template;
           const templateValue = templates[template];
-          console.log(`Template Key: ${templateKey}`);
+          console.debug(`%c${this.name}%c: %cTemplate Key%c: "%c${templateKey}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
           if (templates.hasOwnProperty(template)) {
             const templateKeyArray = templateKey.split(" ");
             const sortID = Number(templateKeyArray?.[0]);
@@ -4235,7 +4257,7 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
             const templateTiles32 = {};
             const actualTileSize = tileSize * drawMult;
             for (const tile in tilesbase64) {
-              console.log(tile);
+              console.debug(`%c${this.name}%c: Tile in template (%c${templateKey}%c): `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, tile);
               if (tilesbase64.hasOwnProperty(tile)) {
                 const encodedTemplateBase64 = tilesbase64[tile];
                 const templateUint8Array = base64ToUint8(encodedTemplateBase64);
@@ -4252,15 +4274,15 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
             const template2 = new Template({
               displayName,
               sortID: sortID || templatesArray?.length || 0,
-              authorID: authorID || ""
+              authorID: authorID || "",
+              scriptName: this.name
               //coords: coords,
             });
             template2.pixelCount = pixelCount;
             template2.chunked = templateTiles;
             template2.chunked32 = templateTiles32;
             templatesArray.push(template2);
-            console.log(templatesArray);
-            console.log(`^^^ This ^^^`);
+            console.debug(`%c${this.name}%c: Template Array after new template has been imported: `, consoleCSS.BLUE, consoleCSS.RESET, templatesArray);
           }
         }
       }
@@ -4362,18 +4384,21 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
         _colorpalette.set(bestTemplateColorID, colorIDcount ? colorIDcount + 1 : 1);
       }
     }
-    console.log(`List of template pixels that match the tile:`);
-    console.log(_colorpalette);
+    console.debug(`%c${this.name}%c: List of template pixels that match the tile: `, consoleCSS.BLUE, consoleCSS.RESET, _colorpalette);
     return { correctPixels: _colorpalette, filteredTemplate: template32 };
   };
 
   // src/apiManager.js
   var ApiManager = class {
     /** Constructor for ApiManager class
+     * @param {string} name - The name of the userscript
+     * @param {string} version - The version of the userscript
      * @param {TemplateManager} templateManager 
      * @since 0.11.34
      */
-    constructor(templateManager) {
+    constructor(name2, version2, templateManager) {
+      this.name = name2;
+      this.version = version2;
       this.templateManager = templateManager;
       this.disableAll = false;
       this.chargeRefillTimerID = "";
@@ -4398,8 +4423,7 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
           return;
         }
         const endpointText = data["endpoint"]?.split("?")[0].split("/").filter((s) => s && isNaN(Number(s))).filter((s) => s && !s.includes(".")).pop();
-        console.debug(`Color Test: %cA%cB%cC%cD%cE%cF%cG%cH%c`, consoleCSS.WHITE, consoleCSS.BLACK, consoleCSS.RED, consoleCSS.YELLOW, consoleCSS.GREEN, consoleCSS.BLUE, consoleCSS.MAGENTA, consoleCSS.CYAN, consoleCSS.RESET);
-        console.debug(`%cBlue Marble%c: Received message about "%c%s%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, endpointText, consoleCSS.RESET);
+        console.debug(`%c${this.name}%c: Received message about "%c${endpointText}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
         switch (endpointText) {
           case "me":
             if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
@@ -4408,9 +4432,9 @@ Could not fetch userdata.`);
               return;
             }
             const nextLevelPixels = Math.ceil(Math.pow(Math.floor(dataJSON["level"]) * Math.pow(30, 0.65), 1 / 0.65) - dataJSON["pixelsPainted"]);
-            console.log(dataJSON["id"]);
+            console.debug(`%c${this.name}%c: User reportedly has the User ID #${dataJSON["id"]}`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
             if (!!dataJSON["id"] || dataJSON["id"] === 0) {
-              console.log(numberToEncoded(dataJSON["id"]));
+              console.debug(`%c${this.name}%c: User ID when encoded: "%c${numberToEncoded(dataJSON["id"])}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
             }
             this.templateManager.userID = dataJSON["id"];
             if (this.chargeRefillTimerID.length != 0) {
@@ -4486,7 +4510,7 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
             const blobData = data["blobData"];
             const timer = Date.now();
             const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
-            console.log(`Finished loading the tile in ${(Date.now() - timer) / 1e3} seconds!`);
+            console.debug(`%c${this.name}%c: Finished drawing templates on tile blob (%c${blobUUID}%c) in %c${(Date.now() - timer) / 1e3}%c seconds!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
             window.postMessage({
               source: "blue-marble",
               blobID: blobUUID,
@@ -4502,11 +4526,11 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
     }
     // Sends a heartbeat to the telemetry server
     async sendHeartbeat(version2) {
-      console.log("Sending heartbeat to telemetry server...");
+      console.info(`%c${this.name}%c: Sending heartbeat to telemetry server...`, consoleCSS.BLUE, consoleCSS.RESET);
       let userSettings = await GM.getValue("bmUserSettings", "{}");
       userSettings = JSON.parse(userSettings);
       if (!userSettings || !userSettings.telemetry || !userSettings.uuid) {
-        console.log("Telemetry is disabled, not sending heartbeat.");
+        console.info(`Telemetry is disabled, because %c${!userSettings ? "userSettings" : !userSettings.telemetry ? "userSettings.telemetry" : "userSettings.uuid"}%c is "%c${!userSettings ? typeof userSettings : !userSettings.telemetry ? userSettings.telemetry : userSettings.uuid}%c"! Heartbeat will not be sent.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         return;
       }
       const ua = navigator.userAgent;
@@ -4526,11 +4550,11 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
         }),
         onload: (response) => {
           if (response.status !== 200) {
-            consoleError("Failed to send heartbeat:", response.statusText);
+            consoleError(`%c${this.name}%c: Failed to send heartbeat! Response: `, consoleCSS.BLUE, consoleCSS.RESET, response.statusText);
           }
         },
         onerror: (error) => {
-          consoleError("Error sending heartbeat:", error);
+          consoleError(`%c${this.name}%c: Error sending heartbeat! Error: `, consoleCSS.BLUE, consoleCSS.RESET, error);
         }
       });
     }
@@ -4651,15 +4675,14 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
       const { source, endpoint, blobID, blobData, blink } = event.data;
       if (source == "blue-marble" && !!blobID && !!blobData && !endpoint) {
         const elapsed = Date.now() - blink;
-        console.groupCollapsed(`%c${name2} Closer%c: ${fetchedBlobQueue.size} Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, "", "color: magenta; ", "", "color: deepskyblue; ", "");
-        console.debug(`Blob fetch took %c${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")}%c MM:SS.mmm`, consoleStyle, "");
+        console.debug(`%c${name2} Closer%c: %c${fetchedBlobQueue.size}%c Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, "", "color: deepskyblue;", "", "color: magenta;", "", "color: deepskyblue;", "");
+        console.debug(`%c${name2} Closer%c: Blob (%c${blobID}%c) fetch took %c${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")}%c MM:SS.mmm`, consoleStyle, "", "color: deepskyblue;", "", "color: deepskyblue;", "");
         console.debug(fetchedBlobQueue);
-        console.groupEnd();
         const callback = fetchedBlobQueue.get(blobID);
         if (typeof callback === "function") {
           callback(blobData);
         } else {
-          console.warn(`%c${name2} Closer%c: Attempted to retrieve a blob (%c%s%c) from queue, but the blobID was not a function! Skipping...`, consoleStyle, "", "color: deepskyblue; ", blobID, "");
+          console.warn(`%c${name2} Closer%c: Attempted to retrieve a blob (%c${blobID}%c) from queue, but the blobID was not a function! Skipping...`, consoleStyle, "", "color: deepskyblue;", "");
         }
       }
     });
@@ -4679,7 +4702,7 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
       const endpointName = (args[0] instanceof Request ? args[0]?.url : args[0]) || "ignore";
       const contentType = cloned.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
-        console.debug(`%c${name2} Opener%c: Sending %cJSON%c message about endpoint "${endpointName}"`, consoleStyle, "", "color: magenta; ", "");
+        console.debug(`%c${name2} Opener%c: Sending %cJSON%c message about endpoint "${endpointName}"`, consoleStyle, "", "color: magenta;", "");
         cloned.json().then((jsonData) => {
           window.postMessage({
             source: "blue-marble",
@@ -4687,7 +4710,7 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
             jsonData
           }, "*");
         }).catch((err) => {
-          console.error(`%c${name2} Opener%c: Failed to parse JSON: `, consoleStyle, "", err);
+          console.error(`%c${name2} Opener%c: Failed to send %cJSON%c message about endpoint: "${endpointName}"! Error: `, consoleStyle, "", "color: magenta;", "", err);
         });
       } else if (contentType.includes("image/") && (!endpointName.includes("openfreemap") && !endpointName.includes("maps"))) {
         const blink = Date.now();
@@ -4703,12 +4726,12 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
             }
             fetchedBlobQueue.delete(blobUUID);
           };
-          console.debug(`%c${name2} Opener%c: ${fetchedBlobQueue.size} Sending %cIMAGE%c message about endpoint "${endpointName}" with blob ID "%c%s%c"`, consoleStyle, "", "color: magenta; ", "", "color: deepskyblue; ", blobUUID, "");
+          console.debug(`%c${name2} Opener%c: %c${fetchedBlobQueue.size}%c Sending %cIMAGE%c message about endpoint "${endpointName}" with blob UUID "%c${blobUUID}%c"`, consoleStyle, "", "color: deepskyblue;", "", "color: magenta;", "", "color: deepskyblue;", "");
           return new Promise((resolve) => {
             watchdog = setTimeout(() => {
               commonResolutionCode();
-              console.warn(`%c${name2} Opener%c: ${fetchedBlobQueue.size} Failed to return manipulated blob related to endpoint "${endpointName}" with blob ID "%c%s%c"!
-The blob took longer than %d miliseconds to process! Returning original blob...`, consoleStyle, "", "color: deepskyblue; ", blobUUID, "", timeoutMs);
+              console.warn(`%c${name2} Opener%c: %c${fetchedBlobQueue.size}%c Failed to return manipulated blob related to endpoint "${endpointName}" with blob ID "%c${blobUUID}%c"!
+The blob took longer than ${timeoutMs} miliseconds to process! Returning original blob...`, consoleStyle, "", "color: deepskyblue;", "", "color: deepskyblue;", "");
               resolve(response);
             }, timeoutMs);
             fetchedBlobQueue.set(blobUUID, (blobProcessed) => {
@@ -4727,11 +4750,11 @@ The blob took longer than %d miliseconds to process! Returning original blob...`
                 } catch (ignored) {
                 }
                 resolve(responseProcessed);
-                console.debug(`%c${name2} Closer%c: ${fetchedBlobQueue.size} The blob "%c%s%c" has now been processed.`, consoleStyle, "", "color: deepskyblue; ", blobUUID, "");
+                console.debug(`%c${name2} Closer%c: %c${fetchedBlobQueue.size}%c The blob "%c${blobUUID}%c" has now been processed.`, consoleStyle, "", "color: deepskyblue;", "", "color: deepskyblue;", "");
                 return;
               } catch (exception) {
-                console.warn(`%c${name2} Closer%c: ${fetchedBlobQueue.size} Failed to resolve image blob request related to endpoint "${endpointName}" with blob ID "%c%s%c"!
-The original blob will be returned. Error: `, consoleStyle, "", "color: deepskyblue; ", blobUUID, "", exception);
+                console.warn(`%c${name2} Closer%c: %c${fetchedBlobQueue.size}%c Failed to resolve image blob request related to endpoint "${endpointName}" (%c${blobUUID}%c)!
+The original blob will be returned. Error: `, consoleStyle, "", "color: deepskyblue;", "", "color: deepskyblue;", "", exception);
                 resolve(response);
                 return;
               }
@@ -4745,66 +4768,65 @@ The original blob will be returned. Error: `, consoleStyle, "", "color: deepskyb
             });
           }).catch((exception) => {
             commonResolutionCode();
-            console.error(`%c${name2} Opener%c: An error occured while resolving the Promise for a blob ID "%c%s%c"! The original blob will be returned. Error: `, consoleStyle, "", "color: deepskyblue; ", blobUUID, "", exception);
+            console.warn(`%c${name2} Opener%c: An error occured while resolving the Promise for blob "%c${blobUUID}%c"! The original blob will be returned. Error: `, consoleStyle, "", "color: deepskyblue;", "", exception);
             return response;
           });
         } catch (exception) {
           const elapsed = Date.now();
-          console.warn(`%c${name2} Opener%c: An error occured before the blob could be queued! Returning original blob...`, consoleStyle, "");
-          console.groupCollapsed(`%c${name2} Opener%c: Details of failed blob Promise:`, consoleStyle, "");
-          console.info(`Endpoint: ${endpointName}
-There are ${fetchedBlobQueue.size} blobs processing...
-Blink: ${blink.toLocaleString()}
-Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")} MM:SS.mmm`);
-          console.warn(`Error: `, exception);
-          console.groupEnd();
+          console.warn(`%c${name2} Opener%c: An error occured before the blob could be queued! Returning original blob...
+Details of failed blob Promise are below: `, consoleStyle, "");
+          console.info(`%c${name2} Opener%c: Endpoint: ${endpointName}
+There are %c${fetchedBlobQueue.size}%c blobs processing.
+Blink: %c${blink.toLocaleString()}%c
+Time Since Blink: %c${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")}%c (MM:SS.mmm)`, consoleStyle, "", "color: deepskyblue;", "", "color: deepskyblue;", "", "color: deepskyblue;", "");
+          console.warn(`%c${name2} Opener%c: Error: `, consoleStyle, "", exception);
           return response;
         }
       }
       return response;
     };
-    console.debug(`%c${name2} Thread%c: Spy code finished initializing! (4/4)`, consoleStyle, "");
+    console.debug(`%c${name2} Thread%c: (4/4) Spy code finished initializing!`, consoleStyle, "");
   };
-  function inject(name2, callback, uuid) {
+  function inject(injectCodeName, callback, uuid) {
     const injectionUUID = uuid ?? crypto.randomUUID().slice(0, 8);
-    consoleLog(`Injecting code '${name2}' (${injectionUUID}) into <html>...`);
-    console.log(`DOM state is ${document.readyState}.`);
+    consoleInfo(`%c${name}%c: Injecting code '%c${injectCodeName}%c' (%c${injectionUUID}%c) into <html>...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+    console.debug(`%c${name}%c: DOM state is %c${document.readyState}%c.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     if (!document.documentElement) {
-      consoleWarn(`<html> element has not loaded! Waiting for element to exist before injecting...`);
+      consoleWarn(`%c${name}%c: <html> element has not loaded! Waiting for element to exist before injecting '%c${injectCodeName}%c' (%c${injectionUUID}%c)'`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       new MutationObserver((mutations, observer) => {
         if (document.documentElement) {
           observer.disconnect();
-          inject(name2, callback, injectionUUID);
+          inject(injectCodeName, callback, injectionUUID);
         }
       }).observe(document, { childList: true });
-      consoleLog(`Halting injection process of code '${name2}' (${injectionUUID})...`);
+      consoleInfo(`%c${name}%c: Halting injection process of code '%c${injectCodeName}%c' (%c${injectionUUID}%c)...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       return;
     }
     const script = document.createElement("script");
-    script.setAttribute("bm-name", name2);
+    script.setAttribute("bm-name", injectCodeName);
     script.setAttribute("bm-cStyle", consoleCSS.BLUE);
     script.setAttribute("data-uuid", injectionUUID);
     script.textContent = `(${callback})();`;
     document.documentElement.appendChild(script);
     if (document.querySelector(`script[data-uuid='${injectionUUID}']`)) {
-      console.log(`Injected code '${name2}' (${injectionUUID}) script exists in the DOM tree.`);
+      consoleInfo(`%c${name}%c: Executed injected code '%c${injectCodeName}%c' (%c${injectionUUID}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     }
     script.remove();
-    consoleLog(`Removed injection code '${name2}' (${injectionUUID}) from the DOM tree.`);
+    consoleInfo(`%c${name}%c: Removed injected code '%c${injectCodeName}%c' (%c${injectionUUID}%c) from the DOM tree.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
   }
   inject("Spy Code", spyCodeInjection);
-  console.log("BM after spy code injected.");
+  console.debug(`%c${name}%c: Blue Marble after spy code injected.`, consoleCSS.BLUE, consoleCSS.RESET);
   (async () => {
     const prayThisIsNotTrue = document.querySelector("#bm-window-main");
     if (prayThisIsNotTrue) {
-      new WindowMain(name, version).handleDisplayError("You have multiple copies of Blue Marble running! Open your userscript manager and disable them.");
+      new WindowMain(name, version).handleDisplayError("You have multiple copies of Blue Marble running! Open your userscript manager and disable all but one.");
       throw new Error(`Blue Marble has already initalized! Do you have multiple copies of Blue Marble running simultaneously?`);
     }
     const cssOverlay = await GM.getResourceText("CSS-BM-File");
     GM.addStyle(cssOverlay);
     const robotoMonoInjectionPoint = "robotoMonoInjectionPoint";
     if (!!(robotoMonoInjectionPoint.indexOf("@font-face") + 1)) {
-      console.log(`Loading Roboto Mono as a file...`);
+      console.info(`%c${name}%c: Loading Roboto Mono as a file...`, consoleCSS.BLUE, consoleCSS.RESET);
       GM.addStyle(robotoMonoInjectionPoint);
     } else {
       var stylesheetLink = document.createElement("link");
@@ -4821,7 +4843,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     const observers = new Observers();
     const windowMain = new WindowMain(name, version);
     const templateManager = new TemplateManager(name, version);
-    const apiManager = new ApiManager(templateManager);
+    const apiManager = new ApiManager(name, version, templateManager);
     const settingsManager = new SettingsManager(name, version, userSettings);
     windowMain.setSettingsManager(settingsManager);
     windowMain.setApiManager(apiManager);
@@ -4834,13 +4856,12 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     settingsManager.setTemplateManager(templateManager);
     settingsManager.setApiManager(apiManager);
     const storageTemplates = JSON.parse(await GM.getValue("bmTemplates", "{}"));
-    console.log(storageTemplates);
+    console.debug(`%c${name}%c: %cstorageTemplates%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, storageTemplates);
     await templateManager.importJSON(storageTemplates);
-    console.log(userSettings);
-    console.log(Object.keys(userSettings).length);
+    console.debug(`%c${name}%c: %cuserSettings%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, userSettings);
     if (Object.keys(userSettings).length == 0) {
       const uuid = crypto.randomUUID();
-      console.log(uuid);
+      console.debug(`%c${name}%c: Created UUID for user. UUID: %c${uuid}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       await GM.setValue("bmUserSettings", JSON.stringify({
         "uuid": uuid
       }));
@@ -4848,44 +4869,49 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     setInterval(() => apiManager.sendHeartbeat(version), 1e3 * 60 * 30);
     const currentTelemetryVersion = 1;
     const previousTelemetryVersion = userSettings?.telemetry;
-    console.log(`Telemetry is ${!(previousTelemetryVersion == void 0)}`);
-    consoleInfo("Halting Blue Marble execution until the DOM is ready...");
+    console.debug(`%c${name}%c: Telemetry value is %c${previousTelemetryVersion}%c.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+    consoleInfo(`%c${name}%c: Halting %cBlue Marble%c execution until the DOM is ready...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     await waitForDOMReady();
-    consoleInfo("DOM is ready! Resuming Blue Marble execution...");
+    consoleInfo(`%c${name}%c: DOM is ready! Resuming %cBlue Marble%c execution...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     if (previousTelemetryVersion == void 0 || previousTelemetryVersion < currentTelemetryVersion) {
       const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
       windowTelemetry.setApiManager(apiManager);
       windowTelemetry.buildWindow();
     }
+    console.debug(`%c${name}%c: Building %cMain Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     windowMain.buildWindow();
     apiManager.spontaneousResponseListener(windowMain);
     observeBlack();
     const windowStates = settingsManager.getWindowStatesObject();
     const WINDOW_EXISTS = 1;
     if (windowStates["crdt"]?.[WINDOW_EXISTS]) {
+      console.debug(`%c${name}%c: Building %cCredits Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       const credits = new WindowCredits(name, version);
       credits.setSettingsManager(settingsManager);
       settingsManager.setWindowCredits(credits);
       credits.buildWindow();
     }
     if (windowStates["wzrd"]?.[WINDOW_EXISTS]) {
+      console.debug(`%c${name}%c: Building %cTemplate Wizard Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       const wizard = new WindowWizard(name, version, templateManager?.schemaVersion, templateManager);
       wizard.setSettingsManager(settingsManager);
       settingsManager.setWindowWizard(wizard);
       wizard.buildWindow();
     }
     if (windowStates["sett"]?.[WINDOW_EXISTS]) {
+      console.debug(`%c${name}%c: Building %cSettings Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       settingsManager.setSettingsManager(settingsManager);
       settingsManager.buildWindow();
     }
     if (windowStates["fltr"]?.[WINDOW_EXISTS]) {
+      console.debug(`%c${name}%c: Building %cColor Filter Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       const filter = new WindowFilter(windowMain);
       filter.setSettingsManager(settingsManager);
       settingsManager.setWindowFilter(filter);
       filter.buildWindow();
     }
-    console.log("End of BM file.");
-    consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
+    console.debug(`%c${name}%c: End of Blue Marble file.`, consoleCSS.BLUE, consoleCSS.RESET);
+    consoleLog(`%c${name}%c (%c${version}%c) userscript has loaded!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     function observeBlack() {
       const observer = new MutationObserver((mutations, observer2) => {
         const black = document.querySelector("#color-1");
@@ -4919,7 +4945,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
           if (paletteToolbar) {
             paletteToolbar.appendChild(move);
           } else {
-            consoleWarn("Could not find palette toolbar to inject Move button into!");
+            consoleWarn(`%c${name}%c: Observer "%cobserveBlack%c" could not find palette toolbar to inject Move button into!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
           }
         }
       });

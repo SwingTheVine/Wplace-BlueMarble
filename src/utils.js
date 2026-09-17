@@ -168,6 +168,23 @@ export function negativeSafeModulo(a, b) {
 
 /** Styling for console logs.
  * This only affects the console in Browser Dev Tools.
+ * 
+ * I keep forgetting my color styling format for Blue Marble, so here it is:
+ * * Executor - BLUE
+ * * Very Important Name - MAGENTA
+ * * Dynamic Values - CYAN
+ * * Static Values - avoid coloring
+ * * Related to Warning - YELLOW
+ * * Related to Error - RED
+ * 
+ * Only things important to the log should be colored, to avoid fatigue.
+ * For example:
+ * * The time it takes for a piece of code to run.
+ * * The identifier of something.
+ * * The value of a variable directly related to the purpose of the log.
+ * * Simply mentioning the proper noun of something (in passing) does not warrent coloring.
+ * * If a value is static, then in most cases it does not need to be colored. This is because we don't need to bring attention to the value, because we already know what it is.
+ * * Sections of logs, whose formatting we do not control, should not be formatted. E.g. stack traces
  * @since 0.95.18
  */
 export const consoleCSS = {
@@ -198,6 +215,15 @@ export const consoleCSS = {
   /** Turns the text cyan */
   CYAN: 'color: deepskyblue; ',
 }
+
+/** Bypasses terser's stripping of console function calls.
+ * This is so the non-obfuscated code will contain debugging console calls, but the distributed version won't.
+ * However, the distributed version needs to call the console somehow, so this wrapper function is how.
+ * This is the same as `console.debug()`.
+ * @param {...any} args - Arguments to be passed into the `debug()` function of the Console
+ * @since 0.95.34
+ */
+export function consoleDebug(...args) {((consoleDebug) => consoleDebug(...args))(console.debug);}
 
 /** Bypasses terser's stripping of console function calls.
  * This is so the non-obfuscated code will contain debugging console calls, but the distributed version won't.
@@ -297,7 +323,7 @@ export function encodedToNumber(encoded, encoding = defaultEncoding) {
 
   // Terminates if the encoded value was not a string
   if (typeof encoded !== 'string') {
-    consoleWarn(`Invalid encoded string passed into encodedToNumber()! Expected string type, but received ${typeof encoded}.\nReturning zero...`);
+    consoleWarn(`Unknown: Invalid encoded string passed into %cencodedToNumber()%c! Expected string type, but received %c${typeof encoded}%c.\nReturning zero...`, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     return 0;
   }
 
@@ -311,7 +337,7 @@ export function encodedToNumber(encoded, encoding = defaultEncoding) {
 
     // If no matching decode was found for this character...
     if (decodedCharacter == -1) {
-      consoleError(`Invalid character '${character}' encountered whilst decoding in encodedToNumber()! Is the decode alphabet/base incorrect?`);
+      consoleError(`Unknown: Invalid character '%c${character}%c' encountered whilst decoding in %cencodedToNumber()%c! Is the decode alphabet/base incorrect?`, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     }
 
     decodedNumber = (decodedNumber * base) + decodedCharacter; // Adds the decoded character to the final number
@@ -388,7 +414,7 @@ export function numberUnsignedTo32BitBooleanArray(number) {
 
   // Returns a zeroed array if the passed-in value is invalid
   if ((!Number.isInteger(number)) || (number < 0) || (number > 4294967295)) {
-    consoleError(`Tried to convert an unsigned 32-bit number to a boolean array, but the ${typeof number} value passed in was not valid! Value: ${number}. Returning zeros...`);
+    consoleError(`Unknown: Tried to convert an unsigned 32-bit number to a boolean array, but the %c${typeof number}%c value passed in was not valid! Value: %c${number}%c. Returning zeros...`, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     const zeros = [];
     for (let i = 0; i <= 31; i++) {
       zeros[i] = false;
@@ -428,7 +454,7 @@ export async function getClipboardData(event = undefined) {
   await navigator.clipboard.readText().then(text => {
     data = text;
   }).catch(error => {
-    consoleLog(`Failed to retrieve clipboard data using navigator! Using fallback methods...`);
+    consoleLog(`Unknown: Failed to retrieve clipboard data using navigator! Using fallback methods...`);
   });
 
   if (data.length != 0) {return data;} // Continue only if data is still empty

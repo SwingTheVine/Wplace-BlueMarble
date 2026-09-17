@@ -1,6 +1,6 @@
 import ConfettiManager from "./confettiManager";
 import Overlay from "./Overlay";
-import { getClipboardData } from "./utils";
+import { consoleCSS, getClipboardData } from "./utils";
 import WindowCredits from "./WindowCredits";
 import WindowFilter from "./WindowFilter";
 import WindowWizard from "./WindowWizard";
@@ -84,10 +84,10 @@ export default class WindowMain extends Overlay {
     let translateX = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION);
     let translateY = this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION);
 
-    console.log(`The X translation sign is ${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE)}.\nThe Y translation sign is ${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE)}`);
-    console.log(`The raw translation coordinates are (${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION)}, ${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION)})`);
+    console.debug(`%c${this.name}%c: The X translation sign is %c${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION_IS_NEGATIVE)}%c.\nThe Y translation sign is %c${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE)}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+    console.debug(`%c${this.name}%c: The raw translation coordinates are (%c${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.X_TRANSLATION)}%c, %c${this.settingsManager.getWindowStateVariable('bm', this.WStateVariables.Y_TRANSLATION)}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
-    console.log(`The innerWidth of the window is ${window.innerWidth}, and the innerHeight is ${window.innerHeight}.`);
+    console.debug(`%c${this.name}%c: The %cinnerWidth%c of the window is %c${window.innerWidth}%cpx, and the %cinnerHeight%c is %c${window.innerHeight}%cpx.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     // Clampped coordinates, so you can't permanantly lose the main window
     translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));

@@ -226,4 +226,4 @@ esbuild.build({
 
 fs.writeFileSync(`dist/${greasyForkName}.user.js`, greasyForkBMjs, 'utf-8');
 
-console.log(`${consoleStyle.GREEN + consoleStyle.BOLD + consoleStyle.UNDERLINE}Building complete!${consoleStyle.RESET}`);
+console.info(`${consoleStyle.GREEN + consoleStyle.BOLD + consoleStyle.UNDERLINE}Building complete!${consoleStyle.RESET}`);

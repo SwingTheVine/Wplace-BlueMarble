@@ -1,4 +1,4 @@
-import { sleep, uint8ToBase64, viewCanvasInNewTab } from "./utils";
+import { consoleCSS, sleep, uint8ToBase64, viewCanvasInNewTab } from "./utils";
 
 /** An instance of a template.
  * Handles all mathematics, manipulation, and analysis regarding a single template.
@@ -19,6 +19,7 @@ export default class Template {
    * @param {Object} [params.chunked32={}] - The affected chunks of the template, and their template for each chunk as a Uint32Array
    * @param {number} [params.tileSize=1000] - The size of a tile in pixels (assumes square tiles)
    * @param {Object} [params.pixelCount={total:0, colors:Map}] - Total number of pixels in the template (calculated automatically during processing)
+   * @param {string} [params.scriptName='Template'] - The name of the userscript
    * @since 0.65.2
    */
   constructor({
@@ -32,6 +33,7 @@ export default class Template {
     chunked32 = {},
     tileSize = 1000,
     pixelCount = { total: 0, colors: new Map() },
+    scriptName = 'Template',
   } = {}) {
     this.displayName = displayName;
     this.sortID = sortID;
@@ -44,6 +46,7 @@ export default class Template {
     this.tileSize = tileSize;
     /** Total pixel count in template @type {{total: number, colors: Map<number, number>, correct?: { [key: string]: Map<number, number> }}} */
     this.pixelCount = pixelCount;
+    this.scriptName = scriptName;
 
     this.shouldSkipTransTiles = true; // Should transparent template tiles be skipped during template creation?
     this.shouldAggSkipTransTiles = false; // Should transparent template tiles be aggressively skipped during tempalte creation?
@@ -58,7 +61,7 @@ export default class Template {
    * @since 0.65.4
    */
   async createTemplateTiles(tileSize, paletteBM, shouldSkipTransTiles, shouldAggSkipTransTiles) {
-    console.log('Template coordinates:', this.coords);
+    console.info(`%c${this.scriptName}%c: Creating template tiles at coordinates: `, consoleCSS.BLUE, consoleCSS.RESET, this.coords);
 
     // Updates the class instance variable with the new information
     this.shouldSkipTransTiles = shouldSkipTransTiles;
@@ -94,7 +97,7 @@ export default class Template {
 
     let timer = Date.now();
     const totalPixelMap = this.#calculateTotalPixelsFromImageData(context.getImageData(0, 0, imageWidth, imageHeight), paletteBM); // Calculates total pixels from the template buffer retrieved from the canvas context image data
-    console.log(`Calculating total pixels took ${(Date.now() - timer) / 1000.0} seconds`);
+    console.debug(`%c${this.scriptName}%c: Calculating total pixels for template "%c${this.displayName}%c" took %c${(Date.now() - timer) / 1000.0}%c seconds`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     let totalPixels = 0; // Will store the total amount of non-Transparent color pixels
     const transparentColorID = 0; // Color ID for the Transparent color
@@ -127,11 +130,11 @@ export default class Template {
       // B. The top left corner of the current tile to the bottom right corner of the image
       const drawSizeY = Math.min(this.tileSize - (pixelY % this.tileSize), imageHeight - (pixelY - this.coords[3]));
 
-      console.log(`Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`);
+      console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" draw size Y: Math.min(${this.tileSize} - (${pixelY} % ${this.tileSize}), ${imageHeight} - (${pixelY - this.coords[3]}))`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
 
       for (let pixelX = this.coords[2]; pixelX < imageWidth + this.coords[2];) {
 
-        console.log(`Pixel X: ${pixelX}\nPixel Y: ${pixelY}`);
+        console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c"\nPixel X: %c${pixelX}%c\nPixel Y: %c${pixelY}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
         // Draws the partial tile first, if any
         // This calculates the size based on which is smaller:
@@ -150,7 +153,9 @@ export default class Template {
             transContext: transContext
           });
 
-          console.log(`Tile contains template: ${!isTemplateTileTransparent}`);
+          if (!isTemplateTileTransparent) {
+            console.debug(`%c${this.scriptName}%c: Tile (%c${this.coords[0]}%c, %c${this.coords[1]}%c) contains template "%c${this.displayName}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
+          }
 
           // If the template in this tile is transparent...
           if (isTemplateTileTransparent) {
@@ -159,9 +164,7 @@ export default class Template {
           }
         }
         
-        console.log(`Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`);
-
-        console.log(`Draw Size X: ${drawSizeX}\nDraw Size Y: ${drawSizeY}`);
+        console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" draw size X: Math.min(${this.tileSize} - (${pixelX} % ${this.tileSize}), ${imageWidth} - (${pixelX - this.coords[2]}))`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
 
         // Change the canvas size and wipe the canvas
         const canvasWidth = drawSizeX * shredSize;// + (pixelX % this.tileSize) * shredSize;
@@ -169,11 +172,11 @@ export default class Template {
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
 
-        console.log(`Draw X: ${drawSizeX}\nDraw Y: ${drawSizeY}\nCanvas Width: ${canvasWidth}\nCanvas Height: ${canvasHeight}`);
+        console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c"\nDraw Size X: %c${drawSizeX}%c\nDraw Size Y: %c${drawSizeY}%c\nCanvas Width: %c${canvasWidth}%c\nCanvas Height: %c${canvasHeight}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
         context.imageSmoothingEnabled = false; // Nearest neighbor
 
-        console.log(`Getting X ${pixelX}-${pixelX + drawSizeX}\nGetting Y ${pixelY}-${pixelY + drawSizeY}`);
+        console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c"\nGetting X %c${pixelX}%c-%c${pixelX + drawSizeX}%c\nGetting Y %c${pixelY}%c-%c${pixelY + drawSizeY}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
         // Draws the template segment on this tile segment
         context.clearRect(0, 0, canvasWidth, canvasHeight); // Clear any previous drawing (only runs when canvas size does not change)
@@ -193,7 +196,7 @@ export default class Template {
         context.globalCompositeOperation = "destination-in"; // The existing canvas content is kept where both the new shape and existing canvas content overlap. Everything else is made transparent.
         // For our purposes, this means any non-transparent pixels on the mask will be kept
 
-        console.log(`Should Skip: ${shouldSkipTransTiles}; Should Agg Skip: ${shouldAggSkipTransTiles}`);
+        console.debug(`%c${this.scriptName}%c: User Settings:\nShould Skip: %c${shouldSkipTransTiles}%c;\nShould Agg Skip: %c${shouldAggSkipTransTiles}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
         // Fills the canvas with the mask
         context.fillStyle = context.createPattern(canvasMask, "repeat");
@@ -203,7 +206,7 @@ export default class Template {
 
         const imageData = context.getImageData(0, 0, canvasWidth, canvasHeight); // Data of the image on the canvas
 
-        console.log(`shreded pixels for ${pixelX}, ${pixelY}`, imageData);
+        console.debug(`%c${this.scriptName}%c: Shreded pixels for %c${pixelX}%c, %c${pixelY}%c on template "%c${this.displayName}%c". Image data: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, imageData);
 
         // Creates the "0000,0000,000,000" key name
         const templateTileName = `${
@@ -222,7 +225,7 @@ export default class Template {
         const canvasBufferBytes = Array.from(new Uint8Array(canvasBuffer));
         templateTilesBuffers[templateTileName] = uint8ToBase64(canvasBufferBytes); // Stores the buffer
 
-        console.log(templateTiles);
+        console.debug(`%c${this.scriptName}%c: Value of %ctemplateTiles%c for template "%c${this.displayName}%c": `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateTiles);
 
         pixelX += drawSizeX;
       }
@@ -230,10 +233,10 @@ export default class Template {
       pixelY += drawSizeY;
     }
 
-    console.log(`Parsing template took ${(Date.now() - timer) / 1000.0} seconds`);
-    console.log('Template Tiles: ', templateTiles);
-    console.log('Template Tiles Buffers: ', templateTilesBuffers);
-    console.log('Template Tiles Uint32Array: ', this.chunked32);
+    console.debug(`%c${this.scriptName}%c: Parsing template "%c${this.displayName}%c" took %c${(Date.now() - timer) / 1000.0}%c seconds!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+    console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" Tiles: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateTiles);
+    console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" Tiles Buffers: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateTilesBuffers);
+    console.debug(`%c${this.scriptName}%c: Template "%c${this.displayName}%c" Tiles Uint32Array: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.chunked32);
     return { templateTiles, templateTilesBuffers };
   }
 
@@ -253,10 +256,10 @@ export default class Template {
     transContext: transContext
   }) {
 
-    console.log(`Calculating template tile transparency...`);
+    console.debug(`${this.scriptName}%c: Calculating template tile transparency...`, consoleCSS.BLUE, consoleCSS.RESET);
 
-    console.log(`Should Skip: ${this.shouldSkipTransTiles}; Should Agg: ${this.shouldAggSkipTransTiles}`);
-
+    console.debug(`%c${this.scriptName}%c: User Settings:\nShould Skip: %c${this.shouldSkipTransTiles}%c;\nShould Agg Skip: %c${this.shouldAggSkipTransTiles}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+    
     const timer = Date.now(); // Starts the timer
 
     // Contains the directions to move the canvas when duplicating, in the unit of pixels
@@ -327,7 +330,7 @@ export default class Template {
     const shunkCanvas = transContext.getImageData(0, 0, 10, 10);
     const shunkCanvas32 = new Uint32Array(shunkCanvas.data.buffer);
 
-    console.log(`Calculated canvas transparency in ${(Date.now() - timer) / 1000} seconds.`);
+    console.debug(`%c${this.scriptName}%c: Calculated canvas transparency in %c${(Date.now() - timer) / 1000}%c seconds.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     // For every pixel in the `shrunkCanvas32` array...
     for (const pixel of shunkCanvas32) {
@@ -393,7 +396,7 @@ export default class Template {
       _colorpalette.set(bestColorID, colorIDcount ? colorIDcount + 1 : 1);
     }
 
-    console.log(_colorpalette);
+    console.debug(`%c${this.scriptName}%c: Value of %c_colorpalette%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, _colorpalette);
     return _colorpalette;
   }
 }

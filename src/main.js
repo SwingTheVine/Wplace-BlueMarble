@@ -48,10 +48,9 @@ const spyCodeInjection = () => {
 
       // Since this code does not run in the userscript, we can't use consoleLog().
       const elapsed = Date.now() - blink; // Calculates the time it took to process the pixel tile image
-      console.groupCollapsed(`%c${name} Closer%c: ${fetchedBlobQueue.size} Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, '', 'color: magenta; ', '', 'color: deepskyblue; ', '');
-      console.debug(`Blob fetch took %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c MM:SS.mmm`, consoleStyle, '');
+      console.debug(`%c${name} Closer%c: %c${fetchedBlobQueue.size}%c Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, '', 'color: deepskyblue;', '', 'color: magenta;', '', 'color: deepskyblue;', '');
+      console.debug(`%c${name} Closer%c: Blob (%c${blobID}%c) fetch took %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c MM:SS.mmm`, consoleStyle, '', 'color: deepskyblue;', '', 'color: deepskyblue;', '');
       console.debug(fetchedBlobQueue);
-      console.groupEnd();
 
       const callback = fetchedBlobQueue.get(blobID); // Retrieves the blob based on the UUID
 
@@ -66,7 +65,7 @@ const spyCodeInjection = () => {
         // ...else the blobID is unexpected. We don't know what it is, but we know for sure it is not a blob. This means we ignore it.
 
         // Can't use consoleWarn()
-        console.warn(`%c${name} Closer%c: Attempted to retrieve a blob (%c%s%c) from queue, but the blobID was not a function! Skipping...`, consoleStyle, '', 'color: deepskyblue; ', blobID, '');
+        console.warn(`%c${name} Closer%c: Attempted to retrieve a blob (%c${blobID}%c) from queue, but the blobID was not a function! Skipping...`, consoleStyle, '', 'color: deepskyblue;', '');
       }
     }
   });
@@ -102,7 +101,7 @@ const spyCodeInjection = () => {
       // We are not running inside the sandbox, so we don't have access to `consoleError`
       console.error(`%c${name} Opener%c: Failed to make a fetch request! Error: `, consoleStyle, '', exception);
       throw exception; // There was no response, so we can't `return` anything expected.
-      // The exception will spread up through all layers of fetch hooks, since a Promise is expected to be returned.
+      // The exception will spread up through all layers (the stack) of all fetch hooks, since a Promise is expected to be returned.
     }
 
     const cloned = response.clone(); // Makes a copy of the response
@@ -115,7 +114,7 @@ const spyCodeInjection = () => {
     if (contentType.includes('application/json')) {
 
       // Since this code does not run in the userscript, we can't use consoleLog().
-      console.debug(`%c${name} Opener%c: Sending %cJSON%c message about endpoint "${endpointName}"`, consoleStyle, '', 'color: magenta; ', '');
+      console.debug(`%c${name} Opener%c: Sending %cJSON%c message about endpoint "${endpointName}"`, consoleStyle, '', 'color: magenta;', '');
 
       // Sends a message about the endpoint it spied on
       cloned.json()
@@ -127,7 +126,7 @@ const spyCodeInjection = () => {
           }, '*');
         })
         .catch(err => {
-          console.error(`%c${name} Opener%c: Failed to parse JSON: `, consoleStyle, '', err);
+          console.error(`%c${name} Opener%c: Failed to send %cJSON%c message about endpoint: "${endpointName}"! Error: `, consoleStyle, '', 'color: magenta;', '', err);
         });
     } else if (contentType.includes('image/') && (!endpointName.includes('openfreemap') && !endpointName.includes('maps'))) {
       // Fetch custom for all images but opensourcemap
@@ -153,7 +152,7 @@ const spyCodeInjection = () => {
         }
 
         // Since this code does not run in the userscript, we can't use consoleLog().
-        console.debug(`%c${name} Opener%c: ${fetchedBlobQueue.size} Sending %cIMAGE%c message about endpoint "${endpointName}" with blob ID "%c%s%c"`, consoleStyle, '', 'color: magenta; ', '', 'color: deepskyblue; ', blobUUID, '');
+        console.debug(`%c${name} Opener%c: %c${fetchedBlobQueue.size}%c Sending %cIMAGE%c message about endpoint "${endpointName}" with blob UUID "%c${blobUUID}%c"`, consoleStyle, '', 'color: deepskyblue;', '', 'color: magenta;', '', 'color: deepskyblue;', '');
 
         // Returns the manipulated blob as a Promise
         // The Promise will wait X finite time to resolve, before returning the original response.
@@ -170,7 +169,7 @@ const spyCodeInjection = () => {
             // ...we don't want the queue to infinitely bloat, after all
 
             commonResolutionCode();
-            console.warn(`%c${name} Opener%c: ${fetchedBlobQueue.size} Failed to return manipulated blob related to endpoint "${endpointName}" with blob ID "%c%s%c"!\nThe blob took longer than %d miliseconds to process! Returning original blob...`, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', timeoutMs);
+            console.warn(`%c${name} Opener%c: %c${fetchedBlobQueue.size}%c Failed to return manipulated blob related to endpoint "${endpointName}" with blob ID "%c${blobUUID}%c"!\nThe blob took longer than ${timeoutMs} miliseconds to process! Returning original blob...`, consoleStyle, '', 'color: deepskyblue;', '', 'color: deepskyblue;', '');
             resolve(response); // Returns the original blob
           }, timeoutMs);
 
@@ -212,11 +211,11 @@ const spyCodeInjection = () => {
               resolve(responseProcessed); // Returns the processed blob
 
               // Since this code does not run in the userscript, we can't use consoleLog().
-              console.debug(`%c${name} Closer%c: ${fetchedBlobQueue.size} The blob "%c%s%c" has now been processed.`, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '');
+              console.debug(`%c${name} Closer%c: %c${fetchedBlobQueue.size}%c The blob "%c${blobUUID}%c" has now been processed.`, consoleStyle, '', 'color: deepskyblue;', '', 'color: deepskyblue;', '');
               return; // Stop execution, because we are done
             } catch (exception) {
 
-              console.warn(`%c${name} Closer%c: ${fetchedBlobQueue.size} Failed to resolve image blob request related to endpoint "${endpointName}" with blob ID "%c%s%c"!\nThe original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', exception);
+              console.warn(`%c${name} Closer%c: %c${fetchedBlobQueue.size}%c Failed to resolve image blob request related to endpoint "${endpointName}" (%c${blobUUID}%c)!\nThe original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue;', '', 'color: deepskyblue;', '', exception);
               resolve(response); // Returns the original blob
               return; // Stop execution, because we can't process the blob
             }
@@ -235,17 +234,16 @@ const spyCodeInjection = () => {
           });
         }).catch(exception => {
           commonResolutionCode(); // Ensure we don't process this blob again
-          console.warn(`%c${name} Opener%c: An error occured while resolving the Promise for a blob ID "%c%s%c"! The original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', exception);
+          console.warn(`%c${name} Opener%c: An error occured while resolving the Promise for blob "%c${blobUUID}%c"! The original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue;', '', exception);
           return response; // Returns the original blob
         });
 
       } catch (exception) {
         const elapsed = Date.now();
-        console.warn(`%c${name} Opener%c: An error occured before the blob could be queued! Returning original blob...`, consoleStyle, '');
-        console.groupCollapsed(`%c${name} Opener%c: Details of failed blob Promise:`, consoleStyle, '');
-        console.info(`Endpoint: ${endpointName}\nThere are ${fetchedBlobQueue.size} blobs processing...\nBlink: ${blink.toLocaleString()}\nTime Since Blink: ${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')} MM:SS.mmm`);
-        console.warn(`Error: `, exception);
-        console.groupEnd();
+        console.warn(`%c${name} Opener%c: An error occured before the blob could be queued! Returning original blob...\nDetails of failed blob Promise are below: `, consoleStyle, '');
+        // Since we don't have a blob UUID to identify the blob with, report as much useful information as possible
+        console.info(`%c${name} Opener%c: Endpoint: ${endpointName}\nThere are %c${fetchedBlobQueue.size}%c blobs processing.\nBlink: %c${blink.toLocaleString()}%c\nTime Since Blink: %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c (MM:SS.mmm)`, consoleStyle, '', 'color: deepskyblue;', '', 'color: deepskyblue;', '', 'color: deepskyblue;', '');
+        console.warn(`%c${name} Opener%c: Error: `, consoleStyle, '', exception);
         return response; // Returns the original blob
       }
     }
@@ -257,55 +255,57 @@ const spyCodeInjection = () => {
     return response; // Returns the original response, because it did not match anything Blue Marble uses
   };
 
-  console.debug(`%c${name} Thread%c: Spy code finished initializing! (4/4)`, consoleStyle, '');
+  console.debug(`%c${name} Thread%c: (4/4) Spy code finished initializing!`, consoleStyle, '');
 };
 
 /** Injects code into the client
  * This code will execute outside of TamperMonkey's sandbox.
- * @param {string} name - Human-readable identifier that appears in console logs
+ * @param {string} injectCodeName - Human-readable identifier that appears in console logs
  * @param {*} callback - The code to execute
  * @param {string | undefined} [uuid] - Unique, not human-readable identifier that appears in console logs. This is managed automatically, and it is not expected that you pass something in here.
  * @since 0.11.15
  */
-function inject(name, callback, uuid) {
+function inject(injectCodeName, callback, uuid) {
 
   const injectionUUID = uuid ?? crypto.randomUUID().slice(0, 8); // Random UUID
 
-  consoleLog(`Injecting code '${name}' (${injectionUUID}) into <html>...`);
-  console.log(`DOM state is ${document.readyState}.`);
+  consoleInfo(`%c${name}%c: Injecting code '%c${injectCodeName}%c' (%c${injectionUUID}%c) into <html>...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+  console.debug(`%c${name}%c: DOM state is %c${document.readyState}%c.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
 
   // If the <html> element does not exist yet...
   if (!document.documentElement) {
-    consoleWarn(`<html> element has not loaded! Waiting for element to exist before injecting...`); // Warn is used here, because I can't test this functionality and therefore, it might not work.
+    consoleWarn(`%c${name}%c: <html> element has not loaded! Waiting for element to exist before injecting '%c${injectCodeName}%c' (%c${injectionUUID}%c)'`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET); // Warn is used here, because I can't test this functionality and therefore, it might not work.
 
     // Create a new Mutation Observer to try executing this function again once the <html> element exists.
     new MutationObserver((mutations, observer) => {
       if (document.documentElement) {
         observer.disconnect();
-        inject(name, callback, injectionUUID);
+        inject(injectCodeName, callback, injectionUUID);
       }
     }).observe(document, { childList: true });
 
-    consoleLog(`Halting injection process of code '${name}' (${injectionUUID})...`);
+    consoleInfo(`%c${name}%c: Halting injection process of code '%c${injectCodeName}%c' (%c${injectionUUID}%c)...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     return; // Returns early, because we can't do anything if <html> does not exist yet
   }
 
   const script = document.createElement('script');
-  script.setAttribute('bm-name', name); // Passes in the name value
+  script.setAttribute('bm-name', injectCodeName); // Passes in the name value
   script.setAttribute('bm-cStyle', consoleCSS.BLUE); // Passes in the console style value
   script.setAttribute('data-uuid', injectionUUID); // Adds the UUID as an attribute to the <script> element
   script.textContent = `(${callback})();`;
   document.documentElement.appendChild(script);
-  if (document.querySelector(`script[data-uuid='${injectionUUID}']`)) {console.log(`Injected code '${name}' (${injectionUUID}) script exists in the DOM tree.`);}
+  if (document.querySelector(`script[data-uuid='${injectionUUID}']`)) {
+    consoleInfo(`%c${name}%c: Executed injected code '%c${injectCodeName}%c' (%c${injectionUUID}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+  }
   script.remove();
-  consoleLog(`Removed injection code '${name}' (${injectionUUID}) from the DOM tree.`);
+  consoleInfo(`%c${name}%c: Removed injected code '%c${injectCodeName}%c' (%c${injectionUUID}%c) from the DOM tree.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 }
 
 // Inject the spy code as soon as possible
 // The code will be injected into <html>, which should exist at this point
 inject('Spy Code', spyCodeInjection);
 
-console.log('BM after spy code injected.');
+console.debug(`%c${name}%c: Blue Marble after spy code injected.`, consoleCSS.BLUE, consoleCSS.RESET);
 
 // ----- START OF BLUE MARBLE EXECUTION -----
 (async () => {
@@ -318,7 +318,7 @@ console.log('BM after spy code injected.');
     // Unfortunatly, there are multiple copies of the spy code running now, but that can't be bad riiiiiiight?
 
     // Since Blue Marble is already initalized, we can modify the window before building the window :melting_face:
-    new WindowMain(name, version).handleDisplayError('You have multiple copies of Blue Marble running! Open your userscript manager and disable them.');
+    new WindowMain(name, version).handleDisplayError('You have multiple copies of Blue Marble running! Open your userscript manager and disable all but one.');
 
     // Crash this instance of Blue Marble so we don't cause race conditions, overlapping UI, etc.
     throw new Error(`Blue Marble has already initalized! Do you have multiple copies of Blue Marble running simultaneously?`);
@@ -335,7 +335,7 @@ console.log('BM after spy code injected.');
   if (!!(robotoMonoInjectionPoint.indexOf('@font-face') + 1)) {
     // A very hacky way of doing truthy/falsy logic
     
-    console.log(`Loading Roboto Mono as a file...`);
+    console.info(`%c${name}%c: Loading Roboto Mono as a file...`, consoleCSS.BLUE, consoleCSS.RESET);
     GM.addStyle(robotoMonoInjectionPoint); // Add the Roboto Mono font-faces that were injected.
   } else {
     // Else, no Roboto Mono was found. We need to use a stylesheet.
@@ -358,7 +358,7 @@ console.log('BM after spy code injected.');
   const observers = new Observers(); // Constructs a new Observers object
   const windowMain = new WindowMain(name, version); // Constructs a new Overlay object for the main overlay
   const templateManager = new TemplateManager(name, version); // Constructs a new TemplateManager object
-  const apiManager = new ApiManager(templateManager); // Constructs a new ApiManager object
+  const apiManager = new ApiManager(name, version, templateManager); // Constructs a new ApiManager object
   const settingsManager = new SettingsManager(name, version, userSettings); // Constructs a new SettingsManager
 
   // Allows the class instances to access each other
@@ -378,16 +378,15 @@ console.log('BM after spy code injected.');
   settingsManager.setApiManager(apiManager);
 
   const storageTemplates = JSON.parse(await GM.getValue('bmTemplates', '{}'));
-  console.log(storageTemplates);
+  console.debug(`%c${name}%c: %cstorageTemplates%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, storageTemplates);
   await templateManager.importJSON(storageTemplates); // Loads the templates
 
-  console.log(userSettings);
-  console.log(Object.keys(userSettings).length);
+  console.debug(`%c${name}%c: %cuserSettings%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, userSettings);
 
   // If the user does not have a UUID yet, make a new one.
   if (Object.keys(userSettings).length == 0) {
     const uuid = crypto.randomUUID(); // Generates a random UUID
-    console.log(uuid);
+    console.debug(`%c${name}%c: Created UUID for user. UUID: %c${uuid}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     await GM.setValue('bmUserSettings', JSON.stringify({
       'uuid': uuid
     }));
@@ -401,14 +400,14 @@ console.log('BM after spy code injected.');
 
   // The last "version" of the data collection agreement that the user agreed too
   const previousTelemetryVersion = userSettings?.telemetry;
-  console.log(`Telemetry is ${!(previousTelemetryVersion == undefined)}`);
+  console.debug(`%c${name}%c: Telemetry value is %c${previousTelemetryVersion}%c.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
 
 
   // Waits until the DOM is ready, before attempting to observe or modify the DOM tree
-  consoleInfo('Halting Blue Marble execution until the DOM is ready...');
+  consoleInfo(`%c${name}%c: Halting %cBlue Marble%c execution until the DOM is ready...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
   await waitForDOMReady();
-  consoleInfo('DOM is ready! Resuming Blue Marble execution...');
+  consoleInfo(`%c${name}%c: DOM is ready! Resuming %cBlue Marble%c execution...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
 
 
 
@@ -419,18 +418,21 @@ console.log('BM after spy code injected.');
     windowTelemetry.buildWindow(); // Asks the user if they want to enable telemetry
   }
 
+  console.debug(`%c${name}%c: Building %cMain Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
   windowMain.buildWindow(); // Builds the main Blue Marble window
 
   apiManager.spontaneousResponseListener(windowMain); // Reads spontaneous fetch responces
+  // Note: Once `windowMain` manages it's own window content, this line should be moved up as far as possible
 
   observeBlack(); // Observes the black palette color
 
   const windowStates = settingsManager.getWindowStatesObject(); // Obtains the decoded (hopefully) window states
 
-  const WINDOW_EXISTS = 1; // Bitflag index for if a window exists (this is to make the code easier to read)
+  const WINDOW_EXISTS = 1; // Bitflag index for if a window exists (this line is to make the code easier to read)
 
   // If the Credits window exists, build it
   if (windowStates['crdt']?.[WINDOW_EXISTS]) {
+    console.debug(`%c${name}%c: Building %cCredits Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     const credits = new WindowCredits(name, version);
     credits.setSettingsManager(settingsManager);
     settingsManager.setWindowCredits(credits);
@@ -439,6 +441,7 @@ console.log('BM after spy code injected.');
 
   // If the Template Wizard window exists, build it
   if (windowStates['wzrd']?.[WINDOW_EXISTS]) {
+    console.debug(`%c${name}%c: Building %cTemplate Wizard Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     const wizard = new WindowWizard(name, version, templateManager?.schemaVersion, templateManager);
     wizard.setSettingsManager(settingsManager);
     settingsManager.setWindowWizard(wizard);
@@ -447,21 +450,23 @@ console.log('BM after spy code injected.');
 
   // If the Settings window exists, build it
   if (windowStates['sett']?.[WINDOW_EXISTS]) {
+    console.debug(`%c${name}%c: Building %cSettings Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     settingsManager.setSettingsManager(settingsManager); // Gives Settings Window access to the settings manager
     settingsManager.buildWindow(); // Builds the settings window
   }
 
   // If the Color Filter window exists, build it
   if (windowStates['fltr']?.[WINDOW_EXISTS]) {
+    console.debug(`%c${name}%c: Building %cColor Filter Window%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
     const filter = new WindowFilter(windowMain); // Supposed to pass in a window class as the executor
     filter.setSettingsManager(settingsManager);
     settingsManager.setWindowFilter(filter);
     filter.buildWindow();
   }
 
-  console.log('End of BM file.');
+  console.debug(`%c${name}%c: End of Blue Marble file.`, consoleCSS.BLUE, consoleCSS.RESET);
 
-  consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
+  consoleLog(`%c${name}%c (%c${version}%c) userscript has loaded!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
   /** Observe the black color, and add the "Move" button.
    * @since 0.66.3
@@ -514,7 +519,7 @@ console.log('BM after spy code injected.');
         if (paletteToolbar) {
           paletteToolbar.appendChild(move); // Adds the "Move" button
         } else {
-          consoleWarn('Could not find palette toolbar to inject Move button into!');
+          consoleWarn(`%c${name}%c: Observer "%cobserveBlack%c" could not find palette toolbar to inject Move button into!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
         }
       }
     });

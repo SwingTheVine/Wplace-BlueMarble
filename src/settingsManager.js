@@ -1,5 +1,5 @@
 import ApiManager from "./apiManager";
-import { consoleError, consoleWarn, encodedToNumber, numberToEncoded, numberUnsignedTo32BitBooleanArray, set32BitPosition, sleep } from "./utils";
+import { consoleCSS, consoleDebug, consoleError, consoleInfo, consoleWarn, encodedToNumber, numberToEncoded, numberUnsignedTo32BitBooleanArray, set32BitPosition, sleep } from "./utils";
 import WindowFilter from "./WindowFilter";
 import WindowSettings from "./WindowSettings";
 
@@ -167,10 +167,11 @@ export default class SettingsManager extends WindowSettings {
     // If the user settings have changed, AND the last update to user storage was over 2 seconds ago (2 sec throttle)...
     if ((userSettingsCurrent != userSettingsOld) && ((Date.now() - this.lastUpdateTime) > this.updateFrequency)) {
       await GM.setValue(this.userSettingsSaveLocation, userSettingsCurrent); // Updates user storage
+      consoleInfo(`%c${this.name}%c: Changes to user settings/preferences were detected. They have been saved to userscript storage.`, consoleCSS.BLUE, consoleCSS.RESET);
+      consoleDebug(`%c${this.name}%c: Updated %cuser settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, userSettingsCurrent);
       this.userSettingsOld = structuredClone(this.userSettings); // Updates the old user settings with a duplicate of the current user settings
       this.#windowStatesObject = this.#decodeWindowStateToObject(this.#windowStatesObjectEncoded) ?? {}; // Update the in-memory window state Object
       this.lastUpdateTime = Date.now(); // Updates the variable that contains the last time updated
-      console.log(userSettingsCurrent);
     }
   }
 
@@ -183,24 +184,24 @@ export default class SettingsManager extends WindowSettings {
    */
   toggleFlag(flagName, state = undefined) {
 
-    console.log('Flag Settings:', this.userSettings?.flags);
+    console.info(`%c${this.name}%c: Flag has been requested to be toggled. %cFlag Settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.userSettings?.flags);
 
     const flagIndex = this.userSettings?.flags?.indexOf(flagName) ?? -1; // Is the flag `true`?
 
-    console.log(`Flag '${flagName}' is requested to become '${state}' (currently ${flagIndex})`);
+    console.debug(`%c${this.name}%c: Flag '%c${flagName}%c' is requested to become '%c${state}%c' (currently %c${flagIndex}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     // If the flag is enabled, AND the user does not want to force the flag to be true...
     if ((flagIndex != -1) && (state !== true)) {
-      console.log(`Setting flag '${flagName}' to false!`);
+      console.debug(`%c${this.name}%c: Setting flag '%c${flagName}%c' to %cfalse%c! (Removing from storage)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
       this.userSettings?.flags?.splice(flagIndex, 1); // Remove the flag (makes it false)
     } else if ((flagIndex == -1) && (state !== false)) {
-      console.log(`Setting flag '${flagName}' to true! (Adding to storage)`);
+      console.debug(`%c${this.name}%c: Setting flag '%c${flagName}%c' to %ctrue%c! (Adding to storage)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       // Else if the flag is disabled, AND the user does not want to force the flag to be false...
       this.userSettings?.flags?.push(flagName); // Add the flag (makes it true)
     }
 
-    console.log('Flag Settings Final: ', this.userSettings?.flags);
+    console.info(`%c${this.name}%c: Requested flag has been toggled. %cFlag Settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.userSettings?.flags);
   }
 
   // This is one of the most insane OOP setups I have ever laid my eyes on
@@ -282,6 +283,8 @@ export default class SettingsManager extends WindowSettings {
    */
   #updateHighlightSettings(button, coords) {
 
+    console.info(`%c${this.name}%c: Highlight settings have been requested to be changed. %cHighlight settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.userSettings?.highlight);
+
     button.disabled = true; // Disabled the button until we are done
 
     const status = button.dataset['status']; // Obtains the current status of the button
@@ -341,7 +344,7 @@ export default class SettingsManager extends WindowSettings {
       userStorageNew.splice(indexOfChange, 1); // Removes 1 index from the array at the index of the pixel change
     }
 
-    console.log('New Highlight Settings: ', userStorageNew);
+    console.info(`%c${this.name}%c: Highlight settings have been updated. %cHighlight settings%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, userStorageNew);
 
     this.userSettings['highlight'] = userStorageNew;
     // TODO: Add timer update here
@@ -462,7 +465,7 @@ export default class SettingsManager extends WindowSettings {
       } else if (id >= 32 && id <= 63) {
         mutableBitFlagsPosLarge = set32BitPosition(mutableBitFlagsPosLarge, id - 32, value);
       } else {
-        consoleError(`Attempted to store filter color with ID #${id} but this ID number is out of bounds (-32 to 63)! The color will not be stored.`);
+        consoleError(`%c${this.name}%c: Attempted to store filter color with ID #%c${id}%c but this ID number is out of bounds (-32 to 63)! The color will not be stored.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       }
     }
 
@@ -486,7 +489,7 @@ export default class SettingsManager extends WindowSettings {
 
     // If encodedString is in an unexpected state...
     if (typeof encodedString !== 'string') {
-      consoleWarn('Could not decode filtered colors from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...');
+      consoleWarn(`%c${this.name}%c: Could not %cdecode filtered colors%c from user storage! Either the filtered colors are not stored as a string, or the user storage does not exist. Assuming no colors are filtered...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       return shouldColorBeFiltered; // Return early
     }
 
@@ -618,9 +621,6 @@ export default class SettingsManager extends WindowSettings {
       + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4); // Ensures this is always four characters
     this.#windowStatesObjectEncoded['bm'] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
 
-    console.log('Saved Main Window State: ', this.#windowStatesObjectEncoded['bm']);
-    console.log(`Saved Main Window State Translation: (${encodedToNumber(windowMainCommonStates.slice(2, 5))}, ${encodedToNumber(windowMainCommonStates.slice(5, 8))})`);
-
     // Obtains the window ID for the Credits window
     const windowCreditsID = this.windowCredits?.windowID;
     // Obtains the Credits window element itself
@@ -698,7 +698,7 @@ export default class SettingsManager extends WindowSettings {
    */
   #decodeWindowStateToObject(windowState) {
 
-    console.log('Received window state to decode: ', windowState);
+    console.info(`%c${this.name}%c: Received %cwindow state%c to decode: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, windowState);
 
     /** Decodes the common header data in each encoded value.
      * This is an arrow function so code inside the function can easily access class-level variables (using `this`).
@@ -710,7 +710,7 @@ export default class SettingsManager extends WindowSettings {
 
       // If the passed in encodedString is invalid...
       if ((typeof encodedString !== 'string') || (encodedString.length == 0)) {
-        consoleWarn(`Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but received a '${typeof encodedString}' with value: ${encodedString}\nAssuming all common states are zeros...`);
+        consoleWarn(`%c${this.name}%c: Could not decode common states of a window! Expected a 'string' that is ${this.commonStatesByteLength} bytes long, but received a '%c${typeof encodedString}%c' with value: %c${encodedString}%c\nAssuming all common states are zeros...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
         encodedString = this.zerothEncodingAlphabetCharacter.repeat(this.commonStatesByteLength);
       } // The data we are supposed to read is corrupt, so we can zero all bytes and continue as normal.
 
@@ -755,7 +755,7 @@ export default class SettingsManager extends WindowSettings {
       );
     // mainWindowState is an Array where each index is variable. The order is preserved.
 
-    console.log('Common Main Window States have been decoded! States: ', decodeCommonStates(mainWindowEncodedCommon));
+    console.debug(`%c${this.name}%c: %cCommon Main Window States%c have been decoded! States: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, decodeCommonStates(mainWindowEncodedCommon));
 
     // Credits Window
     const creditsWindowEncodedState = windowState['crdt'] ?? creditsWindowStateDefault; // The entire encoded window state. Fallback to default
@@ -837,7 +837,7 @@ export default class SettingsManager extends WindowSettings {
    * @returns {Object} An object containing window states
    */
   getWindowStatesObject() {
-    console.log('#windowStatesObject: ', this.#windowStatesObject);
+    console.debug(`%c${this.name}%c: %cgetWindowStatesObject()%c has been called. Value of %c#windowStatesObject%c: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.#windowStatesObject);
     return this.#windowStatesObject;
   }
 
@@ -852,7 +852,7 @@ export default class SettingsManager extends WindowSettings {
 
     // If the passed in arguments are invalid
     if ((typeof tinyID !== 'string') || (typeof index !== 'number')) {
-      consoleError(`Attempted to get window state variable with type (string, number), but received type (${typeof tinyID}, ${typeof index}) instead! Value: (${tinyID}, ${index})\nReturning zero...`);
+      consoleError(`%c${this.name}%c: Attempted to get %cwindow state%c variable with type (string, number), but received type (%c${typeof tinyID}%c, %c${typeof index}%c) instead! Value: (%c${tinyID}%c, %c${index}%c)\nReturning zero...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       return 0;
     }
 
@@ -860,7 +860,7 @@ export default class SettingsManager extends WindowSettings {
 
     // If the passed in arguments are valid types, but an invalid Array index
     if (!Number.isInteger(index) || (index < 0) || (index > windowState.length - 1)) {
-      consoleError(`Attempted to retrieve index ${index} in '${tinyID}' window state, but the index is out-of-bounds! Valid: 0 - ${windowState.length - 1}\n Returning zero...`);
+      consoleError(`%c${this.name}%c: Attempted to retrieve index %c${index}%c in '%c${tinyID}%c' %cwindow state%c, but the index is out-of-bounds! Valid: %c0%c - %c${windowState.length - 1}%c\n Returning zero...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
       return 0;
     }
 

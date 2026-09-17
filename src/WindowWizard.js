@@ -1,7 +1,7 @@
 import Overlay from "./Overlay";
 import Template from "./Template";
 import TemplateManager from "./templateManager";
-import { encodedToNumber, escapeHTML, getWplaceVersion, localizeDate, localizeNumber, sleep } from "./utils";
+import { consoleCSS, consoleInfo, encodedToNumber, escapeHTML, getWplaceVersion, localizeDate, localizeNumber, sleep } from "./utils";
 
 /** Wizard that manages template updates & recovery
  * @class WindowWizard
@@ -332,7 +332,8 @@ export default class WindowWizard extends Overlay {
           // Creates a dummy Template class instance
           const _template = new Template({
             displayName: template.name,
-            chunked: template.tiles
+            chunked: template.tiles,
+            scriptName: this.name,
           });
 
           _template.calculateCoordsFromChunked(); // Updates `Template.coords`
@@ -348,7 +349,7 @@ export default class WindowWizard extends Overlay {
 
     // If it has been requested that we open a new Template Wizard window, we do so
     if (shouldWindowWizardOpen) {
-      console.log(`Restarting Template Wizard...`);
+      consoleInfo(`%c${this.name}%c: Restarting %cTemplate Wizard%c...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
       document.querySelector(`#${this.windowID}`).remove();
       new WindowWizard(this.name, this.version, this.schemaVersionBleedingEdge, this.templateManager).buildWindow();
     }

@@ -1,6 +1,6 @@
 import SettingsManager from "./settingsManager";
 import Template from "./Template";
-import { base64ToUint8, colorpaletteForBlueMarble, consoleError, consoleLog, consoleWarn, localizeNumber, numberToEncoded, sleep, viewCanvasInNewTab } from "./utils";
+import { base64ToUint8, colorpaletteForBlueMarble, consoleCSS, consoleDebug, consoleError, consoleInfo, consoleLog, consoleWarn, localizeNumber, numberToEncoded, sleep, viewCanvasInNewTab } from "./utils";
 import WindowMain from "./WindowMain";
 import WindowWizard from "./WindowWizard";
 
@@ -153,7 +153,7 @@ export default class TemplateManager {
   async createTemplate(blob, name, coords) {
 
     // Creates the JSON object if it does not already exist
-    if (!this.templatesJSON) {this.templatesJSON = await this.createJSON(); console.log(`Creating JSON...`);}
+    if (!this.templatesJSON) {this.templatesJSON = await this.createJSON(); consoleDebug(`%c${this.name}%c: Creating %cJSON%c for templates...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);}
 
     this.windowMain.handleDisplayStatus(`Creating template at ${coords.join(', ')}...`);
 
@@ -163,7 +163,8 @@ export default class TemplateManager {
       sortID: 0, // Object.keys(this.templatesJSON.templates).length || 0, // Uncomment this to enable multiple templates (1/2)
       authorID: numberToEncoded(this.userID || 0),
       file: blob,
-      coords: coords
+      coords: coords,
+      scriptName: this.name,
     });
 
     // Does the user want to skip transparent tiles while creating templates?
@@ -172,8 +173,8 @@ export default class TemplateManager {
     // Does the user want to aggressively skip transparent tiles while creating templates?
     const shouldAggSkipTransTiles = this.settingsManager?.userSettings?.flags?.includes('hl-agSkip');
 
-    console.log(`Should Skip: ${shouldSkipTransTiles}; Should Agg Skip: ${shouldAggSkipTransTiles}`);
-    
+    console.debug(`%c${this.scriptName}%c: User Settings:\nShould Skip: %c${shouldSkipTransTiles}%c;\nShould Agg Skip: %c${shouldAggSkipTransTiles}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+
     const { templateTiles, templateTilesBuffers } = await template.createTemplateTiles(this.tileSize, this.paletteBM, shouldSkipTransTiles, shouldAggSkipTransTiles); // Chunks the tiles
     
     template.chunked = templateTiles; // Stores the chunked tile bitmaps
@@ -196,10 +197,10 @@ export default class TemplateManager {
 
     this.windowMain.handleDisplayStatus(`Template created at ${coords.join(', ')}!`);
 
-    console.log(Object.keys(this.templatesJSON.templates).length);
-    console.log(this.templatesJSON);
-    console.log(this.templatesArray);
-    console.log(JSON.stringify(this.templatesJSON));
+    console.info(`%c${this.scriptName}%c: There are now %c${Object.keys(this.templatesJSON.templates).length}%c templates loaded!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+    console.debug(`%c${this.scriptName}%c: Value of %ctemplatesJSON%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesJSON);
+    console.debug(`%c${this.scriptName}%c: Value of %ctemplatesArray%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesArray);
+    console.debug(`%c${this.scriptName}%c: Value of %ctemplatesJSON%c as a string:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET,JSON.stringify(this.templatesJSON));
 
     await this.#storeTemplates();
   }
@@ -225,7 +226,8 @@ export default class TemplateManager {
       sortID: Object.keys(this.templatesJSON.templates).length || 0,
       authorID: numberToEncoded(this.userID || 0),
       pixelCount: pixelCount,
-      chunked: templateObject.tiles
+      chunked: templateObject.tiles,
+      scriptName: this.name,
     });
 
     template.calculateCoordsFromChunked(); // Updates `Template.coords`
@@ -252,7 +254,7 @@ export default class TemplateManager {
   async disableTemplate() {
 
     // Creates the JSON object if it does not already exist
-    if (!this.templatesJSON) {this.templatesJSON = await this.createJSON(); console.log(`Creating JSON...`);}
+    if (!this.templatesJSON) {this.templatesJSON = await this.createJSON(); consoleDebug(`%c${this.name}%c: Creating %cJSON%c for templates...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);}
 
 
   }
@@ -266,9 +268,8 @@ export default class TemplateManager {
    */
   async downloadAllTemplates() {
 
-    consoleLog(`Downloading all templates...`);
-
-    console.log(this.templatesArray);
+    consoleInfo(`%c${this.name}%c: Downloading all templates...`, consoleCSS.BLUE, consoleCSS.RESET);
+    consoleDebug(`%c${this.name}%c: Templates to download: `, consoleCSS.BLUE, consoleCSS.RESET, this.templatesArray);
 
     // For each template loaded...
     for (const template of this.templatesArray) {
@@ -290,7 +291,7 @@ export default class TemplateManager {
     // Templates in user storage
     const templates = JSON.parse(await GM.getValue('bmTemplates', '{}'))?.templates;
 
-    console.log(templates);
+    console.debug(`%c${this.name}%c: Templates in user storage: `, consoleCSS.BLUE, consoleCSS.RESET, templates);
 
     // If there is at least one template loaded...
     if (Object.keys(templates).length > 0) {
@@ -306,7 +307,8 @@ export default class TemplateManager {
             displayName: template.name,
             sortID: key.split(' ')?.[0],
             authorID: key.split(' ')?.[1],
-            chunked: template.tiles
+            chunked: template.tiles,
+            scriptName: this.name,
           }));
 
           await sleep(500); // Avoids download throttling from the browser
@@ -334,9 +336,9 @@ export default class TemplateManager {
       url: URL.createObjectURL(blob),
       name: templateFileName + '.png',
       conflictAction: 'uniquify',
-      onload: () => {consoleLog(`Download of template '${templateFileName}' complete!`);},
-      onerror: (error, details) => {consoleError(`Download of template '${templateFileName}' failed because ${error}! Details: ${details}`);},
-      ontimeout: () => {consoleWarn(`Download of template '${templateFileName}' has timed out!`);}
+      onload: () => {consoleInfo(`%c${this.name}%c: Download of template '%c${templateFileName}%c' complete!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);},
+      onerror: (error, details) => {consoleError(`%c${this.name}%c: Download of template '%c${templateFileName}%c' failed because ${error}! Details: ${details}`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);},
+      ontimeout: () => {consoleWarn(`%c${this.name}%c: Download of template '%c${templateFileName}%c' has timed out!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);}
     });
   }
 
@@ -347,7 +349,7 @@ export default class TemplateManager {
    */
   async convertTemplateToBlob(template) {
 
-    console.log(template);
+    console.debug(`%c${this.name}%c: Template to convert to a blob: `, consoleCSS.BLUE, consoleCSS.RESET, template);
 
     const templateTiles64 = template.chunked; // Tiles of template image as base 64
 
@@ -382,7 +384,7 @@ export default class TemplateManager {
       absoluteLargestY = Math.max(absoluteLargestY, absoluteY + (tileImage.height / this.drawMult));
     })
 
-    console.log(`Absolute coordinates: (${absoluteSmallestX}, ${absoluteSmallestY}) and (${absoluteLargestX}, ${absoluteLargestY})`);
+    console.debug(`%c${this.name}%c: Absolute coordinates: (%c${absoluteSmallestX}%c, %c${absoluteSmallestY}%c) and (%c${absoluteLargestX}%c, %c${absoluteLargestY}%c)`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     // Calculates the template/canvas width and height
     const templateWidth = absoluteLargestX - absoluteSmallestX;
@@ -390,7 +392,7 @@ export default class TemplateManager {
     const canvasWidth = templateWidth * this.drawMult;
     const canvasHeight = templateHeight * this.drawMult;
 
-    console.log(`Template Width: ${templateWidth}\nTemplate Height: ${templateHeight}\nCanvas Width: ${canvasWidth}\nCanvas Height: ${canvasHeight}`);
+    console.debug(`%c${this.name}%c: Template Width: %c${templateWidth}%cpx\nTemplate Height: %c${templateHeight}%cpx\nCanvas Width: %c${canvasWidth}%cpx\nCanvas Height: %c${canvasHeight}%cpx`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     // Creates a new canvas the size of the template
     const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
@@ -408,7 +410,7 @@ export default class TemplateManager {
       const absoluteX = (tileX * this.tileSize) + pixelX;
       const absoluteY = (tileY * this.tileSize) + pixelY;
 
-      console.log(`Drawing tile (${tileX}, ${tileY}, ${pixelX}, ${pixelY}) (${absoluteX}, ${absoluteY}) at (${absoluteX - absoluteSmallestX}, ${absoluteY - absoluteSmallestY}) on the canvas...`);
+      console.debug(`%c${this.name}%c: Drawing tile (%c${tileX}%c, %c${tileY}%c, %c${pixelX}%c, %c${pixelY}%c) (%c${absoluteX}%c, %c${absoluteY}%c) at (%c${absoluteX - absoluteSmallestX}%c, %c${absoluteY - absoluteSmallestY}%c) on the canvas...`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
       // Draws the tile to the canvas
       context.drawImage(tileImage, (absoluteX - absoluteSmallestX) * this.drawMult, (absoluteY - absoluteSmallestY) * this.drawMult, tileImage.width, tileImage.height);
@@ -472,15 +474,15 @@ export default class TemplateManager {
     // Format tile coordinates with proper padding for consistent lookup
     tileCoords = tileCoords[0].toString().padStart(4, '0') + ',' + tileCoords[1].toString().padStart(4, '0');
 
-    console.log(`Searching for templates in tile: "${tileCoords}"`);
+    console.debug(`%c${this.name}%c: Searching for templates in tile: "%c${tileCoords}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     const templateArray = this.templatesArray; // Stores a copy for sorting
-    console.log(templateArray);
+    console.debug(`%c${this.name}%c: %ctemplateArray%c before sorting: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateArray);
 
     // Sorts the array of Template class instances. 0 = first = lowest draw priority
     templateArray.sort((a, b) => {return a.sortID - b.sortID;});
 
-    console.log(templateArray);
+    console.debug(`%c${this.name}%c: %ctemplateArray%c after sorting: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, templateArray);
 
     // Retrieves the relavent template tile blobs
     const templatesToDraw = templateArray
@@ -509,10 +511,10 @@ export default class TemplateManager {
       })
     .filter(Boolean);
 
-    console.log(templatesToDraw);
+    console.debug(`%c${this.name}%c: Templates to draw on tile "%c${tileCoords}%c": `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, templatesToDraw);
 
     const templateCount = templatesToDraw?.length || 0; // Number of templates to draw on this tile
-    console.log(`templateCount = ${templateCount}`);
+    console.debug(`%c${this.name}%c: %ctemplateCount%c = %c${templateCount}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     if (templateCount > 0) {
       
@@ -582,8 +584,7 @@ export default class TemplateManager {
     
     // For each template in this tile, draw them.
     for (const template of templatesToDraw) {
-      console.log(`Template:`);
-      console.log(template);
+      console.debug(`%c${this.name}%c: Template to draw on tile "%c${tileCoords}%c": `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, template);
 
       const templateHasErased = !!template.instance.pixelCount?.colors?.get(-1); // Does this template have Erased (#deface) pixels?
 
@@ -637,12 +638,12 @@ export default class TemplateManager {
       // Or, if there are Erased (#deface) pixels, then we draw the modified template on the canvas
       // Or, if the user has enabled highlighting, then we draw the modified template on the canvas
       if ((this.shouldFilterColor.size != 0) || templateHasErased || !highlightDisabled) {
-        console.log('Colors to filter: ', this.shouldFilterColor);
+        console.debug(`%c${this.name}%c: Colors to filter: `, consoleCSS.BLUE, consoleCSS.RESET, this.shouldFilterColor);
         //context.putImageData(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height), coordXtoDrawAt, coordYtoDrawAt);
         context.drawImage(await createImageBitmap(new ImageData(new Uint8ClampedArray(templateAfterFilter.buffer), template.bitmap.width, template.bitmap.height)), coordXtoDrawAt, coordYtoDrawAt);
       }
 
-      console.log(`Finished calculating correct pixels & filtering colors for the tile ${tileCoords} in ${(performance.now() - timer).toFixed(3) / 1000} seconds!\nThere are ${pixelsCorrectTotal} correct pixels.`);
+      console.debug(`%c${this.name}%c: Finished calculating %ccorrect pixels & filtering colors%c for the tile "%c${tileCoords}%c" in %c${(performance.now() - timer).toFixed(3) / 1000}%c seconds!\nThere are %c${pixelsCorrectTotal}%c correct pixels.`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA,consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
       // If "correct" does not exist as a key of the object "pixelCount", we create it
       if (typeof template.instance.pixelCount['correct'] == 'undefined') {
@@ -661,8 +662,7 @@ export default class TemplateManager {
    */
   async importJSON(json) {
 
-    console.log(`Importing JSON...`);
-    console.log(json);
+    consoleDebug(`%c${this.name}%c: Importing %cJSON%c for templates...\nJSON:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, json);
 
     // If the passed in JSON is a Blue Marble template object...
     if (json?.whoami == 'BlueMarble') {
@@ -676,18 +676,18 @@ export default class TemplateManager {
    */
   async #parseBlueMarble(json) {
 
-    console.log(`Parsing BlueMarble...`);
+    consoleDebug(`%c${this.name}%c: Parsing %cBlueMarble%c template JSON...\nJSON:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, json);
 
     const templates = json.templates;
 
-    console.log(`Number of templates: ${Object.keys(templates).length}`);
+    console.debug(`%c${this.name}%c: Number of templates: %c${Object.keys(templates).length}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
     const schemaVersion = json?.schemaVersion;
     const schemaVersionArray = schemaVersion.split(/[-\.\+]/); // SemVer -> string[]
     const schemaVersionBleedingEdge = this.schemaVersion.split(/[-\.\+]/); // SemVer -> string[]
     const scriptVersion = json?.scriptVersion;
 
-    console.log(`BlueMarble Template Schema: ${schemaVersion}; Script Version: ${scriptVersion}`);
+    console.debug(`%c${this.name}%c: BlueMarble %cTemplate Schema%c: ${schemaVersion}; %cScript Version%c: ${scriptVersion}`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
 
     // If MAJOR version is up-to-date...
     if (schemaVersionArray[0] == schemaVersionBleedingEdge[0]) {
@@ -741,7 +741,7 @@ export default class TemplateManager {
   
           const templateKey = template; // The identification key for the template. E.g., "0 $Z"
           const templateValue = templates[template]; // The actual content of the template
-          console.log(`Template Key: ${templateKey}`);
+          console.debug(`%c${this.name}%c: %cTemplate Key%c: "%c${templateKey}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
   
           if (templates.hasOwnProperty(template)) {
   
@@ -763,7 +763,7 @@ export default class TemplateManager {
             const actualTileSize = tileSize * drawMult;
   
             for (const tile in tilesbase64) {
-              console.log(tile);
+              console.debug(`%c${this.name}%c: Tile in template (%c${templateKey}%c): `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, tile);
               if (tilesbase64.hasOwnProperty(tile)) {
                 const encodedTemplateBase64 = tilesbase64[tile];
                 const templateUint8Array = base64ToUint8(encodedTemplateBase64); // Base 64 -> Uint8Array
@@ -786,6 +786,7 @@ export default class TemplateManager {
               displayName: displayName,
               sortID: sortID || templatesArray?.length || 0,
               authorID: authorID || '',
+              scriptName: this.name,
               //coords: coords,
             });
             template.pixelCount = pixelCount;
@@ -793,13 +794,12 @@ export default class TemplateManager {
             template.chunked32 = templateTiles32;
             
             templatesArray.push(template);
-            console.log(templatesArray);
-            console.log(`^^^ This ^^^`);
+            console.debug(`%c${this.name}%c: Template Array after new template has been imported: `, consoleCSS.BLUE, consoleCSS.RESET, templatesArray);
           }
         }
       }
 
-      return templatesArray
+      return templatesArray;
     }
   }
 
@@ -1001,8 +1001,7 @@ export default class TemplateManager {
       }
     }
 
-    console.log(`List of template pixels that match the tile:`);
-    console.log(_colorpalette);
+    console.debug(`%c${this.name}%c: List of template pixels that match the tile: `, consoleCSS.BLUE, consoleCSS.RESET, _colorpalette);
     return { correctPixels: _colorpalette, filteredTemplate: template32 };
   }
 }
