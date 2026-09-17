@@ -160,18 +160,38 @@ const spyCodeInjection = () => {
  * This code will execute outside of TamperMonkey's sandbox.
  * @param {string} name - Human-readable identifier that appears in console logs
  * @param {*} callback - The code to execute
+ * @param {string | undefined} [uuid] - Unique, not human-readable identifier that appears in console logs. This is managed automatically, and it is not expected that you pass something in here.
  * @since 0.11.15
  */
-function inject(name, callback) {
-  const injectionUUID = crypto.randomUUID().slice(0, 8);
+function inject(name, callback, uuid) {
+
+  const injectionUUID = uuid ?? crypto.randomUUID().slice(0, 8); // Random UUID
+
   consoleLog(`Injecting code '${name}' (${injectionUUID}) into <html>...`);
   console.log(`DOM state is ${document.readyState}.`);
+
+  // If the <html> element does not exist yet...
+  if (!document.documentElement) {
+    consoleWarn(`<html> element has not loaded! Waiting for element to exist before injecting...`); // Warn is used here, because I can't test this functionality and therefore, it might not work.
+
+    // Create a new Mutation Observer to try executing this function again once the <html> element exists.
+    new MutationObserver((mutations, observer) => {
+      if (document.documentElement) {
+        observer.disconnect();
+        inject(name, callback, injectionUUID);
+      }
+    }).observe(document, { childList: true });
+
+    consoleLog(`Halting injection process of code '${name}' (${injectionUUID})...`);
+    return; // Returns early, because we can't do anything if <html> does not exist yet
+  }
+
   const script = document.createElement('script');
   script.setAttribute('bm-name', name); // Passes in the name value
   script.setAttribute('bm-cStyle', consoleStyle); // Passes in the console style value
   script.setAttribute('data-uuid', injectionUUID); // Adds the UUID as an attribute to the <script> element
   script.textContent = `(${callback})();`;
-  document.documentElement?.appendChild(script);
+  document.documentElement.appendChild(script);
   if (document.querySelector(`script[data-uuid='${injectionUUID}']`)) {console.log(`Injected code '${name}' (${injectionUUID}) script exists in the DOM tree.`);}
   script.remove();
   consoleLog(`Removed injection code '${name}' (${injectionUUID}) from the DOM tree.`);

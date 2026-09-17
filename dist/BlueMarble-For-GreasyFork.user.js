@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.14
+// @version         0.95.15
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -4693,16 +4693,27 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     };
     console.log(`%c${name2}%c: Spy code finished initializing! (4/4)`, consoleStyle2, "");
   };
-  function inject(name2, callback) {
-    const injectionUUID = crypto.randomUUID().slice(0, 8);
-    consoleLog(`Injecting code '${name2}'  (${injectionUUID}) into <html>...`);
+  function inject(name2, callback, uuid) {
+    const injectionUUID = uuid ?? crypto.randomUUID().slice(0, 8);
+    consoleLog(`Injecting code '${name2}' (${injectionUUID}) into <html>...`);
     console.log(`DOM state is ${document.readyState}.`);
+    if (!document.documentElement) {
+      consoleWarn(`<html> element has not loaded! Waiting for element to exist before injecting...`);
+      new MutationObserver((mutations, observer) => {
+        if (document.documentElement) {
+          observer.disconnect();
+          inject(name2, callback, injectionUUID);
+        }
+      }).observe(document, { childList: true });
+      consoleLog(`Halting injection process of code '${name2}' (${injectionUUID})...`);
+      return;
+    }
     const script = document.createElement("script");
     script.setAttribute("bm-name", name2);
     script.setAttribute("bm-cStyle", consoleStyle);
     script.setAttribute("data-uuid", injectionUUID);
     script.textContent = `(${callback})();`;
-    document.documentElement?.appendChild(script);
+    document.documentElement.appendChild(script);
     if (document.querySelector(`script[data-uuid='${injectionUUID}']`)) {
       console.log(`Injected code '${name2}' (${injectionUUID}) script exists in the DOM tree.`);
     }
