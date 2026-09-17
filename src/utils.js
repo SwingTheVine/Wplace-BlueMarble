@@ -473,7 +473,7 @@ export function selectAllCoordinateInputs(document) {
  */
 export function colorpaletteForBlueMarble(tolerance) {
 
-  const colorpaletteBM = colorpalette; // Makes a copy
+  const colorpaletteBM = colorpalette.map(color => ({ ...color })); // Makes a copy
 
   // Adds the Blue Marble color for "erased" and "other" pixels to the palette list
   colorpaletteBM.unshift({ "id": -1,  "premium": false, "name": "Erased",      "rgb": [222, 250, 206] });

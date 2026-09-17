@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.3
+// @version         0.95.4
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1556,7 +1556,7 @@ Returning zero...`);
     return (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1);
   }
   function colorpaletteForBlueMarble(tolerance) {
-    const colorpaletteBM = colorpalette;
+    const colorpaletteBM = colorpalette.map((color) => ({ ...color }));
     colorpaletteBM.unshift({ "id": -1, "premium": false, "name": "Erased", "rgb": [222, 250, 206] });
     colorpaletteBM.unshift({ "id": -2, "premium": false, "name": "Other", "rgb": [0, 0, 0] });
     const lookupTable = /* @__PURE__ */ new Map();
@@ -2787,7 +2787,7 @@ Returning zero...`);
     const windowFilterCommonStates = obtainCommonStates(windowFilterElement, "fltr");
     let windowFilterUniqueStatesMutable = 0;
     const windowFilterIsWindowed = windowFilterElement?.classList?.contains("bm-windowed");
-    windowFilterUniqueStatesMutable = set32BitPosition(windowCreditsUniqueStatesMutable, 0, windowFilterIsWindowed);
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, 0, windowFilterIsWindowed);
     let showUnusedColors = document.querySelector("#bm-filter-show-unused")?.checked ?? this.windowFilter?.showUnused ?? false;
     windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, 1, showUnusedColors);
     const selectedSortSecondaryIndex = document.querySelector("#bm-filter-sort-secondary")?.selectedIndex ?? this.windowFilter?.WStateSortFlagsToValues[this.windowFilter?.sortSecondary] - 11 ?? 0;
