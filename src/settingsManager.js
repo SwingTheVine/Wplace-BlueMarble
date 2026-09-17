@@ -589,8 +589,8 @@ export default class SettingsManager extends WindowSettings {
       const windowCoordinateMaximum = 778687; // Ones, for three encoded characters  (92^3)-1
 
       // Encodes the X & Y coordinates, clamped to the farthest supported coordinate
-      const windowTransX = numberToEncoded(Math.min(Math.abs(xTransCoord), windowCoordinateMaximum));
-      const windowTransY = numberToEncoded(Math.min(Math.abs(yTransCoord), windowCoordinateMaximum));
+      const windowTransX = numberToEncoded(Math.min(Math.round(Math.abs(xTransCoord)), windowCoordinateMaximum));
+      const windowTransY = numberToEncoded(Math.min(Math.round(Math.abs(yTransCoord)), windowCoordinateMaximum));
 
       // Stores one/true because the window always exists if this code reaches this point
       return numberToEncoded(drawDepth).slice(-1) // Clamp to 1 character
