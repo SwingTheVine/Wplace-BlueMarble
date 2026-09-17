@@ -671,7 +671,7 @@ export default class SettingsManager extends WindowSettings {
     // Obtains if the window is in "Windowed" mode
     const windowFilterIsWindowed = windowFilterElement?.classList?.contains('bm-windowed');
     // Modifies the bit flag for "Windowed" mode
-    windowFilterUniqueStatesMutable = set32BitPosition(windowCreditsUniqueStatesMutable, 0, windowFilterIsWindowed);
+    windowFilterUniqueStatesMutable = set32BitPosition(windowFilterUniqueStatesMutable, 0, windowFilterIsWindowed);
     // Obtains if "Show Unused Colors" checkbox is `true`
     let showUnusedColors = document.querySelector('#bm-filter-show-unused')?.checked ?? this.windowFilter?.showUnused ?? false;
     // Modifies the bit flag for displaying unused colors
