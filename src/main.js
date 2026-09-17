@@ -17,7 +17,6 @@ const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
 
 console.debug(`%c${name}%c: Top of top-level execution.`, consoleCSS.BLUE, consoleCSS.RESET);
-console.log('window.fetch', window.fetch.toString());
 
 /** What code to execute instantly in the client (webpage) to spy on fetch calls.
  * This code will execute outside of TamperMonkey's sandbox.
@@ -42,18 +41,17 @@ const spyCodeInjection = () => {
 
     const { source, endpoint, blobID, blobData, blink } = event.data; // Deconstructs the message information
 
-    const elapsed = Date.now() - blink; // Calculates the time it took to process the pixel tile image
-
-    // Since this code does not run in the userscript, we can't use consoleLog().
-    console.groupCollapsed(`%c${name} Closer%c: ${fetchedBlobQueue.size} Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, '', 'color: magenta; ', '', 'color: deepskyblue; ', '');
-    console.debug(`Blob fetch took %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c MM:SS.mmm`, consoleStyle, '');
-    console.debug(fetchedBlobQueue);
-    console.groupEnd();
-
     // Since there is a single channel of communication for all messages on the window, we ignore all messages that are not meant for us.
     if ((source == 'blue-marble') && !!blobID && !!blobData && !endpoint) {
       // The message with the modified blob won't have an endpoint, so we ignore any message without one.
       // The message, however, should be intended for 'blue-marble', and contain blob UUID & data.
+
+      // Since this code does not run in the userscript, we can't use consoleLog().
+      const elapsed = Date.now() - blink; // Calculates the time it took to process the pixel tile image
+      console.groupCollapsed(`%c${name} Closer%c: ${fetchedBlobQueue.size} Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, '', 'color: magenta; ', '', 'color: deepskyblue; ', '');
+      console.debug(`Blob fetch took %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c MM:SS.mmm`, consoleStyle, '');
+      console.debug(fetchedBlobQueue);
+      console.groupEnd();
 
       const callback = fetchedBlobQueue.get(blobID); // Retrieves the blob based on the UUID
 
@@ -134,12 +132,25 @@ const spyCodeInjection = () => {
     } else if (contentType.includes('image/') && (!endpointName.includes('openfreemap') && !endpointName.includes('maps'))) {
       // Fetch custom for all images but opensourcemap
 
+      const blink = Date.now(); // Current time
+
       // Attempts to run the code to manipulate the blob/image, then return it
       try {
 
-        const blink = Date.now(); // Current time
         const blob = await cloned.blob(); // The original blob
         const blobUUID = crypto.randomUUID(); // Generates a random UUID
+        let watchdog = undefined; // Watchdog timer ID
+        const timeoutMs = 10000; // Timeout in miliseconds
+
+        // Code to execute when the script resolves, regardless of how it resolves
+        const commonResolutionCode = () => {
+          // If there is a watchdog timer, clear the status, and delete the timer.
+          if (watchdog) {
+            clearTimeout(watchdog);
+            watchdog = null;
+          }
+          fetchedBlobQueue.delete(blobUUID); // Deletes the blob from the queue
+        }
 
         // Since this code does not run in the userscript, we can't use consoleLog().
         console.debug(`%c${name} Opener%c: ${fetchedBlobQueue.size} Sending %cIMAGE%c message about endpoint "${endpointName}" with blob ID "%c%s%c"`, consoleStyle, '', 'color: magenta; ', '', 'color: deepskyblue; ', blobUUID, '');
@@ -151,15 +162,14 @@ const spyCodeInjection = () => {
         // When the spy code receives the message, the Promise is fufilled (elsewhere in the code).
         return new Promise((resolve) => {
 
-          const timeoutMs = 10000; // Timeout in miliseconds
-
           // What to do (executes) if the Promise ages older than the timeout length
-          const watchdog = setTimeout(() => {
+          watchdog = setTimeout(() => {
             // By this point, the queue will probably be full...
             // ...and the code will be failing & throwing errors elsewhere...
             // ...but this is just in-case the other boilerplates fail...
             // ...we don't want the queue to infinitely bloat, after all
 
+            commonResolutionCode();
             console.warn(`%c${name} Opener%c: ${fetchedBlobQueue.size} Failed to return manipulated blob related to endpoint "${endpointName}" with blob ID "%c%s%c"!\nThe blob took longer than %d miliseconds to process! Returning original blob...`, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', timeoutMs);
             resolve(response); // Returns the original blob
           }, timeoutMs);
@@ -176,8 +186,9 @@ const spyCodeInjection = () => {
             // Another way to think about it, is that this function won't run until "somebody else" has processed the blob, and sent a message back with the processed blob.
             // Creates a Response with the processed blob.
 
-            clearTimeout(watchdog); // Resets Watchdog timer
-          fetchedBlobQueue.delete(blobUUID); // Removes the blob from the queue so we don't process it again
+            // Call this early so we don't process this blob again.
+            // Otherwise, if the code below throws an error, the blob will be processed again
+            commonResolutionCode();
 
             // Attempts to return the processed blob
             try {
@@ -191,19 +202,23 @@ const spyCodeInjection = () => {
 
               // Since we cloned the original response, the reported origin changed.
               // So, we change the origin back to what it originally was.
-              Object.defineProperties(responseProcessed, 'url', {
-                value: response.url,
-                writable: false,
-              });
+              try {
+                Object.defineProperties(responseProcessed, 'url', {
+                  value: response.url,
+                  writable: false,
+                });
+              } catch (ignored) {}
 
               resolve(responseProcessed); // Returns the processed blob
 
               // Since this code does not run in the userscript, we can't use consoleLog().
               console.debug(`%c${name} Closer%c: ${fetchedBlobQueue.size} The blob "%c%s%c" has now been processed.`, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '');
+              return; // Stop execution, because we are done
             } catch (exception) {
 
               console.warn(`%c${name} Closer%c: ${fetchedBlobQueue.size} Failed to resolve image blob request related to endpoint "${endpointName}" with blob ID "%c%s%c"!\nThe original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', exception);
               resolve(response); // Returns the original blob
+              return; // Stop execution, because we can't process the blob
             }
           });
 
@@ -219,9 +234,8 @@ const spyCodeInjection = () => {
             blink: blink
           });
         }).catch(exception => {
-          console.error(`%c${name} Opener%c: An error occured while resolving the Promise for a blob ID "%c%s%c"! The original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', exception);
-          clearTimeout(watchdog); // Resets Watchdog timer
-          fetchedBlobQueue.delete(blobUUID); // Removes the blob from the queue so we don't process it again
+          commonResolutionCode(); // Ensure we don't process this blob again
+          console.warn(`%c${name} Opener%c: An error occured while resolving the Promise for a blob ID "%c%s%c"! The original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', exception);
           return response; // Returns the original blob
         });
 
@@ -232,6 +246,7 @@ const spyCodeInjection = () => {
         console.info(`Endpoint: ${endpointName}\nThere are ${fetchedBlobQueue.size} blobs processing...\nBlink: ${blink.toLocaleString()}\nTime Since Blink: ${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')} MM:SS.mmm`);
         console.warn(`Error: `, exception);
         console.groupEnd();
+        return response; // Returns the original blob
       }
     }
 
@@ -239,7 +254,7 @@ const spyCodeInjection = () => {
     // ...the network request, then look elsewhere in the Spy Code. It is not in the fetch hook.
     // However, the code to create the Response is in here.
 
-    return response; // Returns the original response
+    return response; // Returns the original response, because it did not match anything Blue Marble uses
   };
 
   console.debug(`%c${name} Thread%c: Spy code finished initializing! (4/4)`, consoleStyle, '');
@@ -291,7 +306,6 @@ function inject(name, callback, uuid) {
 inject('Spy Code', spyCodeInjection);
 
 console.log('BM after spy code injected.');
-console.log('window.fetch', window.fetch.toString());
 
 // ----- START OF BLUE MARBLE EXECUTION -----
 (async () => {
@@ -446,7 +460,6 @@ console.log('window.fetch', window.fetch.toString());
   }
 
   console.log('End of BM file.');
-  console.log('window.fetch', window.fetch.toString());
 
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
 
