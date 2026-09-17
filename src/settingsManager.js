@@ -618,6 +618,9 @@ export default class SettingsManager extends WindowSettings {
       + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4); // Ensures this is always four characters
     this.#windowStatesObjectEncoded['bm'] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
 
+    console.log('Saved Main Window State: ', this.#windowStatesObjectEncoded['bm']);
+    console.log(`Saved Main Window State Translation: (${encodedToNumber(windowMainCommonStates.slice(2, 5))}, ${encodedToNumber(windowMainCommonStates.slice(5, 8))})`);
+
     // Obtains the window ID for the Credits window
     const windowCreditsID = this.windowCredits?.windowID;
     // Obtains the Credits window element itself
@@ -751,6 +754,8 @@ export default class SettingsManager extends WindowSettings {
         mainWindowTemplateCoordX, mainWindowTemplateCoordY
       );
     // mainWindowState is an Array where each index is variable. The order is preserved.
+
+    console.log('Common Main Window States have been decoded! States: ', decodeCommonStates(mainWindowEncodedCommon));
 
     // Credits Window
     const creditsWindowEncodedState = windowState['crdt'] ?? creditsWindowStateDefault; // The entire encoded window state. Fallback to default

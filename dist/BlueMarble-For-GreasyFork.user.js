@@ -2,14 +2,14 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.0
+// @version         0.95.2
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
 // @license         MPL-2.0
 // @supportURL      https://discord.gg/tpeBPy46hf
 // @homepageURL     https://bluemarble.lol/
-// @icon            https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/9173d0624fc7e4aaf3d4938c04d89c553937a976/dist/assets/Favicon.png
+// @icon            https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/94ad1fd0e709f54b44dfff25f7aa453e6dcfe340/dist/assets/Favicon.png
 // @updateURL       https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @downloadURL     https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/BlueMarble-For-GreasyFork.user.js
 // @match           https://wplace.live/*
@@ -22,7 +22,7 @@
 // @grant           GM.xmlhttpRequest
 // @grant           GM.download
 // @connect         telemetry.thebluecorner.net
-// @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/9173d0624fc7e4aaf3d4938c04d89c553937a976/dist/BlueMarble-For-GreasyFork.user.css
+// @resource        CSS-BM-File https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/94ad1fd0e709f54b44dfff25f7aa453e6dcfe340/dist/BlueMarble-For-GreasyFork.user.css
 // @require         https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @antifeature     tracking Anonymous opt-in telemetry data
 // @noframes
@@ -2762,6 +2762,8 @@ Returning zero...`);
     const windowMainTemplateCoordinateY = Math.min(2047999, Math.max(0, Number(windowMainElement?.querySelector("#bm-input-ty")?.value ?? 0) * 1e3 + Number(windowMainElement?.querySelector("#bm-input-py")?.value ?? 0)));
     const windowMainState = windowMainCommonStates + numberToEncoded(windowMainUniqueStatesMutable).padStart(2, this.zerothEncodingAlphabetCharacter).slice(-2) + numberToEncoded(windowMainTemplateCoordinateX).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4) + numberToEncoded(windowMainTemplateCoordinateY).padStart(4, this.zerothEncodingAlphabetCharacter).slice(-4);
     __privateGet(this, _windowStatesObjectEncoded)["bm"] = windowMainState ?? this.zerothEncodingAlphabetCharacter.repeat(18);
+    console.log("Saved Main Window State: ", __privateGet(this, _windowStatesObjectEncoded)["bm"]);
+    console.log(`Saved Main Window State Translation: (${encodedToNumber(windowMainCommonStates.slice(2, 5))}, ${encodedToNumber(windowMainCommonStates.slice(5, 8))})`);
     const windowCreditsID = this.windowCredits?.windowID;
     const windowCreditsElement = windowCreditsID ? document.querySelector("#" + this.windowCredits?.windowID) : void 0;
     const windowCreditsCommonStates = obtainCommonStates(windowCreditsElement, "crdt");
@@ -2839,6 +2841,7 @@ Assuming all common states are zeros...`);
       mainWindowTemplateCoordX,
       mainWindowTemplateCoordY
     );
+    console.log("Common Main Window States have been decoded! States: ", decodeCommonStates(mainWindowEncodedCommon));
     const creditsWindowEncodedState = windowState["crdt"] ?? creditsWindowStateDefault;
     const creditsWindowEncodedCommon = creditsWindowEncodedState?.slice(0, this.commonStatesByteLength);
     const creditsWindowEncodedFlags = creditsWindowEncodedState?.slice(this.commonStatesByteLength, 10);
@@ -3541,7 +3544,11 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
       const drawDepthNew = this.handleDrawDepth(windowWasInDOM ? drawDepthOld : void 0);
       let translateX = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION);
       let translateY = this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE) ? -1 * this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION) : this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION);
-      translateX = Math.max(-250, Math.min(window.innerWidth - 40, translateX));
+      console.log(`The X translation sign is ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION_IS_NEGATIVE)}.
+The Y translation sign is ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE)}`);
+      console.log(`The raw translation coordinates are (${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION)}, ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION)})`);
+      console.log(`The innerWidth of the window is ${window.innerWidth}, and the innerHeight is ${window.innerHeight}.`);
+      translateX = Math.max(-25, Math.min(window.innerWidth - 40, translateX));
       translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
       const startingPosition = !this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_MOVED) ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
       this.windowParent = document.body;
