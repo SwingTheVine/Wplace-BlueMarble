@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.15
+// @version         0.95.22
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1442,6 +1442,32 @@
   function serverTPtoDisplayTP(tile, pixel) {
     return [parseInt(tile[0]) % 4 * 1e3 + parseInt(pixel[0]), parseInt(tile[1]) % 4 * 1e3 + parseInt(pixel[1])];
   }
+  var consoleCSS = {
+    // CONTROL CHARACTERS
+    /** Resets all styling */
+    RESET: "",
+    /** Makes text **bold** */
+    BOLD: "font-weight: bold; ",
+    /** Makes the text underlined */
+    UNDERLINE: "text-decoration: underline; ",
+    // COLOR CHARACTERS
+    /** Turns the text white */
+    WHITE: "color: white; ",
+    /** Turns the text black */
+    BLACK: "color: black; ",
+    /** Turns the text red */
+    RED: "color: darkred; ",
+    /** Turns the text green */
+    GREEN: "color: springgreen; ",
+    /** Turns the text yellow */
+    YELLOW: "color: gold; ",
+    /** Turns the text blue */
+    BLUE: "color: cornflowerblue; ",
+    /** Turns the text magenta */
+    MAGENTA: "color: darkmagenta; ",
+    /** Turns the text cyan */
+    CYAN: "color: deepskyblue; "
+  };
   function consoleLog(...args) {
     ((consoleLog2) => consoleLog2(...args))(console.log);
   }
@@ -4372,7 +4398,8 @@ Use Blue Marble version ${scriptVersion} or load a new template.`);
           return;
         }
         const endpointText = data["endpoint"]?.split("?")[0].split("/").filter((s) => s && isNaN(Number(s))).filter((s) => s && !s.includes(".")).pop();
-        console.log(`%cBlue Marble%c: Received message about "%s"`, "color: cornflowerblue;", "", endpointText);
+        console.debug(`Color Test: %cA%cB%cC%cD%cE%cF%cG%cH%c`, consoleCSS.WHITE, consoleCSS.BLACK, consoleCSS.RED, consoleCSS.YELLOW, consoleCSS.GREEN, consoleCSS.BLUE, consoleCSS.MAGENTA, consoleCSS.CYAN, consoleCSS.RESET);
+        console.debug(`%cBlue Marble%c: Received message about "%c%s%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, endpointText, consoleCSS.RESET);
         switch (endpointText) {
           case "me":
             if (dataJSON["status"] && dataJSON["status"]?.toString()[0] != "2") {
@@ -4614,6 +4641,8 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
   var name = GM_info.script.name.toString();
   var version = GM_info.script.version.toString();
   var consoleStyle = "color: cornflowerblue;";
+  console.log("Top of BM file.");
+  console.log("window.fetch", window.fetch.toString());
   var spyCodeInjection = () => {
     const script = document.currentScript;
     const name2 = script?.getAttribute("bm-name") || "Blue Marble";
@@ -4721,6 +4750,8 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     consoleLog(`Removed injection code '${name2}' (${injectionUUID}) from the DOM tree.`);
   }
   inject("Spy Code", spyCodeInjection);
+  console.log("BM after spy code injected.");
+  console.log("window.fetch", window.fetch.toString());
   (async () => {
     const prayThisIsNotTrue = document.querySelector("#bm-window-main");
     if (prayThisIsNotTrue) {
@@ -4811,6 +4842,8 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
       settingsManager.setWindowFilter(filter);
       filter.buildWindow();
     }
+    console.log("End of BM file.");
+    console.log("window.fetch", window.fetch.toString());
     consoleLog(`%c${name}%c (${version}) userscript has loaded!`, "color: cornflowerblue;", "");
     function observeBlack() {
       const observer = new MutationObserver((mutations, observer2) => {

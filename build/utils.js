@@ -4,6 +4,7 @@
  */
 export const consoleStyle = {
 
+  // CONTROL CHARACTERS
   /** Resets all styling */
   RESET: '\x1b[0m',
   /** Makes the text **bold** */
@@ -13,6 +14,7 @@ export const consoleStyle = {
   /** Inverses the color of the text and the background */
   INVERSE: '\x1b[7m',
 
+  // COLOR CHARACTERS
   /** Turns the text white */
   WHITE: '\x1b[37m',
   /** Turns the text black */

@@ -17,6 +17,9 @@ const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
 const consoleStyle = 'color: cornflowerblue;'; // The styling for the console logs
 
+console.log('Top of BM file.');
+console.log('window.fetch', window.fetch.toString());
+
 /** What code to execute instantly in the client (webpage) to spy on fetch calls.
  * This code will execute outside of TamperMonkey's sandbox.
  * @since 0.11.15
@@ -201,6 +204,9 @@ function inject(name, callback, uuid) {
 // The code will be injected into <html>, which should exist at this point
 inject('Spy Code', spyCodeInjection);
 
+console.log('BM after spy code injected.');
+console.log('window.fetch', window.fetch.toString());
+
 // ----- START OF BLUE MARBLE EXECUTION -----
 (async () => {
   // All `await` GM calls must be inside this annon async function
@@ -352,6 +358,9 @@ inject('Spy Code', spyCodeInjection);
     settingsManager.setWindowFilter(filter);
     filter.buildWindow();
   }
+
+  console.log('End of BM file.');
+  console.log('window.fetch', window.fetch.toString());
 
   consoleLog(`%c${name}%c (${version}) userscript has loaded!`, 'color: cornflowerblue;', '');
 

@@ -22,26 +22,26 @@ const terser = require('terser');
 
 const isGitHub = !!process.env?.GITHUB_ACTIONS; // Is this running in a GitHub Action Workflow?'
 
-console.log(`${consoleStyle.BLUE}Starting build...${consoleStyle.RESET}`);
+console.info(`${consoleStyle.BLUE}Starting build...${consoleStyle.RESET}`);
 
 // Tries to build the wiki if build.js is run in a GitHub Workflow
 // if (isGitHub) {
 //   try {
-//     console.log(`Generating JSDoc...`);
+//     console.info(`Generating JSDoc...`);
 //     execSync(`npx jsdoc src/ -r -d docs -t node_modules/minami`, { stdio: "inherit" });
-//     console.log(`JSDoc built ${consoleStyle.GREEN}successfully${consoleStyle.RESET}`);
+//     console.info(`JSDoc built ${consoleStyle.GREEN}successfully${consoleStyle.RESET}`);
 //   } catch (error) {
 //     console.error(`${consoleStyle.RED + consoleStyle.BOLD}Failed to generate JSDoc${consoleStyle.RESET}:`, error);
 //     process.exit(1);
 //   }
 // }
 
-console.log(`${consoleStyle.BLUE}Building 1 of 3...${consoleStyle.RESET}`);
+console.info(`${consoleStyle.BLUE}Building 1 of 3...${consoleStyle.RESET}`);
 
 // Tries to bump the version
 try {
   const update = execSync('node build/update-version.js', { stdio: 'inherit' });
-  console.log(`Version updated in meta file ${consoleStyle.GREEN}successfully${consoleStyle.RESET}`);
+  console.debug(`Version updated in meta file ${consoleStyle.GREEN}successfully${consoleStyle.RESET}`);
 } catch (error) {
   console.error(`${consoleStyle.RED + consoleStyle.BOLD}Failed to update version number${consoleStyle.RESET}:`, error);
   process.exit(1);
@@ -121,7 +121,7 @@ if (!isGitHub) {
   try {
     importedMapCSS = JSON.parse(fs.readFileSync('dist/BlueMarble.user.css.map.json', 'utf8'));
   } catch {
-    console.log(`${consoleStyle.YELLOW}Warning! Could not find a CSS map to import. A 100% new CSS map will be generated...${consoleStyle.RESET}`);
+    console.warn(`${consoleStyle.YELLOW}Warning! Could not find a CSS map to import. A 100% new CSS map will be generated...${consoleStyle.RESET}`);
   }
 }
 
@@ -148,7 +148,7 @@ fs.writeFileSync(
   'utf8'
 );
 
-console.log(`${consoleStyle.BLUE}Building 2 of 3...${consoleStyle.RESET}`);
+console.info(`${consoleStyle.BLUE}Building 2 of 3...${consoleStyle.RESET}`);
 
 const standaloneName = 'BlueMarble-Standalone'; // Standalone flavor name of flie
 const standaloneBMUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${standaloneName}.user.js`;
@@ -201,7 +201,7 @@ standaloneBMjs = standaloneBMjs.replace(/\/\/\s+\@downloadURL\s+https.*\r?\n?/g,
 // Generates the Blue Marble JS file that contains all external resources
 fs.writeFileSync(`dist/${standaloneName}.user.js`, standaloneBMjs, 'utf-8');
 
-console.log(`${consoleStyle.BLUE}Building 3 of 3...${consoleStyle.RESET}`);
+console.info(`${consoleStyle.BLUE}Building 3 of 3...${consoleStyle.RESET}`);
 
 const greasyForkName = 'BlueMarble-For-GreasyFork'; // GreasyFork flavor name of file
 const greasyForkUpdateURL = `https://raw.githubusercontent.com/SwingTheVine/Wplace-BlueMarble/main/dist/${greasyForkName}.user.js`;

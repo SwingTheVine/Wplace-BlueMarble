@@ -5,7 +5,7 @@
  */
 
 import TemplateManager from "./templateManager.js";
-import { consoleError, consoleWarn, escapeHTML, localizeNumber, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
+import { consoleCSS, consoleError, consoleWarn, escapeHTML, localizeNumber, numberToEncoded, serverTPtoDisplayTP } from "./utils.js";
 
 export default class ApiManager {
 
@@ -47,7 +47,9 @@ export default class ApiManager {
       // E.g. "wplace.live/api/files/s0/tiles/0/0/0.png" -> "tiles"
       const endpointText = data['endpoint']?.split('?')[0].split('/').filter(s => s && isNaN(Number(s))).filter(s => s && !s.includes('.')).pop();
 
-      console.log(`%cBlue Marble%c: Received message about "%s"`, 'color: cornflowerblue;', '', endpointText);
+      console.debug(`Color Test: %cA%cB%cC%cD%cE%cF%cG%cH%c`, consoleCSS.WHITE, consoleCSS.BLACK, consoleCSS.RED, consoleCSS.YELLOW, consoleCSS.GREEN, consoleCSS.BLUE, consoleCSS.MAGENTA, consoleCSS.CYAN, consoleCSS.RESET);
+
+      console.debug(`%cBlue Marble%c: Received message about "%c%s%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, endpointText, consoleCSS.RESET);
 
       // Each case is something that Blue Marble can use from the fetch.
       // For instance, if the fetch was for "me", we can update the overlay stats

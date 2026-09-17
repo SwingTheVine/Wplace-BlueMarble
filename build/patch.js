@@ -6,11 +6,11 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 import { consoleStyle } from './utils.js';
 
-console.log(`${consoleStyle.BLUE}Starting patch...${consoleStyle.RESET}`);
+console.info(`${consoleStyle.BLUE}Starting patch...${consoleStyle.RESET}`);
 
 try {
   const update = execSync('npm version patch --no-git-tag-version', { stdio: 'inherit' });
-  console.log(`Version patch updated ${consoleStyle.GREEN}successfully${consoleStyle.RESET}`);
+  console.debug(`Version patch updated ${consoleStyle.GREEN}successfully${consoleStyle.RESET}`);
 } catch (error) {
   console.error(`${consoleStyle.RED + consoleStyle.BOLD}Failed to update version number${consoleStyle.RESET}:`, error);
   process.exit(1);

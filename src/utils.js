@@ -166,6 +166,39 @@ export function negativeSafeModulo(a, b) {
   return (a % b + b) % b;
 }
 
+/** Styling for console logs.
+ * This only affects the console in Browser Dev Tools.
+ * @since 0.95.18
+ */
+export const consoleCSS = {
+
+  // CONTROL CHARACTERS
+  /** Resets all styling */
+  RESET: '',
+  /** Makes text **bold** */
+  BOLD: 'font-weight: bold; ',
+  /** Makes the text underlined */
+  UNDERLINE: 'text-decoration: underline; ',
+
+  // COLOR CHARACTERS
+  /** Turns the text white */
+  WHITE: 'color: white; ',
+  /** Turns the text black */
+  BLACK: 'color: black; ',
+  /** Turns the text red */
+  RED: 'color: darkred; ',
+  /** Turns the text green */
+  GREEN: 'color: springgreen; ',
+  /** Turns the text yellow */
+  YELLOW: 'color: gold; ',
+  /** Turns the text blue */
+  BLUE: 'color: cornflowerblue; ',
+  /** Turns the text magenta */
+  MAGENTA: 'color: darkmagenta; ',
+  /** Turns the text cyan */
+  CYAN: 'color: deepskyblue; ',
+}
+
 /** Bypasses terser's stripping of console function calls.
  * This is so the non-obfuscated code will contain debugging console calls, but the distributed version won't.
  * However, the distributed version needs to call the console somehow, so this wrapper function is how.
