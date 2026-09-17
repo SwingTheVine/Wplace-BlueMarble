@@ -252,7 +252,7 @@ export default class WindowWizard extends Overlay {
           // Obtain template information
           const templateKeyArray = templateKey.split(' '); // E.g., "0 $Z" -> ["0", "$Z"]
           const sortID = Number(templateKeyArray?.[0]); // Sort ID of the template
-          const authorID = encodedToNumber(templateKeyArray?.[1] || '0', this.templateManager.encodingBase); // User ID of the person who exported the template
+          const authorID = encodedToNumber(templateKeyArray?.[1] || '0'); // User ID of the person who exported the template
           const displayName = templateValue.name || `Template ${sortID || ''}`; // Display name of the template
           const coords = templateValue?.coords?.split(',')?.map(Number); // "1,2,3,4" -> [1, 2, 3, 4]
           const totalPixelCount = templateValue.pixels?.total ?? undefined;
