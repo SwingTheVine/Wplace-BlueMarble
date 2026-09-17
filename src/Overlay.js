@@ -1449,6 +1449,11 @@ export default class Overlay {
     // Grabs all open windows
     const windows = document.querySelectorAll('body [id^="bm-"][data-draw-depth]');
 
+    // If there are no open windows...
+    if (windows.length === 0) {
+      return 0; // At this point in the code, no draw depth has been requested, so we return the default/start/lowest
+    }
+
     // If the draw depth is full...
     if (windows.length >= 92) {
       consoleWarn(`Maximum draw depth reached! For as long as 92 windows are open, new windows will overload the highest draw depth.`); // For console

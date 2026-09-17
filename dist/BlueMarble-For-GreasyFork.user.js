@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.9
+// @version         0.95.10
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1280,6 +1280,9 @@
         return requestedDrawDepth;
       }
       const windows = document.querySelectorAll('body [id^="bm-"][data-draw-depth]');
+      if (windows.length === 0) {
+        return 0;
+      }
       if (windows.length >= 92) {
         consoleWarn(`Maximum draw depth reached! For as long as 92 windows are open, new windows will overload the highest draw depth.`);
         this.handleDisplayError("Maximum draw depth reached! Close some windows!");
