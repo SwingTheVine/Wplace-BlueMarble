@@ -209,6 +209,7 @@ export default class TemplateManager {
    * `#loadTemplate()` will create a class instance without saving to the template storage.
    * @param {Object} template - The template to load
    * @since 0.88.504
+   * @deprecated since unspecified time
    */
   #loadTemplate(templateObject) {
 

@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.10
+// @version         0.95.11
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2912,7 +2912,8 @@ Assuming all common states are zeros...`);
       coords = null,
       chunked = null,
       chunked32 = {},
-      tileSize = 1e3
+      tileSize = 1e3,
+      pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() }
     } = {}) {
       __privateAdd(this, _Template_instances);
       this.displayName = displayName;
@@ -2924,7 +2925,7 @@ Assuming all common states are zeros...`);
       this.chunked = chunked;
       this.chunked32 = chunked32;
       this.tileSize = tileSize;
-      this.pixelCount = { total: 0, colors: /* @__PURE__ */ new Map() };
+      this.pixelCount = pixelCount;
       this.shouldSkipTransTiles = true;
       this.shouldAggSkipTransTiles = false;
     }
@@ -4138,6 +4139,7 @@ There are ${pixelsCorrectTotal} correct pixels.`);
    * `#loadTemplate()` will create a class instance without saving to the template storage.
    * @param {Object} template - The template to load
    * @since 0.88.504
+   * @deprecated since unspecified time
    */
   loadTemplate_fn = function(templateObject) {
     const pixelCount = {
