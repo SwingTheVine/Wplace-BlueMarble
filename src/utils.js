@@ -186,7 +186,7 @@ export const consoleCSS = {
   /** Turns the text black */
   BLACK: 'color: black; ',
   /** Turns the text red */
-  RED: 'color: darkred; ',
+  RED: 'color: crimson; ',
   /** Turns the text green */
   GREEN: 'color: springgreen; ',
   /** Turns the text yellow */
@@ -194,7 +194,7 @@ export const consoleCSS = {
   /** Turns the text blue */
   BLUE: 'color: cornflowerblue; ',
   /** Turns the text magenta */
-  MAGENTA: 'color: darkmagenta; ',
+  MAGENTA: 'color: magenta; ',
   /** Turns the text cyan */
   CYAN: 'color: deepskyblue; ',
 }

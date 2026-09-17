@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.22
+// @version         0.95.23
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -1456,7 +1456,7 @@
     /** Turns the text black */
     BLACK: "color: black; ",
     /** Turns the text red */
-    RED: "color: darkred; ",
+    RED: "color: crimson; ",
     /** Turns the text green */
     GREEN: "color: springgreen; ",
     /** Turns the text yellow */
@@ -1464,7 +1464,7 @@
     /** Turns the text blue */
     BLUE: "color: cornflowerblue; ",
     /** Turns the text magenta */
-    MAGENTA: "color: darkmagenta; ",
+    MAGENTA: "color: magenta; ",
     /** Turns the text cyan */
     CYAN: "color: deepskyblue; "
   };
@@ -4640,42 +4640,47 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
   // src/main.js
   var name = GM_info.script.name.toString();
   var version = GM_info.script.version.toString();
-  var consoleStyle = "color: cornflowerblue;";
-  console.log("Top of BM file.");
+  console.debug(`%c${name}%c: Top of top-level execution.`, consoleCSS.BLUE, consoleCSS.RESET);
   console.log("window.fetch", window.fetch.toString());
   var spyCodeInjection = () => {
     const script = document.currentScript;
     const name2 = script?.getAttribute("bm-name") || "Blue Marble";
-    const consoleStyle2 = script?.getAttribute("bm-cStyle") || "";
+    const consoleStyle = script?.getAttribute("bm-cStyle") || "";
     const fetchedBlobQueue = /* @__PURE__ */ new Map();
-    console.log(`%c${name2}%c: Starting spy code initialization... (1/4)`, consoleStyle2, "");
+    console.debug(`%c${name2} Thread%c: (1/4) Starting spy code initialization...`, consoleStyle, "");
     window.addEventListener("message", (event) => {
-      const { source, endpoint, blobID, blobData, blink } = event.data;
-      const elapsed = Date.now() - blink;
-      console.groupCollapsed(`%c${name2}%c: ${fetchedBlobQueue.size} Received IMAGE message about blob "${blobID}"`, consoleStyle2, "");
-      console.log(`Blob fetch took %c${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")}%c MM:SS.mmm`, consoleStyle2, "");
-      console.log(fetchedBlobQueue);
+      const { source, endpoint, blobID, blobData, blink: blink2 } = event.data;
+      const elapsed = Date.now() - blink2;
+      console.groupCollapsed(`%c${name2} Closer%c: ${fetchedBlobQueue.size} Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, "", "color: magenta; ", "", "color: deepskyblue; ", "");
+      console.debug(`Blob fetch took %c${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")}%c MM:SS.mmm`, consoleStyle, "");
+      console.debug(fetchedBlobQueue);
       console.groupEnd();
       if (source == "blue-marble" && !!blobID && !!blobData && !endpoint) {
         const callback = fetchedBlobQueue.get(blobID);
         if (typeof callback === "function") {
           callback(blobData);
         } else {
-          consoleWarn(`%c${name2}%c: Attempted to retrieve a blob (%s) from queue, but the blobID was not a function! Skipping...`, consoleStyle2, "", blobID);
+          console.warn(`%c${name2} Closer%c: Attempted to retrieve a blob (%c%s%c) from queue, but the blobID was not a function! Skipping...`, consoleStyle, "", "color: deepskyblue; ", blobID, "");
         }
-        fetchedBlobQueue.delete(blobID);
       }
     });
-    console.log(`%c${name2}%c: Spy code finished initalizing message hook. (2/4)`, consoleStyle2, "");
+    console.debug(`%c${name2} Thread%c: (2/4) Spy code finished initalizing message hook.`, consoleStyle, "");
     const originalFetch = window.fetch;
-    console.log(`%c${name2}%c: Spy code finished retrieving window.fetch (3/4)`, consoleStyle2, "");
+    console.debug(`%c${name2} Thread%c: (3/4) Spy code finished retrieving window.fetch`, consoleStyle, "");
     window.fetch = async function(...args) {
-      const response = await originalFetch.apply(this, args);
+      const context = this || window;
+      let response = void 0;
+      try {
+        response = await originalFetch.apply(context, args);
+      } catch (exception) {
+        console.error(`%c${name2} Opener%c: Failed to make a fetch request! Error: `, consoleStyle, "", exception);
+        throw exception;
+      }
       const cloned = response.clone();
       const endpointName = (args[0] instanceof Request ? args[0]?.url : args[0]) || "ignore";
       const contentType = cloned.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
-        console.log(`%c${name2}%c: Sending JSON message about endpoint "${endpointName}"`, consoleStyle2, "");
+        console.debug(`%c${name2} Opener%c: Sending %cJSON%c message about endpoint "${endpointName}"`, consoleStyle, "", "color: magenta; ", "");
         cloned.json().then((jsonData) => {
           window.postMessage({
             source: "blue-marble",
@@ -4683,44 +4688,70 @@ Received: ${coordsTile?.[0]}, ${coordsTile?.[1]}, ${coordsPixel?.[0]}, ${coordsP
             jsonData
           }, "*");
         }).catch((err) => {
-          console.error(`%c${name2}%c: Failed to parse JSON: `, consoleStyle2, "", err);
+          console.error(`%c${name2} Opener%c: Failed to parse JSON: `, consoleStyle, "", err);
         });
       } else if (contentType.includes("image/") && (!endpointName.includes("openfreemap") && !endpointName.includes("maps"))) {
-        const blink = Date.now();
-        const blob = await cloned.blob();
-        console.log(`%c${name2}%c: ${fetchedBlobQueue.size} Sending IMAGE message about endpoint "${endpointName}"`, consoleStyle2, "");
-        return new Promise((resolve) => {
+        try {
+          const blink2 = Date.now();
+          const blob = await cloned.blob();
           const blobUUID = crypto.randomUUID();
-          fetchedBlobQueue.set(blobUUID, (blobProcessed) => {
-            resolve(new Response(blobProcessed, {
-              headers: cloned.headers,
-              status: cloned.status,
-              statusText: cloned.statusText
-            }));
-            console.log(`%c${name2}%c: ${fetchedBlobQueue.size} Processed blob "${blobUUID}"`, consoleStyle2, "");
+          console.debug(`%c${name2} Opener%c: ${fetchedBlobQueue.size} Sending %cIMAGE%c message about endpoint "${endpointName}" with blob ID "%c%s%c"`, consoleStyle, "", "color: magenta; ", "", "color: deepskyblue; ", blobUUID, "");
+          return new Promise((resolve) => {
+            const timeoutMs = 1e4;
+            const watchdog2 = setTimeout(() => {
+              console.warn(`%c${name2} Opener%c: ${fetchedBlobQueue.size} Failed to return manipulated blob related to endpoint "${endpointName}" with blob ID "%c%s%c"!
+The blob took longer than %d miliseconds to process! Returning original blob...`, consoleStyle, "", "color: deepskyblue; ", blobUUID, "", timeoutMs);
+              resolve(response);
+            }, timeoutMs);
+            fetchedBlobQueue.set(blobUUID, (blobProcessed) => {
+              clearTimeout(watchdog2);
+              fetchedBlobQueue.delete(blobUUID);
+              try {
+                const responseProcessed = new Response(blobProcessed, {
+                  headers: cloned.headers,
+                  status: cloned.status,
+                  statusText: cloned.statusText
+                });
+                Object.defineProperties(responseProcessed, "url", {
+                  value: response.url,
+                  writable: false
+                });
+                resolve(responseProcessed);
+                console.debug(`%c${name2} Closer%c: ${fetchedBlobQueue.size} The blob "%c%s%c" has now been processed.`, consoleStyle, "", "color: deepskyblue; ", blobUUID, "");
+              } catch (exception) {
+                console.warn(`%c${name2} Closer%c: ${fetchedBlobQueue.size} Failed to resolve image blob request related to endpoint "${endpointName}" with blob ID "%c%s%c"!
+The original blob will be returned. Error: `, consoleStyle, "", "color: deepskyblue; ", blobUUID, "", exception);
+                resolve(response);
+              }
+            });
+            window.postMessage({
+              source: "blue-marble",
+              endpoint: endpointName,
+              blobID: blobUUID,
+              blobData: blob,
+              blink: blink2
+            });
+          }).catch((exception) => {
+            console.error(`%c${name2} Opener%c: An error occured while resolving the Promise for a blob ID "%c%s%c"! The original blob will be returned. Error: `, consoleStyle, "", "color: deepskyblue; ", blobUUID, "", exception);
+            clearTimeout(watchdog);
+            fetchedBlobQueue.delete(blobUUID);
+            return response;
           });
-          window.postMessage({
-            source: "blue-marble",
-            endpoint: endpointName,
-            blobID: blobUUID,
-            blobData: blob,
-            blink
-          });
-        }).catch((exception) => {
+        } catch (exception) {
           const elapsed = Date.now();
-          console.error(`%c${name2}%c: Failed to Promise blob!`, consoleStyle2, "");
-          console.groupCollapsed(`%c${name2}%c: Details of failed blob Promise:`, consoleStyle2, "");
-          console.log(`Endpoint: ${endpointName}
+          console.warn(`%c${name2} Opener%c: An error occured before the blob could be queued! Returning original blob...`, consoleStyle, "");
+          console.groupCollapsed(`%c${name2} Opener%c: Details of failed blob Promise:`, consoleStyle, "");
+          console.info(`Endpoint: ${endpointName}
 There are ${fetchedBlobQueue.size} blobs processing...
 Blink: ${blink.toLocaleString()}
 Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String(Math.floor(elapsed / 1e3) % 60).padStart(2, "0")}.${String(elapsed % 1e3).padStart(3, "0")} MM:SS.mmm`);
-          console.error(`Exception stack:`, exception);
+          console.warn(`Error: `, exception);
           console.groupEnd();
-        });
+        }
       }
       return response;
     };
-    console.log(`%c${name2}%c: Spy code finished initializing! (4/4)`, consoleStyle2, "");
+    console.debug(`%c${name2} Thread%c: Spy code finished initializing! (4/4)`, consoleStyle, "");
   };
   function inject(name2, callback, uuid) {
     const injectionUUID = uuid ?? crypto.randomUUID().slice(0, 8);
@@ -4739,7 +4770,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     }
     const script = document.createElement("script");
     script.setAttribute("bm-name", name2);
-    script.setAttribute("bm-cStyle", consoleStyle);
+    script.setAttribute("bm-cStyle", consoleCSS.BLUE);
     script.setAttribute("data-uuid", injectionUUID);
     script.textContent = `(${callback})();`;
     document.documentElement.appendChild(script);

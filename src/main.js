@@ -5,7 +5,7 @@
 import Observers from './observers.js';
 import ApiManager from './apiManager.js';
 import TemplateManager from './templateManager.js';
-import { consoleLog, consoleWarn, consoleInfo, waitForDOMReady } from './utils.js';
+import { consoleLog, consoleWarn, consoleInfo, waitForDOMReady, consoleCSS } from './utils.js';
 import WindowMain from './WindowMain.js';
 import WindowTelemetry from './WindowTelemetry.js';
 import SettingsManager from './settingsManager.js';
@@ -15,9 +15,8 @@ import WindowFilter from './WindowFilter.js';
 
 const name = GM_info.script.name.toString(); // Name of userscript
 const version = GM_info.script.version.toString(); // Version of userscript
-const consoleStyle = 'color: cornflowerblue;'; // The styling for the console logs
 
-console.log('Top of BM file.');
+console.debug(`%c${name}%c: Top of top-level execution.`, consoleCSS.BLUE, consoleCSS.RESET);
 console.log('window.fetch', window.fetch.toString());
 
 /** What code to execute instantly in the client (webpage) to spy on fetch calls.
@@ -31,51 +30,85 @@ const spyCodeInjection = () => {
   const consoleStyle = script?.getAttribute('bm-cStyle') || ''; // Gets the console style value that was passed in. Defaults to no styling if nothing was found
   const fetchedBlobQueue = new Map(); // Blobs being processed
 
-  console.log(`%c${name}%c: Starting spy code initialization... (1/4)`, consoleStyle, '');
+  console.debug(`%c${name} Thread%c: (1/4) Starting spy code initialization...`, consoleStyle, '');
 
+  // Creates an event listener, which listens for messages on the window.
   window.addEventListener('message', (event) => {
-    const { source, endpoint, blobID, blobData, blink } = event.data;
+    // This is *one* of the intended receivers for Blue Marble's pixel tile blob messages.
+    // The purpose of this event listener is to receive messages on the window that resolve pixel tile network requests.
+    // The purpose of this event listener is to resolve those network requests using the information provided in the message.
+    // This is the code that *resolves* the pixel tile network requests.
+    // However, the code that specifies how the Response is *created* is elsewhere.
 
-    const elapsed = Date.now() - blink;
+    const { source, endpoint, blobID, blobData, blink } = event.data; // Deconstructs the message information
+
+    const elapsed = Date.now() - blink; // Calculates the time it took to process the pixel tile image
 
     // Since this code does not run in the userscript, we can't use consoleLog().
-    console.groupCollapsed(`%c${name}%c: ${fetchedBlobQueue.size} Received IMAGE message about blob "${blobID}"`, consoleStyle, '');
-    console.log(`Blob fetch took %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c MM:SS.mmm`, consoleStyle, '');
-    console.log(fetchedBlobQueue);
+    console.groupCollapsed(`%c${name} Closer%c: ${fetchedBlobQueue.size} Received %cIMAGE%c message about blob "%c${blobID}%c"`, consoleStyle, '', 'color: magenta; ', '', 'color: deepskyblue; ', '');
+    console.debug(`Blob fetch took %c${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')}%c MM:SS.mmm`, consoleStyle, '');
+    console.debug(fetchedBlobQueue);
     console.groupEnd();
 
-    // The modified blob won't have an endpoint, so we ignore any message without one.
+    // Since there is a single channel of communication for all messages on the window, we ignore all messages that are not meant for us.
     if ((source == 'blue-marble') && !!blobID && !!blobData && !endpoint) {
+      // The message with the modified blob won't have an endpoint, so we ignore any message without one.
+      // The message, however, should be intended for 'blue-marble', and contain blob UUID & data.
 
       const callback = fetchedBlobQueue.get(blobID); // Retrieves the blob based on the UUID
 
-      // If the blobID is a valid function...
+      // If the value from the queue is a valid function...
       if (typeof callback === 'function') {
 
-        callback(blobData); // ...Retrieve the blob data from the blobID function
+        callback(blobData); // ...execute the function
+        // This function will create the Response that resolves the network request.
+        // The Response is created with the blobData specific to this tile.
+
       } else {
         // ...else the blobID is unexpected. We don't know what it is, but we know for sure it is not a blob. This means we ignore it.
 
-        consoleWarn(`%c${name}%c: Attempted to retrieve a blob (%s) from queue, but the blobID was not a function! Skipping...`, consoleStyle, '', blobID);
+        // Can't use consoleWarn()
+        console.warn(`%c${name} Closer%c: Attempted to retrieve a blob (%c%s%c) from queue, but the blobID was not a function! Skipping...`, consoleStyle, '', 'color: deepskyblue; ', blobID, '');
       }
-
-      fetchedBlobQueue.delete(blobID); // Delete the blob from the queue, because we don't need to process it again
     }
   });
 
-  console.log(`%c${name}%c: Spy code finished initalizing message hook. (2/4)`, consoleStyle, '');
+  console.debug(`%c${name} Thread%c: (2/4) Spy code finished initalizing message hook.`, consoleStyle, '');
 
   // Spys on "spontaneous" fetch requests made by the client
   const originalFetch = window.fetch; // Saves a copy of the original fetch
 
-  console.log(`%c${name}%c: Spy code finished retrieving window.fetch (3/4)`, consoleStyle, '');
+  console.debug(`%c${name} Thread%c: (3/4) Spy code finished retrieving window.fetch`, consoleStyle, '');
 
-  // Overrides fetch
+  // Overrides the fetch function on the window
   window.fetch = async function(...args) {
+    // This function assignment is specifically referred to as a "fetch hook"
+    // It contains Blue Marble's code to filter which network requests are sent to Blue Marble.
+    // It contains the code that *receives* pixel tiles.
+    // It contains the code that sends the pixel tiles to Blue Marble.
+    // However, it does NOT contains the code that *resolves* the pixel tile network requests.
+    // All other types of network requests are resolved here though.
 
-    const response = await originalFetch.apply(this, args); // Sends a fetch
+    const context = this || window; // Contains the context this code is running in, or if undefined, the window.
+    // If we are the first/outside fetch hook, then the context is the window/document.
+    // However, if we are the last/inside fetch hook (in a sequence of hooks)...
+    // ...then the context will be whatever fetch hook this fetch hook is running in.
+    // We can't use another fetch hook as our context, so we fallback to the window itself.
+    // Ultimately, this code is executing inside the DOM, so `window` is the context regardless.
+
+    // Attempts to make a fetch request
+    let response = undefined;
+    try {
+      response = await originalFetch.apply(context, args); // Sends a fetch
+    } catch (exception) {
+      // We are not running inside the sandbox, so we don't have access to `consoleError`
+      console.error(`%c${name} Opener%c: Failed to make a fetch request! Error: `, consoleStyle, '', exception);
+      throw exception; // There was no response, so we can't `return` anything expected.
+      // The exception will spread up through all layers of fetch hooks, since a Promise is expected to be returned.
+    }
+
     const cloned = response.clone(); // Makes a copy of the response
-
+    
     // Retrieves the endpoint name. Unknown endpoint = "ignore"
     const endpointName = ((args[0] instanceof Request) ? args[0]?.url : args[0]) || 'ignore';
 
@@ -83,9 +116,8 @@ const spyCodeInjection = () => {
     const contentType = cloned.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
 
-
       // Since this code does not run in the userscript, we can't use consoleLog().
-      console.log(`%c${name}%c: Sending JSON message about endpoint "${endpointName}"`, consoleStyle, '');
+      console.debug(`%c${name} Opener%c: Sending %cJSON%c message about endpoint "${endpointName}"`, consoleStyle, '', 'color: magenta; ', '');
 
       // Sends a message about the endpoint it spied on
       cloned.json()
@@ -97,66 +129,120 @@ const spyCodeInjection = () => {
           }, '*');
         })
         .catch(err => {
-          console.error(`%c${name}%c: Failed to parse JSON: `, consoleStyle, '', err);
+          console.error(`%c${name} Opener%c: Failed to parse JSON: `, consoleStyle, '', err);
         });
     } else if (contentType.includes('image/') && (!endpointName.includes('openfreemap') && !endpointName.includes('maps'))) {
       // Fetch custom for all images but opensourcemap
 
-      const blink = Date.now(); // Current time
+      // Attempts to run the code to manipulate the blob/image, then return it
+      try {
 
-      const blob = await cloned.blob(); // The original blob
-
-      // Since this code does not run in the userscript, we can't use consoleLog().
-      console.log(`%c${name}%c: ${fetchedBlobQueue.size} Sending IMAGE message about endpoint "${endpointName}"`, consoleStyle, '');
-
-      // Returns the manipulated blob
-      return new Promise((resolve) => {
+        const blink = Date.now(); // Current time
+        const blob = await cloned.blob(); // The original blob
         const blobUUID = crypto.randomUUID(); // Generates a random UUID
 
-        // Store the blob while we wait for processing
-        fetchedBlobQueue.set(blobUUID, (blobProcessed) => {
-          // The response that triggers when the blob is finished processing
+        // Since this code does not run in the userscript, we can't use consoleLog().
+        console.debug(`%c${name} Opener%c: ${fetchedBlobQueue.size} Sending %cIMAGE%c message about endpoint "${endpointName}" with blob ID "%c%s%c"`, consoleStyle, '', 'color: magenta; ', '', 'color: deepskyblue; ', blobUUID, '');
 
-          // Creates a new response
-          resolve(new Response(blobProcessed, {
-            headers: cloned.headers,
-            status: cloned.status,
-            statusText: cloned.statusText
-          }));
+        // Returns the manipulated blob as a Promise
+        // The Promise will wait X finite time to resolve, before returning the original response.
+        // Otherwise, the spy code will wait for a message on the window that matches the UUID of the blob (main scenario).
+        // It is expected that Blue Marble is the sender of the message on the window, but it does not *have* to be Blue Marble.
+        // When the spy code receives the message, the Promise is fufilled (elsewhere in the code).
+        return new Promise((resolve) => {
 
-          // Since this code does not run in the userscript, we can't use consoleLog().
-          console.log(`%c${name}%c: ${fetchedBlobQueue.size} Processed blob "${blobUUID}"`, consoleStyle, '');
+          const timeoutMs = 10000; // Timeout in miliseconds
+
+          // What to do (executes) if the Promise ages older than the timeout length
+          const watchdog = setTimeout(() => {
+            // By this point, the queue will probably be full...
+            // ...and the code will be failing & throwing errors elsewhere...
+            // ...but this is just in-case the other boilerplates fail...
+            // ...we don't want the queue to infinitely bloat, after all
+
+            console.warn(`%c${name} Opener%c: ${fetchedBlobQueue.size} Failed to return manipulated blob related to endpoint "${endpointName}" with blob ID "%c%s%c"!\nThe blob took longer than %d miliseconds to process! Returning original blob...`, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', timeoutMs);
+            resolve(response); // Returns the original blob
+          }, timeoutMs);
+
+          // Store the blob in a queue while we wait for somebody else to process the blob.
+          // The key is the UUID of the blob.
+          // The value is a callback, which contains the code to generate the response.
+          // When (elsewhere in the code) the spy code receives the processed blob...
+          // ...it combines the UUID, and the processed blob, then uses **this callback** to create the response.
+          fetchedBlobQueue.set(blobUUID, (blobProcessed) => {
+            // The code below triggers when the blob is finished processing.
+            // It should be assumed that the context this code is executing in, is NOT the fetch hook.
+            // This function should be treated as if it is the code that is resolving the network request, and fufilling the Promise.
+            // Another way to think about it, is that this function won't run until "somebody else" has processed the blob, and sent a message back with the processed blob.
+            // Creates a Response with the processed blob.
+
+            clearTimeout(watchdog); // Resets Watchdog timer
+          fetchedBlobQueue.delete(blobUUID); // Removes the blob from the queue so we don't process it again
+
+            // Attempts to return the processed blob
+            try {
+
+              // Creates a new response
+              const responseProcessed = new Response(blobProcessed, {
+                headers: cloned.headers,
+                status: cloned.status,
+                statusText: cloned.statusText
+              });
+
+              // Since we cloned the original response, the reported origin changed.
+              // So, we change the origin back to what it originally was.
+              Object.defineProperties(responseProcessed, 'url', {
+                value: response.url,
+                writable: false,
+              });
+
+              resolve(responseProcessed); // Returns the processed blob
+
+              // Since this code does not run in the userscript, we can't use consoleLog().
+              console.debug(`%c${name} Closer%c: ${fetchedBlobQueue.size} The blob "%c%s%c" has now been processed.`, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '');
+            } catch (exception) {
+
+              console.warn(`%c${name} Closer%c: ${fetchedBlobQueue.size} Failed to resolve image blob request related to endpoint "${endpointName}" with blob ID "%c%s%c"!\nThe original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', exception);
+              resolve(response); // Returns the original blob
+            }
+          });
+
+          // Sends a message on the window.
+          // This contains the original blob image to be processed, as well as the UUID for the blob.
+          // This is more of a "yeet" since there is no established connection with...
+          // ...the intended receiver, nor do we know if anyone will see it at all.
+          window.postMessage({
+            source: 'blue-marble',
+            endpoint: endpointName,
+            blobID: blobUUID,
+            blobData: blob,
+            blink: blink
+          });
+        }).catch(exception => {
+          console.error(`%c${name} Opener%c: An error occured while resolving the Promise for a blob ID "%c%s%c"! The original blob will be returned. Error: `, consoleStyle, '', 'color: deepskyblue; ', blobUUID, '', exception);
+          clearTimeout(watchdog); // Resets Watchdog timer
+          fetchedBlobQueue.delete(blobUUID); // Removes the blob from the queue so we don't process it again
+          return response; // Returns the original blob
         });
 
-        window.postMessage({
-          source: 'blue-marble',
-          endpoint: endpointName,
-          blobID: blobUUID,
-          blobData: blob,
-          blink: blink
-        });
-      }).catch(exception => {
+      } catch (exception) {
         const elapsed = Date.now();
-        console.error(`%c${name}%c: Failed to Promise blob!`, consoleStyle, '');
-        console.groupCollapsed(`%c${name}%c: Details of failed blob Promise:`, consoleStyle, '');
-        console.log(`Endpoint: ${endpointName}\nThere are ${fetchedBlobQueue.size} blobs processing...\nBlink: ${blink.toLocaleString()}\nTime Since Blink: ${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')} MM:SS.mmm`);
-        console.error(`Exception stack:`, exception);
+        console.warn(`%c${name} Opener%c: An error occured before the blob could be queued! Returning original blob...`, consoleStyle, '');
+        console.groupCollapsed(`%c${name} Opener%c: Details of failed blob Promise:`, consoleStyle, '');
+        console.info(`Endpoint: ${endpointName}\nThere are ${fetchedBlobQueue.size} blobs processing...\nBlink: ${blink.toLocaleString()}\nTime Since Blink: ${String(Math.floor(elapsed/60000)).padStart(2,'0')}:${String(Math.floor(elapsed/1000) % 60).padStart(2,'0')}.${String(elapsed % 1000).padStart(3,'0')} MM:SS.mmm`);
+        console.warn(`Error: `, exception);
         console.groupEnd();
-      });
-
-      // cloned.blob().then(blob => {
-      //   window.postMessage({
-      //     source: 'blue-marble',
-      //     endpoint: endpointName,
-      //     blobData: blob
-      //   }, '*');
-      // });
+      }
     }
+
+    // If you are looking for the piece of code that uses the processed blob to resolve...
+    // ...the network request, then look elsewhere in the Spy Code. It is not in the fetch hook.
+    // However, the code to create the Response is in here.
 
     return response; // Returns the original response
   };
 
-  console.log(`%c${name}%c: Spy code finished initializing! (4/4)`, consoleStyle, '');
+  console.debug(`%c${name} Thread%c: Spy code finished initializing! (4/4)`, consoleStyle, '');
 };
 
 /** Injects code into the client
@@ -191,7 +277,7 @@ function inject(name, callback, uuid) {
 
   const script = document.createElement('script');
   script.setAttribute('bm-name', name); // Passes in the name value
-  script.setAttribute('bm-cStyle', consoleStyle); // Passes in the console style value
+  script.setAttribute('bm-cStyle', consoleCSS.BLUE); // Passes in the console style value
   script.setAttribute('data-uuid', injectionUUID); // Adds the UUID as an attribute to the <script> element
   script.textContent = `(${callback})();`;
   document.documentElement.appendChild(script);
