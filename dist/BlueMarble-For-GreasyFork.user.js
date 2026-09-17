@@ -2,7 +2,7 @@
 // @name            Blue Marble
 // @name:en         Blue Marble
 // @namespace       https://github.com/SwingTheVine/
-// @version         0.95.2
+// @version         0.95.3
 // @description     A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @description:en  A userscript to enhance the user experience on Wplace.live. This includes, but is not limited to: uploading images to display locally on a canvas, adding a button to move the Wplace color palette menu, and other QoL features.
 // @author          SwingTheVine
@@ -2750,8 +2750,8 @@ Returning zero...`);
       bitFlagsMutable = set32BitPosition(bitFlagsMutable, 3, !(Math.sign(xTransCoord) + 1));
       bitFlagsMutable = set32BitPosition(bitFlagsMutable, 4, !(Math.sign(yTransCoord) + 1));
       const windowCoordinateMaximum = 778687;
-      const windowTransX = numberToEncoded(Math.min(Math.abs(xTransCoord), windowCoordinateMaximum));
-      const windowTransY = numberToEncoded(Math.min(Math.abs(yTransCoord), windowCoordinateMaximum));
+      const windowTransX = numberToEncoded(Math.min(Math.round(Math.abs(xTransCoord)), windowCoordinateMaximum));
+      const windowTransY = numberToEncoded(Math.min(Math.round(Math.abs(yTransCoord)), windowCoordinateMaximum));
       return numberToEncoded(drawDepth).slice(-1) + numberToEncoded(bitFlagsMutable).slice(-1) + windowTransX.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3) + windowTransY.padStart(3, this.zerothEncodingAlphabetCharacter).slice(-3);
     };
     const windowMainID = this.windowMain?.windowID;
@@ -3548,7 +3548,7 @@ Getting Y ${pixelY}-${pixelY + drawSizeY}`);
 The Y translation sign is ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION_IS_NEGATIVE)}`);
       console.log(`The raw translation coordinates are (${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.X_TRANSLATION)}, ${this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.Y_TRANSLATION)})`);
       console.log(`The innerWidth of the window is ${window.innerWidth}, and the innerHeight is ${window.innerHeight}.`);
-      translateX = Math.max(-25, Math.min(window.innerWidth - 40, translateX));
+      translateX = Math.max(-100, Math.min(window.innerWidth - 40, translateX));
       translateY = Math.max(-10, Math.min(window.innerHeight - 35, translateY));
       const startingPosition = !this.settingsManager.getWindowStateVariable("bm", this.WStateVariables.WINDOW_MOVED) ? "top: 10px; left: unset; right: 75px;" : `top: 0px; left: 0px; transform: translate(${translateX}px, ${translateY}px);`;
       this.windowParent = document.body;
@@ -4765,7 +4765,7 @@ Time Since Blink: ${String(Math.floor(elapsed / 6e4)).padStart(2, "0")}:${String
     consoleInfo("Halting Blue Marble execution until the DOM is ready...");
     await waitForDOMReady();
     consoleInfo("DOM is ready! Resuming Blue Marble execution...");
-    if (previousTelemetryVersion == void 0 || previousTelemetryVersion > currentTelemetryVersion) {
+    if (previousTelemetryVersion == void 0 || previousTelemetryVersion < currentTelemetryVersion) {
       const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
       windowTelemetry.setApiManager(apiManager);
       windowTelemetry.buildWindow();

@@ -299,7 +299,7 @@ if (document.readyState === 'loading') {
 
 
   // If the user has not agreed to the current data collection terms, we need to show the Telemetry window.
-  if ((previousTelemetryVersion == undefined) || (previousTelemetryVersion > currentTelemetryVersion)) {
+  if ((previousTelemetryVersion == undefined) || (previousTelemetryVersion < currentTelemetryVersion)) {
     const windowTelemetry = new WindowTelemetry(name, version, currentTelemetryVersion, userSettings?.uuid);
     windowTelemetry.setApiManager(apiManager);
     windowTelemetry.buildWindow(); // Asks the user if they want to enable telemetry
