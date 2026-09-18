@@ -197,10 +197,10 @@ export default class TemplateManager {
 
     this.windowMain.handleDisplayStatus(`Template created at ${coords.join(', ')}!`);
 
-    console.info(`%c${this.scriptName}%c: There are now %c${Object.keys(this.templatesJSON.templates).length}%c templates loaded!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
-    console.debug(`%c${this.scriptName}%c: Value of %ctemplatesJSON%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesJSON);
-    console.debug(`%c${this.scriptName}%c: Value of %ctemplatesArray%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesArray);
-    console.debug(`%c${this.scriptName}%c: Value of %ctemplatesJSON%c as a string:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET,JSON.stringify(this.templatesJSON));
+    console.info(`%c${this.name}%c: There are now %c${Object.keys(this.templatesJSON.templates).length}%c templates loaded!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+    console.debug(`%c${this.name}%c: Value of %ctemplatesJSON%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesJSON);
+    console.debug(`%c${this.name}%c: Value of %ctemplatesArray%c:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET, this.templatesArray);
+    console.debug(`%c${this.name}%c: Value of %ctemplatesJSON%c as a string:`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET,JSON.stringify(this.templatesJSON));
 
     await this.#storeTemplates();
   }

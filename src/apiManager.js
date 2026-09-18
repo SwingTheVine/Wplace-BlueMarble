@@ -21,7 +21,6 @@ export default class ApiManager {
     this.version = version; // Verison of userscript
 
     this.templateManager = templateManager;
-    this.disableAll = false; // Should the entire userscript be disabled?
     this.chargeRefillTimerID = ''; // Contains the Charge refill timer element ID attribute so we can update the timer.
     this.coordsTilePixel = []; // Contains the last detected tile/pixel coordinate pair requested
     this.templateCoordsTilePixel = []; // Contains the last "enabled" template coords
@@ -35,28 +34,29 @@ export default class ApiManager {
    * @since 0.11.1
   */
   spontaneousResponseListener(overlay) {
+    
+    // Triggers whenever new information about Wplace is received.
+    // These events do not need responses.
+    document.addEventListener('BM_NEWS_STREAM', async (event) => {
 
-    // Triggers whenever a message is sent
-    window.addEventListener('message', async (event) => {
-
-      const data = event.data; // The data of the message
+      const data = event.detail; // The message body
       const dataJSON = data['jsonData']; // The JSON response, if any
 
-      // Returns early if the message was not intended for Blue Marble
-      if (!(data && data['source'] === 'blue-marble')) {return;}
+      // If the message body does not exist, return early
+      // If the message was NOT intended for Blue Marble, or everyone, then return early
+      if (!data || !(data['source']?.includes('blue-marble') || data['source']?.includes('*'))) {return;}
 
-      // Returns early if the message has no endpoint (intended for Blue Marble, but not this function)
-      if (!data['endpoint']) {return;}
+      // Return early if the message was not meant for this event listener
+      if (!data['endpoint'] || !data['jsonData']) {return;}
 
-      // Trims endpoint to the second to last non-number, non-null directoy.
+      // Trims endpoint to the second to last non-number, non-null directory.
       // E.g. "wplace.live/api/pixel/0/0?payload" -> "pixel"
       // E.g. "wplace.live/api/files/s0/tiles/0/0/0.png" -> "tiles"
       const endpointText = data['endpoint']?.split('?')[0].split('/').filter(s => s && isNaN(Number(s))).filter(s => s && !s.includes('.')).pop();
 
-      console.debug(`%c${this.name}%c: Received message about "%c${endpointText}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
+      console.debug(`%c${this.name}%c: Received NEWS message about "%c${endpointText}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
 
-      // Each case is something that Blue Marble can use from the fetch.
-      // For instance, if the fetch was for "me", we can update the overlay stats
+      // Each case contains information Blue Marble can use, but does not require a event/message response
       switch (endpointText) {
 
         case 'me': // Request to retrieve user data
@@ -185,6 +185,32 @@ export default class ApiManager {
             }
           }
           break;
+      }
+    });
+
+    // Triggers whenever something needs Blue Marble to do something.
+    // These events need responses.
+    document.addEventListener('BM_REQUEST_STREAM', async (event) => {
+
+      const data = event.detail; // The message body
+
+      // If the message body does not exist, return early
+      // If the message was NOT intended for Blue Marble, or everyone, then return early
+      if (!data || !(data['source']?.includes('blue-marble') || data['source']?.includes('*'))) {return;}
+
+      // Return early if the message was not meant for this event listener
+      if (!data['endpoint'] || !data['blobID'] || !data['blobData']) {return;}
+
+      // Trims endpoint to the second to last non-number, non-null directory.
+      // E.g. "wplace.live/api/pixel/0/0?payload" -> "pixel"
+      // E.g. "wplace.live/api/files/s0/tiles/0/0/0.png" -> "tiles"
+      const endpointText = data['endpoint']?.split('?')[0].split('/').filter(s => s && isNaN(Number(s))).filter(s => s && !s.includes('.')).pop();
+
+      console.debug(`%c${this.name}%c: Received REQUEST message about "%c${endpointText}%c"`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.MAGENTA, consoleCSS.RESET);
+
+      // Each case is something that Blue Marble can use from the fetch.
+      // For instance, if the fetch was for "me", we can update the overlay stats
+      switch (endpointText) {
         
         case 'tile':
         case 'tiles':
@@ -195,25 +221,40 @@ export default class ApiManager {
           
           const blobUUID = data['blobID']; // Retrieves the UUID of the blob for this specific network request
           const blobData = data['blobData']; // Retrieves the blob of the tile
+          const eventResponseUUID = data['eventNameUUID']; // Retrieves the name/UUID of the event we need to post a message as, for our response
           
-          // Draws the templates on the tile blob
           const timer = Date.now();
-          const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
-          console.debug(`%c${this.name}%c: Finished drawing templates on tile blob (%c${blobUUID}%c) in %c${(Date.now() - timer) / 1000}%c seconds!`,consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
 
-          // Sends a message on the window, which contains the processed tile blob.
-          // This is more of a "yeet" since there is no established connection with...
-          // ...the intended receiver, nor do we know if anyone will see it at all.
-          window.postMessage({
-            source: 'blue-marble',
-            blobID: blobUUID,
-            blobData: templateBlob,
-            blink: data['blink']
-          });
-          break;
+          // Attempts to draw templates on the tile, then return the modified tile image in a response
+          try {
 
-        case 'robots': // Request to retrieve what script types are allowed
-          this.disableAll = dataJSON['userscript']?.toString().toLowerCase() == 'false'; // Disables Blue Marble if site owner wants userscripts disabled
+            // Draws the templates on the tile blob
+            const templateBlob = await this.templateManager.drawTemplateOnTile(blobData, tileCoordsTile);
+            console.debug(`%c${this.name}%c: Finished drawing templates on tile blob (%c${blobUUID}%c) in %c${(Date.now() - timer) / 1000}%c seconds!`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
+
+            // Sends a message on the window, which contains the processed tile blob.
+            // This is more of a "yeet" since there is no established connection with...
+            // ...the intended receiver, nor do we know if anyone will see it at all.
+            document.dispatchEvent(new CustomEvent(eventResponseUUID, {
+              detail: {
+                source: 'blue-marble',
+                blobID: blobUUID,
+                blobData: templateBlob,
+                blink: data['blink']
+              }
+            }));
+            return;
+          } catch (exception) {
+            console.warn(`%c${this.name}%c: An error occured while modifying tile blob (%c${blobUUID}%c)! Returning original blob. Error: `, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, exception);
+          }
+          document.dispatchEvent(new CustomEvent(eventResponseUUID, {
+            detail: {
+              source: 'blue-marble',
+              blobID: blobUUID,
+              blobData: blobData,
+              blink: data['blink']
+            }
+          }));
           break;
       }
     });

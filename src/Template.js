@@ -256,7 +256,7 @@ export default class Template {
     transContext: transContext
   }) {
 
-    console.debug(`${this.scriptName}%c: Calculating template tile transparency...`, consoleCSS.BLUE, consoleCSS.RESET);
+    console.debug(`%c${this.scriptName}%c: Calculating template tile transparency...`, consoleCSS.BLUE, consoleCSS.RESET);
 
     console.debug(`%c${this.scriptName}%c: User Settings:\nShould Skip: %c${this.shouldSkipTransTiles}%c;\nShould Agg Skip: %c${this.shouldAggSkipTransTiles}%c`, consoleCSS.BLUE, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET, consoleCSS.CYAN, consoleCSS.RESET);
     
